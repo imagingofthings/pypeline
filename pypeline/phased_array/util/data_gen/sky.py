@@ -24,7 +24,8 @@ import pypeline.util.math.sphere as sph
 
 def is_source_config(x):
     """
-    Return :py:obj:`True` if `x` is a valid :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission` config specification.
+    Return :py:obj:`True` if `x` is a valid
+    :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission` config specification.
 
     A source config spec is considered valid if it is a collection of pairs (a, b), with
 
@@ -43,8 +44,7 @@ def is_source_config(x):
                 return False
 
             intensity = entry[1]
-            if not (chk.is_real(intensity) and
-                    (intensity > 0)):
+            if not (chk.is_real(intensity) and (intensity > 0)):
                 return False
 
             direction = entry[0]
@@ -86,7 +86,7 @@ class SkyEmission:
        array([1, 2, 3, 4])
     """
 
-    @chk.check('source_config', is_source_config)
+    @chk.check("source_config", is_source_config)
     def __init__(self, source_config):
         """
         Parameters
@@ -100,11 +100,7 @@ class SkyEmission:
         direction = [None] * N_src
         for i, (s_dir, s_int) in enumerate(source_config):
             intensity[i] = s_int
-            direction[i] = (s_dir
-                            .transform_to('icrs')
-                            .cartesian
-                            .xyz
-                            .value)
+            direction[i] = s_dir.transform_to("icrs").cartesian.xyz.value
 
         self.__xyz = np.stack(direction, axis=0)
         self.__intensity = np.array(intensity)
@@ -130,12 +126,11 @@ class SkyEmission:
         return self.__intensity
 
 
-@chk.check(dict(direction=chk.is_instance(coord.SkyCoord),
-                FoV=chk.is_real,
-                N_src=chk.is_integer))
+@chk.check(dict(direction=chk.is_instance(coord.SkyCoord), FoV=chk.is_real, N_src=chk.is_integer))
 def from_tgss_catalog(direction, FoV, N_src):
     """
-    Generate :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission` from the `TGSS <http://tgssadr.strw.leidenuniv.nl/doku.php>`_ catalog.
+    Generate :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission` from the
+    `TGSS <http://tgssadr.strw.leidenuniv.nl/doku.php>`_ catalog.
 
     This function will automatically download and cache the catalog on disk for subsequent calls.
 
@@ -154,12 +149,12 @@ def from_tgss_catalog(direction, FoV, N_src):
         Sky model.
     """
     if FoV <= 0:
-        raise ValueError('Parameter[FoV] must be positive.')
+        raise ValueError("Parameter[FoV] must be positive.")
 
     if N_src <= 0:
-        raise ValueError('Parameter[N_src] must be positive.')
+        raise ValueError("Parameter[N_src] must be positive.")
 
-    disk_path = pathlib.Path.home() / '.pypeline' / 'catalog' / 'TGSSADR1_7sigma_catalog.tsv'
+    disk_path = pathlib.Path.home() / ".pypeline" / "catalog" / "TGSSADR1_7sigma_catalog.tsv"
 
     if not disk_path.exists():
         # Download catalog from web.
@@ -167,38 +162,35 @@ def from_tgss_catalog(direction, FoV, N_src):
         if not catalog_dir.exists():
             catalog_dir.mkdir(parents=True)
 
-        web_path = 'http://tgssadr.strw.leidenuniv.nl/catalogs/TGSSADR1_7sigma_catalog.tsv'
-        print(f'Downloading catalog from {web_path}')
+        web_path = "http://tgssadr.strw.leidenuniv.nl/catalogs/TGSSADR1_7sigma_catalog.tsv"
+        print(f"Downloading catalog from {web_path}")
         with urllib.request.urlopen(web_path) as response:
-            with disk_path.open(mode='wb') as f:
+            with disk_path.open(mode="wb") as f:
                 shutil.copyfileobj(response, f)
 
     # Read catalog from disk path
-    catalog_full = pd.read_csv(disk_path, sep='\t')
+    catalog_full = pd.read_csv(disk_path, sep="\t")
 
-    lat = np.deg2rad(catalog_full.loc[:, 'DEC'].values)
-    lon = np.deg2rad(catalog_full.loc[:, 'RA'].values)
+    lat = np.deg2rad(catalog_full.loc[:, "DEC"].values)
+    lon = np.deg2rad(catalog_full.loc[:, "RA"].values)
     xyz = sph.eq2cart(1, lat, lon)
-    I = catalog_full.loc[:, 'Total_flux'].values * 1e-3  # mJy in catalog.
+    I = catalog_full.loc[:, "Total_flux"].values * 1e-3  # mJy in catalog.
 
     # Reduce catalog to area of interest
-    f_dir = (direction
-             .transform_to('icrs')
-             .cartesian
-             .xyz
-             .value)
+    f_dir = direction.transform_to("icrs").cartesian.xyz.value
     mask = (f_dir @ xyz) >= np.cos(FoV / 2)
 
     if mask.sum() < N_src:
-        raise ValueError('There are less than Parameter[N_src] sources in the field.')
+        raise ValueError("There are less than Parameter[N_src] sources in the field.")
 
     I_region, xyz_region = I[mask], xyz[:, mask]
     idx = np.argsort(I_region)[-N_src:]
     I_region, xyz_region = I_region[idx], xyz_region[:, idx]
     _, lat_region, lon_region = sph.cart2eq(*xyz_region)
 
-    source_config = [(coord.SkyCoord(az * u.rad, el * u.rad, frame='icrs'), intensity)
-                     for el, az, intensity in
-                     zip(lat_region, lon_region, I_region)]
+    source_config = [
+        (coord.SkyCoord(az * u.rad, el * u.rad, frame="icrs"), intensity)
+        for el, az, intensity in zip(lat_region, lon_region, I_region)
+    ]
     sky_model = SkyEmission(source_config)
     return sky_model

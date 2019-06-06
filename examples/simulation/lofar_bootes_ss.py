@@ -29,7 +29,7 @@ import pypeline.phased_array.util.io.image as img
 import pypeline.util.math.sphere as sph
 
 # Observation
-obs_start = atime.Time(56879.54171302732, scale='utc', format='mjd')
+obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
 field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
 field_of_view = np.deg2rad(5)
 frequency = 145e6
@@ -51,9 +51,11 @@ time = obs_start + (T_integration * u.s) * np.arange(3595)
 # Imaging
 N_level = 4
 N_bits = 32
-px_q, px_l, px_colat, px_lon = grid.ea_harmonic_grid(direction=field_center.cartesian.xyz.value,
-                                                     FoV=field_of_view,
-                                                     N=dev.nyquist_rate(wl))
+px_q, px_l, px_colat, px_lon = grid.ea_harmonic_grid(
+    direction=field_center.cartesian.xyz.value,
+    FoV=field_of_view,
+    N=dev.nyquist_rate(wl),
+)
 px_grid = sph.pol2cart(1, px_colat, px_lon)
 
 ### Intensity Field ===========================================================
@@ -108,8 +110,8 @@ _, S = S_mfs.as_image()
 fig, ax = plt.subplots(ncols=2)
 I_std_eq = img.SphericalImage(I_std.data / S.data, I_std.grid)
 I_std_eq.draw(catalog=sky_model, ax=ax[0])
-ax[0].set_title('Bluebild Standardized Image')
+ax[0].set_title("Bluebild Standardized Image")
 
 I_lsq_eq = img.SphericalImage(I_lsq.data / S.data, I_lsq.grid)
 I_lsq_eq.draw(catalog=sky_model, ax=ax[1])
-ax[1].set_title('Bluebild Least-Squares Image')
+ax[1].set_title("Bluebild Least-Squares Image")

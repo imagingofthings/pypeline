@@ -129,15 +129,18 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
     .. image:: _img/bluebild_FourierIMFSBlock_integrate_example.png
     """
 
-    @chk.check(dict(wl=chk.is_real,
-                    grid_colat=chk.has_reals,
-                    grid_lon=chk.has_reals,
-                    N_FS=chk.is_odd,
-                    T=chk.is_real,
-                    R=chk.require_all(chk.has_shape([3, 3]),
-                                      chk.has_reals),
-                    N_level=chk.is_integer,
-                    precision=chk.is_integer))
+    @chk.check(
+        dict(
+            wl=chk.is_real,
+            grid_colat=chk.has_reals,
+            grid_lon=chk.has_reals,
+            N_FS=chk.is_odd,
+            T=chk.is_real,
+            R=chk.require_all(chk.has_shape([3, 3]), chk.has_reals),
+            N_level=chk.is_integer,
+            precision=chk.is_integer,
+        )
+    )
     def __init__(self, wl, grid_colat, grid_lon, N_FS, T, R, N_level, precision=64):
         r"""
         Parameters
@@ -176,21 +179,25 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             self._fp = np.float64
             self._cp = np.complex128
         else:
-            raise ValueError('Parameter[precision] must be 32 or 64.')
+            raise ValueError("Parameter[precision] must be 32 or 64.")
 
         if N_level <= 0:
-            raise ValueError('Parameter[N_level] must be positive.')
+            raise ValueError("Parameter[N_level] must be positive.")
         self._N_level = N_level
 
-        self._synthesizer = psd.FourierFieldSynthesizerBlock(wl, grid_colat, grid_lon, N_FS, T, R, precision)
+        self._synthesizer = psd.FourierFieldSynthesizerBlock(
+            wl, grid_colat, grid_lon, N_FS, T, R, precision
+        )
 
-    @chk.check(dict(D=chk.has_reals,
-                    V=chk.has_complex,
-                    XYZ=chk.has_reals,
-                    W=chk.is_instance(np.ndarray,
-                                      sparse.csr_matrix,
-                                      sparse.csc_matrix),
-                    cluster_idx=chk.has_integers))
+    @chk.check(
+        dict(
+            D=chk.has_reals,
+            V=chk.has_complex,
+            XYZ=chk.has_reals,
+            W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
+            cluster_idx=chk.has_integers,
+        )
+    )
     def __call__(self, D, V, XYZ, W, cluster_idx):
         """
         Compute (clustered) integrated field statistics for least-squares and standardized estimates.
@@ -238,12 +245,8 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         lsq : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
             (N_level, N_height, N_width) least-squares energy-levels.
         """
-        bfsf_grid = sph.pol2cart(1,
-                                 self._synthesizer._grid_colat,
-                                 self._synthesizer._grid_lon)
-        icrs_grid = np.tensordot(self._synthesizer._R.T,
-                                 bfsf_grid,
-                                 axes=1)
+        bfsf_grid = sph.pol2cart(1, self._synthesizer._grid_colat, self._synthesizer._grid_lon)
+        icrs_grid = np.tensordot(self._synthesizer._R.T, bfsf_grid, axes=1)
 
         stat_std = self._statistics[0]
         field_std = self._synthesizer.synthesize(stat_std)

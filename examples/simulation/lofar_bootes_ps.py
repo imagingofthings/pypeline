@@ -28,7 +28,7 @@ import pypeline.phased_array.util.grid as grid
 import pypeline.phased_array.util.io.image as img
 
 # Observation
-obs_start = atime.Time(56879.54171302732, scale='utc', format='mjd')
+obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
 field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
 field_of_view = np.deg2rad(5)
 frequency = 145e6
@@ -52,10 +52,11 @@ obs_end = time[-1]
 N_level = 4
 N_bits = 32
 R = dev.icrs2bfsf_rot(obs_start, obs_end)
-pix_q, pix_l, pix_colat, pix_lon = grid.ea_harmonic_grid(direction=R @ field_center.cartesian.xyz.value,
-                                                         # BFSF-equivalent f_dir.
-                                                         FoV=field_of_view,
-                                                         N=dev.nyquist_rate(wl))
+pix_q, pix_l, pix_colat, pix_lon = grid.ea_harmonic_grid(
+    direction=R @ field_center.cartesian.xyz.value,  # BFSF-equivalent f_dir.
+    FoV=field_of_view,
+    N=dev.nyquist_rate(wl),
+)
 N_FS = dev.bfsf_kernel_bandwidth(wl, obs_start, obs_end)
 T_kernel = np.deg2rad(10)
 
@@ -73,7 +74,9 @@ N_eig, c_centroid = I_est.infer_parameters()
 
 # Imaging
 I_dp = data_proc.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
-I_mfs = bb_fd.Fourier_IMFS_Block(wl, pix_colat, pix_lon, N_FS, T_kernel, R, N_level, N_bits)
+I_mfs = bb_fd.Fourier_IMFS_Block(
+    wl, pix_colat, pix_lon, N_FS, T_kernel, R, N_level, N_bits
+)
 for t in ProgressBar(time[::1]):
     XYZ = dev(t)
     W = mb(XYZ, wl)
@@ -111,8 +114,8 @@ _, S = S_mfs.as_image()
 fig, ax = plt.subplots(ncols=2)
 I_std_eq = img.SphericalImage(I_std.data / S.data, I_std.grid)
 I_std_eq.draw(catalog=sky_model, ax=ax[0])
-ax[0].set_title('Bluebild Standardized Image')
+ax[0].set_title("Bluebild Standardized Image")
 
 I_lsq_eq = img.SphericalImage(I_lsq.data / S.data, I_lsq.grid)
 I_lsq_eq.draw(catalog=sky_model, ax=ax[1])
-ax[1].set_title('Bluebild Least-Squares Image')
+ax[1].set_title("Bluebild Least-Squares Image")

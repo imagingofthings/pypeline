@@ -44,8 +44,11 @@ class GramMatrix(array.LabeledMatrix):
               [0., 0., 0., 0., 1.]])
     """
 
-    @chk.check(dict(data=chk.accept_any(chk.has_reals, chk.has_complex),
-                    beam_idx=beamforming.is_beam_index))
+    @chk.check(
+        dict(
+            data=chk.accept_any(chk.has_reals, chk.has_complex), beam_idx=beamforming.is_beam_index
+        )
+    )
     def __init__(self, data, beam_idx):
         """
         Parameters
@@ -59,10 +62,10 @@ class GramMatrix(array.LabeledMatrix):
         N_beam = len(beam_idx)
 
         if not chk.has_shape((N_beam, N_beam))(data):
-            raise ValueError('Parameters[data, beam_idx] are not consistent.')
+            raise ValueError("Parameters[data, beam_idx] are not consistent.")
 
         if not np.allclose(data, data.conj().T):
-            raise ValueError('Parameter[data] must be hermitian symmetric.')
+            raise ValueError("Parameter[data] must be hermitian symmetric.")
 
         super().__init__(data, beam_idx, beam_idx)
 
@@ -78,9 +81,13 @@ class GramBlock(core.Block):
         """
         super().__init__()
 
-    @chk.check(dict(XYZ=chk.is_instance(instrument.InstrumentGeometry),
-                    W=chk.is_instance(beamforming.BeamWeights),
-                    wl=chk.is_real))
+    @chk.check(
+        dict(
+            XYZ=chk.is_instance(instrument.InstrumentGeometry),
+            W=chk.is_instance(beamforming.BeamWeights),
+            wl=chk.is_real,
+        )
+    )
     def __call__(self, XYZ, W, wl):
         """
         Compute Gram matrix.
@@ -135,11 +142,12 @@ class GramBlock(core.Block):
                   [1.8000e-01, 9.0000e-02, 8.2000e-01, 2.6708e+02]])
         """
         if not XYZ.is_consistent_with(W, axes=[0, 0]):
-            raise ValueError('Parameters[XYZ, W] are inconsistent.')
+            raise ValueError("Parameters[XYZ, W] are inconsistent.")
 
         N_antenna = XYZ.shape[0]
-        baseline = linalg.norm(XYZ.data.reshape(N_antenna, 1, 3) -
-                               XYZ.data.reshape(1, N_antenna, 3), axis=-1)
+        baseline = linalg.norm(
+            XYZ.data.reshape(N_antenna, 1, 3) - XYZ.data.reshape(1, N_antenna, 3), axis=-1
+        )
 
         G_1 = (4 * np.pi) * np.sinc((2 / wl) * baseline)
         G_2 = W.data.conj().T @ G_1 @ W.data

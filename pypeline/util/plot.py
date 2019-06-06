@@ -20,8 +20,7 @@ import pkg_resources as pkg
 import pypeline.util.argcheck as chk
 
 
-@chk.check(dict(scm=chk.is_instance(cm.ScalarMappable),
-                ax=chk.is_instance(axes.Axes)))
+@chk.check(dict(scm=chk.is_instance(cm.ScalarMappable), ax=chk.is_instance(axes.Axes)))
 def colorbar(scm, ax):
     """
     Attach colorbar to side of a plot.
@@ -57,13 +56,12 @@ def colorbar(scm, ax):
     """
     fig = ax.get_figure()
     divider = ax_grid.make_axes_locatable(ax)
-    ax_colorbar = divider.append_axes('right', size='5%', pad=0.05, axes_class=axes.Axes)
+    ax_colorbar = divider.append_axes("right", size="5%", pad=0.05, axes_class=axes.Axes)
     colorbar = fig.colorbar(scm, cax=ax_colorbar)
     return colorbar
 
 
-@chk.check(dict(name=chk.is_instance(str),
-                N=chk.allow_None(chk.is_integer)))
+@chk.check(dict(name=chk.is_instance(str), N=chk.allow_None(chk.is_integer)))
 def cmap(name, N=None):
     """
     Load one of Pypeline's custom colormaps.
@@ -105,14 +103,14 @@ def cmap(name, N=None):
     .. image:: _img/cmap_example.png
     """
     if (N is not None) and (N <= 0):
-        raise ValueError('Parameter[N] must be a positive integer.')
+        raise ValueError("Parameter[N] must be a positive integer.")
 
-    cmap_rel_dir = pathlib.Path('data', 'colormap')
-    cmap_rel_path = cmap_rel_dir / f'{name}.csv'
+    cmap_rel_dir = pathlib.Path("data", "colormap")
+    cmap_rel_path = cmap_rel_dir / f"{name}.csv"
 
-    if pkg.resource_exists('pypeline', str(cmap_rel_path)):
-        cmap_abs_path = pkg.resource_filename('pypeline', str(cmap_rel_path))
-        colors = pd.read_csv(cmap_abs_path).loc[:, ['R', 'G', 'B']].values
+    if pkg.resource_exists("pypeline", str(cmap_rel_path)):
+        cmap_abs_path = pkg.resource_filename("pypeline", str(cmap_rel_path))
+        colors = pd.read_csv(cmap_abs_path).loc[:, ["R", "G", "B"]].values
 
         N = len(colors) if (N is None) else N
         colormap = col.ListedColormap(colors[-N:])
@@ -120,8 +118,11 @@ def cmap(name, N=None):
 
     else:  # no cmap under that name.
         # List available cmaps.
-        cmap_names = [pathlib.Path(_).stem for _ in
-                      pkg.resource_listdir('pypeline', str(cmap_rel_dir))
-                      if _.endswith('csv')]
-        raise ValueError(f'{name} is not a pypeline-defined colormap. '
-                         f'Available options: {cmap_names}')
+        cmap_names = [
+            pathlib.Path(_).stem
+            for _ in pkg.resource_listdir("pypeline", str(cmap_rel_dir))
+            if _.endswith("csv")
+        ]
+        raise ValueError(
+            f"{name} is not a pypeline-defined colormap. " f"Available options: {cmap_names}"
+        )

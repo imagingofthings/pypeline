@@ -4,12 +4,11 @@
 # Author : Sepand KASHANI [sep@zurich.ibm.com]
 # #############################################################################
 
-# This file contains the complete list of Pypeline's Python dependencies.
-# It is preferable to install packages having non-Python dependencies using
-# the `conda` environment manager if available.
+# This file contains the complete list of Pypeline's Python dependencies.  It is preferable to
+# install packages having non-Python dependencies using the `conda` environment manager if available.
 #
-# When modifying dependencies, don't forget to update both `requirements.txt`
-# and `conda_requirements.txt`.
+# When modifying dependencies, don't forget to update both `requirements.txt` and
+# `conda_requirements.txt`.
 
 astropy == 3.1.*
 black == 19.3b0

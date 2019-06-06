@@ -18,11 +18,13 @@ import pypeline.util.math.linalg as pylinalg
 import pypeline.util.math.sphere as sph
 
 
-@chk.check(dict(direction=chk.require_all(chk.has_reals,
-                                          chk.has_shape([3, ])),
-                FoV=chk.is_real,
-                size=chk.require_all(chk.has_integers,
-                                     chk.has_shape([2, ]))))
+@chk.check(
+    dict(
+        direction=chk.require_all(chk.has_reals, chk.has_shape([3])),
+        FoV=chk.is_real,
+        size=chk.require_all(chk.has_integers, chk.has_shape([2])),
+    )
+)
 def spherical_grid(direction, FoV, size):
     """
     Spherical pixel grid.
@@ -36,7 +38,8 @@ def spherical_grid(direction, FoV, size):
     size : array-like(int)
         (N_height, N_width)
 
-        The grid will consist of `N_height` concentric circles around `direction`, each containing `N_width` pixels.
+        The grid will consist of `N_height` concentric circles around `direction`, each containing
+        `N_width` pixels.
 
     Returns
     -------
@@ -47,16 +50,16 @@ def spherical_grid(direction, FoV, size):
     direction /= linalg.norm(direction)
 
     if not (0 < np.rad2deg(FoV) <= 179):
-        raise ValueError('Parameter[FoV] must be in (0, 179] degrees.')
+        raise ValueError("Parameter[FoV] must be in (0, 179] degrees.")
 
     size = np.array(size, copy=False)
     if np.any(size <= 0):
-        raise ValueError('Parameter[size] must contain positive entries.')
+        raise ValueError("Parameter[size] must contain positive entries.")
 
     N_height, N_width = size
-    colat, lon = np.meshgrid(np.linspace(0, FoV / 2, N_height),
-                             np.linspace(0, 2 * np.pi, N_width),
-                             indexing='ij')
+    colat, lon = np.meshgrid(
+        np.linspace(0, FoV / 2, N_height), np.linspace(0, 2 * np.pi, N_width), indexing="ij"
+    )
     XYZ = sph.pol2cart(1, colat, lon)
 
     # Center grid at 'direction'
@@ -74,11 +77,13 @@ def spherical_grid(direction, FoV, size):
     return XYZ
 
 
-@chk.check(dict(direction=chk.require_all(chk.has_reals,
-                                          chk.has_shape([3, ])),
-                FoV=chk.is_real,
-                size=chk.require_all(chk.has_integers,
-                                     chk.has_shape([2, ]))))
+@chk.check(
+    dict(
+        direction=chk.require_all(chk.has_reals, chk.has_shape([3])),
+        FoV=chk.is_real,
+        size=chk.require_all(chk.has_integers, chk.has_shape([2])),
+    )
+)
 def uniform_grid(direction, FoV, size):
     """
     Uniform pixel grid.
@@ -101,17 +106,17 @@ def uniform_grid(direction, FoV, size):
     direction /= linalg.norm(direction)
 
     if not (0 < np.rad2deg(FoV) <= 179):
-        raise ValueError('Parameter[FoV] must be in (0, 179] degrees.')
+        raise ValueError("Parameter[FoV] must be in (0, 179] degrees.")
 
     size = np.array(size, copy=False)
     if np.any(size <= 0):
-        raise ValueError('Parameter[size] must contain positive entries.')
+        raise ValueError("Parameter[size] must contain positive entries.")
 
     N_height, N_width = size
     lim = np.sin(FoV / 2)
-    Y, X = np.meshgrid(np.linspace(-lim, lim, N_height),
-                       np.linspace(-lim, lim, N_width),
-                       indexing='ij')
+    Y, X = np.meshgrid(
+        np.linspace(-lim, lim, N_height), np.linspace(-lim, lim, N_width), indexing="ij"
+    )
     Z = 1 - X ** 2 - Y ** 2
     X[Z < 0], Y[Z < 0], Z[Z < 0] = 0, 0, 0
     Z = np.sqrt(Z)
@@ -134,11 +139,13 @@ def uniform_grid(direction, FoV, size):
     return XYZ
 
 
-@chk.check(dict(direction=chk.require_all(chk.has_reals,
-                                          chk.has_shape([3, ])),
-                FoV=chk.is_real,
-                size=chk.require_all(chk.has_integers,
-                                     chk.has_shape([2, ]))))
+@chk.check(
+    dict(
+        direction=chk.require_all(chk.has_reals, chk.has_shape([3])),
+        FoV=chk.is_real,
+        size=chk.require_all(chk.has_integers, chk.has_shape([2])),
+    )
+)
 def ea_grid(direction, FoV, size):
     """
     Equal-Angle pixel grid.
@@ -164,20 +171,19 @@ def ea_grid(direction, FoV, size):
     direction /= linalg.norm(direction)
 
     if np.allclose(np.cross([0, 0, 1], direction), 0):
-        raise ValueError('Generating Equal-Angle grids centered at poles currently not supported.')
+        raise ValueError("Generating Equal-Angle grids centered at poles currently not supported.")
 
     if not (0 < np.rad2deg(FoV) <= 179):
-        raise ValueError('Parameter[FoV] must be in (0, 179] degrees.')
+        raise ValueError("Parameter[FoV] must be in (0, 179] degrees.")
 
     size = np.array(size, copy=False)
     if np.any(size <= 0):
-        raise ValueError('Parameter[size] must contain positive entries.')
+        raise ValueError("Parameter[size] must contain positive entries.")
 
     _, dir_colat, dir_lon = sph.cart2pol(*direction)
     lim_lon = dir_lon + (FoV / 2) * np.r_[-1, 1]
     lim_colat = dir_colat + (FoV / 2) * np.r_[-1, 1]
-    lim_colat = (max(np.deg2rad(0.5), lim_colat[0]),
-                 min(lim_colat[1], np.deg2rad(179.5)))
+    lim_colat = (max(np.deg2rad(0.5), lim_colat[0]), min(lim_colat[1], np.deg2rad(179.5)))
 
     N_height, N_width = size
     colat = np.linspace(*lim_colat, num=N_height).reshape(-1, 1)
@@ -185,10 +191,13 @@ def ea_grid(direction, FoV, size):
     return colat, lon
 
 
-@chk.check(dict(direction=chk.require_all(chk.has_reals,
-                                          chk.has_shape([3, ])),
-                FoV=chk.is_real,
-                N=chk.is_integer))
+@chk.check(
+    dict(
+        direction=chk.require_all(chk.has_reals, chk.has_shape([3])),
+        FoV=chk.is_real,
+        N=chk.is_integer,
+    )
+)
 def ea_harmonic_grid(direction, FoV, N):
     """
     Region-limited Equal-Angle pixel grid of order `N`.
@@ -224,30 +233,29 @@ def ea_harmonic_grid(direction, FoV, N):
     direction /= linalg.norm(direction)
 
     if np.allclose(np.cross([0, 0, 1], direction), 0):
-        raise ValueError('Generating Equal-Angle grids centered at poles currently not supported.')
+        raise ValueError("Generating Equal-Angle grids centered at poles currently not supported.")
 
     if not (0 < np.rad2deg(FoV) <= 179):
-        raise ValueError('Parameter[FoV] must be in (0, 179] degrees.')
+        raise ValueError("Parameter[FoV] must be in (0, 179] degrees.")
 
     if N <= 0:
-        raise ValueError('Parameter[N] must be non-negative.')
+        raise ValueError("Parameter[N] must be non-negative.")
 
     _, dir_colat, dir_lon = sph.cart2pol(*direction)
     lim_lon = dir_lon + (FoV / 2) * np.r_[-1, 1]
     lim_lon = coord.Angle(lim_lon * u.rad).wrap_at(360 * u.deg).to_value(u.rad)
     lim_colat = dir_colat + (FoV / 2) * np.r_[-1, 1]
-    lim_colat = (max(np.deg2rad(0.5), lim_colat[0]),
-                 min(lim_colat[1], np.deg2rad(179.5)))
+    lim_colat = (max(np.deg2rad(0.5), lim_colat[0]), min(lim_colat[1], np.deg2rad(179.5)))
 
     colat_full, lon_full = sph.ea_sample(N)
     q_full = np.arange(colat_full.size).reshape(-1, 1)
     l_full = np.arange(lon_full.size).reshape(1, -1)
 
-    q_mask = ((lim_colat[0] <= colat_full) & (colat_full <= lim_colat[1]))
+    q_mask = (lim_colat[0] <= colat_full) & (colat_full <= lim_colat[1])
     if lim_lon[0] < lim_lon[1]:
-        l_mask = ((lim_lon[0] <= lon_full) & (lon_full <= lim_lon[1]))
+        l_mask = (lim_lon[0] <= lon_full) & (lon_full <= lim_lon[1])
     else:
-        l_mask = ((lim_lon[0] <= lon_full) | (lon_full <= lim_lon[1]))
+        l_mask = (lim_lon[0] <= lon_full) | (lon_full <= lim_lon[1])
 
     q = q_full[q_mask]
     l = l_full[l_mask]
@@ -256,10 +264,13 @@ def ea_harmonic_grid(direction, FoV, N):
     return q, l, colat, lon
 
 
-@chk.check(dict(direction=chk.require_all(chk.has_reals,
-                                          chk.has_shape([3, ])),
-                FoV=chk.is_real,
-                N=chk.is_integer))
+@chk.check(
+    dict(
+        direction=chk.require_all(chk.has_reals, chk.has_shape([3])),
+        FoV=chk.is_real,
+        N=chk.is_integer,
+    )
+)
 def fibonacci_harmonic_grid(direction, FoV, N):
     """
     Region-limited Fibonacci pixel grid of order `N`.
@@ -286,10 +297,10 @@ def fibonacci_harmonic_grid(direction, FoV, N):
     direction /= linalg.norm(direction)
 
     if not (0 < FoV < 2 * np.pi):
-        raise ValueError('Parameter[FoV] must be in (0, 360) degrees.')
+        raise ValueError("Parameter[FoV] must be in (0, 360) degrees.")
 
     if N <= 0:
-        raise ValueError('Parameter[N] must be non-negative.')
+        raise ValueError("Parameter[N] must be non-negative.")
 
     # TODO: Current grid generation is highly inefficient when interested in small FoVs
     XYZ = sph.fibonacci_sample(N)

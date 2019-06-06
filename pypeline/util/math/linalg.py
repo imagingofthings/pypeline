@@ -14,11 +14,14 @@ import scipy.linalg as linalg
 import pypeline.util.argcheck as chk
 
 
-@chk.check(dict(A=chk.accept_any(chk.has_reals, chk.has_complex),
-                B=chk.allow_None(chk.accept_any(chk.has_reals,
-                                                chk.has_complex)),
-                tau=chk.is_real,
-                N=chk.allow_None(chk.is_integer)))
+@chk.check(
+    dict(
+        A=chk.accept_any(chk.has_reals, chk.has_complex),
+        B=chk.allow_None(chk.accept_any(chk.has_reals, chk.has_complex)),
+        tau=chk.is_real,
+        N=chk.allow_None(chk.is_integer),
+    )
+)
 def eigh(A, B=None, tau=1, N=None):
     """
     Solve a generalized eigenvalue problem.
@@ -29,7 +32,8 @@ def eigh(A, B=None, tau=1, N=None):
 
        A V = B V D.
 
-    This function is a wrapper around :py:func:`scipy.linalg.eigh` that adds energy truncation and extra output formats.
+    This function is a wrapper around :py:func:`scipy.linalg.eigh` that adds energy truncation and
+    extra output formats.
 
     Parameters
     ----------
@@ -42,7 +46,8 @@ def eigh(A, B=None, tau=1, N=None):
     tau : float, optional
         Normalized energy ratio. (Default: 1)
     N : int, optional
-        Number of eigenpairs to output. (Default: K, the minimum number of leading eigenpairs that account for `tau` percent of the total energy.)
+        Number of eigenpairs to output. (Default: K, the minimum number of leading eigenpairs that
+        account for `tau` percent of the total energy.)
 
         * If `N` is smaller than K, then the trailing eigenpairs are dropped.
         * If `N` is greater that K, then the trailing eigenpairs are set to 0.
@@ -90,7 +95,8 @@ def eigh(A, B=None, tau=1, N=None):
        A = hermitian_array(M)
        B = hermitian_array(M) + 100 * np.eye(M)  # To guarantee PSD
 
-    Then different calls to :py:func:`~pypeline.util.math.linalg.eigh` produce different results:
+    Then different calls to :py:func:`~pypeline.util.math.linalg.eigh` produce different
+    results:
 
     * Get all positive eigenpairs:
 
@@ -137,17 +143,17 @@ def eigh(A, B=None, tau=1, N=None):
     A = np.array(A, copy=False)
     M = len(A)
     if not (chk.has_shape([M, M])(A) and np.allclose(A, A.conj().T)):
-        raise ValueError('Parameter[A] must be hermitian symmetric.')
+        raise ValueError("Parameter[A] must be hermitian symmetric.")
 
     B = np.eye(M) if (B is None) else np.array(B, copy=False)
     if not (chk.has_shape([M, M])(B) and np.allclose(B, B.conj().T)):
-        raise ValueError('Parameter[B] must be hermitian symmetric.')
+        raise ValueError("Parameter[B] must be hermitian symmetric.")
 
     if not (0 < tau <= 1):
-        raise ValueError('Parameter[tau] must be in [0, 1].')
+        raise ValueError("Parameter[tau] must be in [0, 1].")
 
     if (N is not None) and (N <= 0):
-        raise ValueError(f'Parameter[N] must be a non-zero positive integer.')
+        raise ValueError(f"Parameter[N] must be a non-zero positive integer.")
 
     # A: drop negative spectrum.
     Ds, Vs = linalg.eigh(A)
@@ -165,7 +171,7 @@ def eigh(A, B=None, tau=1, N=None):
         idx = np.argsort(D)[::-1]
         D, V = D[idx], V[:, idx]
     except linalg.LinAlgError:
-        raise ValueError('Parameter[B] is not PSD.')
+        raise ValueError("Parameter[B] is not PSD.")
 
     # Energy selection / padding
     idx = np.clip(np.cumsum(D) / np.sum(D), 0, 1) <= tau
@@ -181,8 +187,7 @@ def eigh(A, B=None, tau=1, N=None):
     return D, V
 
 
-@chk.check(dict(axis=chk.require_all(chk.has_reals, chk.has_shape((3,))),
-                angle=chk.is_real))
+@chk.check(dict(axis=chk.require_all(chk.has_reals, chk.has_shape((3,))), angle=chk.is_real))
 def rot(axis, angle):
     """
     3D rotation matrix.
@@ -235,13 +240,11 @@ def rot(axis, angle):
     p20 = a * c * (1 - ct) - b * st
     p02 = a * c * (1 - ct) + b * st
 
-    R = np.array([[p00, p01, p02],
-                  [p10, p11, p12],
-                  [p20, p21, p22]])
+    R = np.array([[p00, p01, p02], [p10, p11, p12], [p20, p21, p22]])
     return R
 
 
-@chk.check('R', chk.require_all(chk.has_reals, chk.has_shape((3, 3))))
+@chk.check("R", chk.require_all(chk.has_reals, chk.has_shape((3, 3))))
 def z_rot2angle(R):
     """
     Determine rotation angle from Z-axis rotation matrix.
@@ -279,9 +282,8 @@ def z_rot2angle(R):
     """
     R = np.array(R, copy=False)
 
-    if not np.allclose(R[[0, 1, 2, 2, 2], [2, 2, 2, 0, 1]],
-                       np.r_[0, 0, 1, 0, 0]):
-        raise ValueError('Parameter[R] is not a rotation matrix around the Z-axis.')
+    if not np.allclose(R[[0, 1, 2, 2, 2], [2, 2, 2, 0, 1]], np.r_[0, 0, 1, 0, 0]):
+        raise ValueError("Parameter[R] is not a rotation matrix around the Z-axis.")
 
     ct, st = np.clip([R[0, 0], R[1, 0]], -1, 1)
     if st >= 0:  # In quadrants I or II

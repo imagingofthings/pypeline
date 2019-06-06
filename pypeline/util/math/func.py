@@ -69,9 +69,7 @@ class Tukey(core.Block):
        \end{cases}
     """
 
-    @chk.check(dict(T=chk.is_real,
-                    beta=chk.is_real,
-                    alpha=chk.is_real))
+    @chk.check(dict(T=chk.is_real, beta=chk.is_real, alpha=chk.is_real))
     def __init__(self, T, beta, alpha):
         """
         Parameters
@@ -87,14 +85,14 @@ class Tukey(core.Block):
         self._beta = beta
 
         if not (T > 0):
-            raise ValueError('Parameter[T] must be positive.')
+            raise ValueError("Parameter[T] must be positive.")
         self._T = T
 
         if not (0 <= alpha <= 1):
-            raise ValueError('Parameter[alpha] must be in [0, 1].')
+            raise ValueError("Parameter[alpha] must be in [0, 1].")
         self._alpha = alpha
 
-    @chk.check('x', chk.accept_any(chk.is_real, chk.has_reals))
+    @chk.check("x", chk.accept_any(chk.is_real, chk.has_reals))
     def __call__(self, x):
         """
         Sample the Tukey(T, beta, alpha) function.
@@ -122,7 +120,9 @@ class Tukey(core.Block):
         amplitude[body] = 1
         if not np.isclose(self._alpha, 0):
             amplitude[ramp_up] = np.sin(np.pi / (self._T * self._alpha) * y[ramp_up]) ** 2
-            amplitude[ramp_down] = np.sin(np.pi / (self._T * self._alpha) * (self._T - y[ramp_down])) ** 2
+            amplitude[ramp_down] = (
+                np.sin(np.pi / (self._T * self._alpha) * (self._T - y[ramp_down])) ** 2
+            )
         return amplitude
 
 
@@ -151,7 +151,8 @@ class SphericalDirichlet(core.Block):
               [-0.24, -0.48, -0.67, -0.76, -0.68],
               [-0.37,  0.27,  1.3 ,  2.84,  5.  ]])
 
-    When only interested in kernel values close to 1, the approximation method provides significant speedups, at the cost of approximation error in values far from 1:
+    When only interested in kernel values close to 1, the approximation method provides significant
+    speedups, at the cost of approximation error in values far from 1:
 
     .. doctest::
 
@@ -186,8 +187,7 @@ class SphericalDirichlet(core.Block):
     where :math:`P_{N}(t)` is the `Legendre polynomial <https://en.wikipedia.org/wiki/Legendre_polynomials>`_ of order :math:`N`.
     """
 
-    @chk.check(dict(N=chk.is_integer,
-                    approx=chk.is_boolean))
+    @chk.check(dict(N=chk.is_integer, approx=chk.is_boolean))
     def __init__(self, N, approx=False):
         """
         Parameters
@@ -197,8 +197,9 @@ class SphericalDirichlet(core.Block):
         approx : bool
             Approximate kernel using cubic-splines.
 
-            This method provides extremely reliable estimates of :math:`K_{N}(t)` in the vicinity of 1 where the function's main sidelobes are found.
-            Values outside the vicinity smoothly converge to 0.
+            This method provides extremely reliable estimates of :math:`K_{N}(t)` in the vicinity of
+            1 where the function's main sidelobes are found. Values outside the vicinity smoothly
+            converge to 0.
 
             Only works for `N` greater than 10.
         """
@@ -209,7 +210,7 @@ class SphericalDirichlet(core.Block):
         self._N = N
 
         if (approx is True) and (N <= 10):
-            raise ValueError('Cannot use approximation method if Parameter[N] <= 10.')
+            raise ValueError("Cannot use approximation method if Parameter[N] <= 10.")
         self._approx = approx
 
         if approx is True:  # Fit cubic-spline interpolator.
@@ -231,15 +232,19 @@ class SphericalDirichlet(core.Block):
 
             window = Tukey(T=2 - 2 * np.cos(2 * theta_max), beta=1, alpha=0.5)
 
-            x = np.r_[np.linspace(np.cos(theta_max * 2), np.cos(theta_max), N_samples, endpoint=False),
-                      np.linspace(np.cos(theta_max), 1, N_samples)]
+            x = np.r_[
+                np.linspace(np.cos(theta_max * 2), np.cos(theta_max), N_samples, endpoint=False),
+                np.linspace(np.cos(theta_max), 1, N_samples),
+            ]
             y = self._exact_kernel(x) * window(x)
-            self.__cs_interp = interpolate.interp1d(x, y, kind='cubic', bounds_error=False, fill_value=0)
+            self.__cs_interp = interpolate.interp1d(
+                x, y, kind="cubic", bounds_error=False, fill_value=0
+            )
 
             # Store zero_threshold to simplify optimizations in :py:class:`~pypeline.util.math.sphere.Interpolator`
             self._zero_threshold = x[0]
 
-    @chk.check('x', chk.accept_any(chk.is_real, chk.has_reals))
+    @chk.check("x", chk.accept_any(chk.is_real, chk.has_reals))
     def __call__(self, x):
         r"""
         Sample the order-N spherical Dirichlet kernel.
@@ -259,7 +264,7 @@ class SphericalDirichlet(core.Block):
             x = np.array(x, copy=False, dtype=float)
 
         if not np.all((-1 <= x) & (x <= 1)):
-            raise ValueError('Parameter[x] must lie in [-1, 1].')
+            raise ValueError("Parameter[x] must lie in [-1, 1].")
 
         if self._approx is True:
             f = self._approx_kernel
@@ -278,7 +283,7 @@ class SphericalDirichlet(core.Block):
             # the upper limit.
             # The best way to implement K_N(t) is to let the floating point
             # division fail and then replace NaNs.
-            warnings.simplefilter(action='ignore', category=RuntimeWarning)
+            warnings.simplefilter(action="ignore", category=RuntimeWarning)
             amplitude /= x - 1
         amplitude[np.isnan(amplitude)] = self._N + 1
 

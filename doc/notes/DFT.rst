@@ -12,7 +12,8 @@ The Discrete Fourier Transform
 
 Let :math:`X \in \mathbb{C}^{N}`.
 
-The length-:math:`N` *Discrete Fourier Transform* :math:`\text{DFT}_{N}\{X\} \in \mathbb{C}^{N}` is defined as:
+The length-:math:`N` *Discrete Fourier Transform* :math:`\text{DFT}_{N}\{X\} \in \mathbb{C}^{N}` is
+defined as:
 
 .. math::
 
@@ -20,7 +21,8 @@ The length-:math:`N` *Discrete Fourier Transform* :math:`\text{DFT}_{N}\{X\} \in
 
 with :math:`W_{N} = \exp\left( -j \frac{2 \pi}{N} \right)`.
 
-The length-:math:`N` *inverse Discrete Fourier Transform* :math:`\text{iDFT}_{N}\{X\} \in \mathbb{C}^{N}` is defined as:
+The length-:math:`N` *inverse Discrete Fourier Transform* :math:`\text{iDFT}_{N}\{X\} \in
+\mathbb{C}^{N}` is defined as:
 
 .. math::
 
@@ -32,4 +34,5 @@ Moreover, :math:`\text{(i)DFT}_{N}` is reversible:
 
    (\text{iDFT}_{N} \circ \text{DFT}_{N})\{X\} = (\text{DFT}_{N} \circ \text{iDFT}_{N})\{X\} = X.
 
-Particularly efficient :math:`\mathcal{O}(N \log N)` algorithms exist to compute :math:`\text{(i)DFT}_{N}`, especially if :math:`N` is highly composite.
+Particularly efficient :math:`\mathcal{O}(N \log N)` algorithms exist to compute
+:math:`\text{(i)DFT}_{N}`, especially if :math:`N` is highly composite.

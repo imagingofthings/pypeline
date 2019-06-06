@@ -7,12 +7,14 @@
 """
 Beamforming-related operations and tools.
 
-*Beamforming* is the process of combining signals from different receiving elements through a linear operator, with the dual role of:
+*Beamforming* is the process of combining signals from different receiving elements through a linear
+operator, with the dual role of:
 
 * Reducing data-rates from antennas;
 * Form super-antennas with particular radiation patterns.
 
-Only simple beamformers are included here: more advanced variants can be found in the :py:mod:`pypeline_extras` package.
+Only simple beamformers are included here: more advanced variants can be found in the
+:py:mod:`pypeline_extras` package.
 """
 
 import collections.abc as abc
@@ -37,9 +39,8 @@ def is_beam_index(x):
 
     * BEAM_ID : int
     """
-    if (chk.is_instance(pd.Index)(x) and
-            not chk.is_instance(pd.MultiIndex)(x)):
-        col_name = 'BEAM_ID'
+    if chk.is_instance(pd.Index)(x) and not chk.is_instance(pd.MultiIndex)(x):
+        col_name = "BEAM_ID"
         if x.name == col_name:
             ids = x.values
             if chk.has_integers(ids):
@@ -49,40 +50,48 @@ def is_beam_index(x):
 
 
 def _as_BeamWeights(df):
-    df = df.sort_values(by=['STATION_ID', 'ANTENNA_ID', 'BEAM_ID'])
+    df = df.sort_values(by=["STATION_ID", "ANTENNA_ID", "BEAM_ID"])
 
-    row_map = (df
-               .loc[:, ['STATION_ID', 'ANTENNA_ID']]
-               .drop_duplicates()
-               .sort_values(['STATION_ID', 'ANTENNA_ID'])
-               .assign(ROW_ID=lambda df: np.arange(len(df))))
+    row_map = (
+        df.loc[:, ["STATION_ID", "ANTENNA_ID"]]
+        .drop_duplicates()
+        .sort_values(["STATION_ID", "ANTENNA_ID"])
+        .assign(ROW_ID=lambda df: np.arange(len(df)))
+    )
     N_antenna = len(row_map)
 
-    col_map = (df
-               .loc[:, ['BEAM_ID']]
-               .drop_duplicates()
-               .sort_values('BEAM_ID')
-               .assign(COL_ID=lambda s: np.arange(len(s))))
+    col_map = (
+        df.loc[:, ["BEAM_ID"]]
+        .drop_duplicates()
+        .sort_values("BEAM_ID")
+        .assign(COL_ID=lambda s: np.arange(len(s)))
+    )
     N_beam = len(col_map)
 
-    data = (df.merge(row_map, on=['STATION_ID', 'ANTENNA_ID'])
-              .merge(col_map, on='BEAM_ID')
-              .loc[:, ['ROW_ID', 'COL_ID', 'W']])
+    data = (
+        df.merge(row_map, on=["STATION_ID", "ANTENNA_ID"])
+        .merge(col_map, on="BEAM_ID")
+        .loc[:, ["ROW_ID", "COL_ID", "W"]]
+    )
 
     sparsity_ratio = len(data) / (N_antenna * N_beam)
-    max_sparsity_ratio = pypeline.config.getfloat('phased_array.beamforming', 'bw_max_sparsity_ratio')
+    max_sparsity_ratio = pypeline.config.getfloat(
+        "phased_array.beamforming", "bw_max_sparsity_ratio"
+    )
     if sparsity_ratio <= max_sparsity_ratio:  # Use sparse matrix
-        W = sparse.csr_matrix((data.W.values, (data.ROW_ID.values, data.COL_ID.values)),
-                              shape=(N_antenna, N_beam),
-                              dtype=complex)
+        W = sparse.csr_matrix(
+            (data.W.values, (data.ROW_ID.values, data.COL_ID.values)),
+            shape=(N_antenna, N_beam),
+            dtype=complex,
+        )
     else:  # Use dense matrix
         W = np.zeros(shape=(N_antenna, N_beam), dtype=complex)
         W[data.ROW_ID.values, data.COL_ID.values] = data.W.values
 
-    ant_idx = (pd.MultiIndex
-               .from_arrays([row_map.STATION_ID, row_map.ANTENNA_ID],
-                            names=['STATION_ID', 'ANTENNA_ID']))
-    beam_idx = pd.Index(col_map.BEAM_ID, name='BEAM_ID')
+    ant_idx = pd.MultiIndex.from_arrays(
+        [row_map.STATION_ID, row_map.ANTENNA_ID], names=["STATION_ID", "ANTENNA_ID"]
+    )
+    beam_idx = pd.Index(col_map.BEAM_ID, name="BEAM_ID")
 
     bW = BeamWeights(W, ant_idx, beam_idx)
     return bW
@@ -117,9 +126,13 @@ class BeamWeights(array.LabeledMatrix):
               [0.+12.j, 0.+13.j, 0.+14.j]])
     """
 
-    @chk.check(dict(data=chk.accept_any(chk.has_complex, sparse.isspmatrix),
-                    ant_idx=instrument.is_antenna_index,
-                    beam_idx=is_beam_index))
+    @chk.check(
+        dict(
+            data=chk.accept_any(chk.has_complex, sparse.isspmatrix),
+            ant_idx=instrument.is_antenna_index,
+            beam_idx=is_beam_index,
+        )
+    )
     def __init__(self, data, ant_idx, beam_idx):
         """
         Parameters
@@ -133,11 +146,11 @@ class BeamWeights(array.LabeledMatrix):
         """
         if sparse.isspmatrix(data):
             if not np.issubdtype(data.dtype, np.complexfloating):
-                raise ValueError('Parameter[data] must be complex-valued.')
+                raise ValueError("Parameter[data] must be complex-valued.")
 
         N_antenna, N_beam = len(ant_idx), len(beam_idx)
         if not chk.has_shape((N_antenna, N_beam))(data):
-            raise ValueError('Parameters[data, ant_idx, beam_idx] are not consistent.')
+            raise ValueError("Parameters[data, ant_idx, beam_idx] are not consistent.")
 
         super().__init__(data=data, row_idx=ant_idx, col_idx=beam_idx)
 
@@ -195,8 +208,7 @@ def is_mb_beam_config(x):
                 return False
 
             station_id, beam_id = entry[:2]
-            if not (chk.is_integer(station_id) and
-                    chk.is_integer(beam_id)):
+            if not (chk.is_integer(station_id) and chk.is_integer(beam_id)):
                 return False
 
             focus_dir = entry[2]
@@ -212,7 +224,7 @@ class MatchedBeamformerBlock(BeamformerBlock):
     Compute matched-beamforming (MB) weights.
     """
 
-    @chk.check('beam_config', is_mb_beam_config)
+    @chk.check("beam_config", is_mb_beam_config)
     def __init__(self, beam_config):
         """
         Parameters
@@ -230,24 +242,23 @@ class MatchedBeamformerBlock(BeamformerBlock):
         for i, (s_id, b_id, f_dir) in enumerate(beam_config):
             station_id[i] = s_id
             beam_id[i] = b_id
-            focus_dir[i] = (f_dir
-                            .transform_to('icrs')
-                            .cartesian
-                            .xyz
-                            .value)
+            focus_dir[i] = f_dir.transform_to("icrs").cartesian.xyz.value
 
         station_id = np.array(station_id)
         beam_id = np.array(beam_id)
         focus_dir = np.stack(focus_dir, axis=1)
 
-        self._config = pd.DataFrame(dict(STATION_ID=station_id,
-                                         BEAM_ID=beam_id,
-                                         F_X=focus_dir[0],
-                                         F_Y=focus_dir[1],
-                                         F_Z=focus_dir[2]))
+        self._config = pd.DataFrame(
+            dict(
+                STATION_ID=station_id,
+                BEAM_ID=beam_id,
+                F_X=focus_dir[0],
+                F_Y=focus_dir[1],
+                F_Z=focus_dir[2],
+            )
+        )
 
-    @chk.check(dict(XYZ=chk.is_instance(instrument.InstrumentGeometry),
-                    wl=chk.is_real))
+    @chk.check(dict(XYZ=chk.is_instance(instrument.InstrumentGeometry), wl=chk.is_real))
     def __call__(self, XYZ, wl):
         """
         Determine beamweights to apply to each (antenna, beam) pair.
@@ -304,14 +315,13 @@ class MatchedBeamformerBlock(BeamformerBlock):
         xyz = XYZ.as_frame()
         xyz = (xyz - xyz.mean()) / wl
 
-        data = pd.merge(xyz.reset_index(), self._config, on='STATION_ID')
-        XYZ = data.loc[:, ['X', 'Y', 'Z']].values
-        F_XYZ = data.loc[:, ['F_X', 'F_Y', 'F_Z']].values
+        data = pd.merge(xyz.reset_index(), self._config, on="STATION_ID")
+        XYZ = data.loc[:, ["X", "Y", "Z"]].values
+        F_XYZ = data.loc[:, ["F_X", "F_Y", "F_Z"]].values
         similarity = np.squeeze(XYZ.reshape(-1, 1, 3) @ F_XYZ.reshape(-1, 3, 1), axis=(1, 2))
         W = np.exp((-1j * 2 * np.pi) * similarity)
 
-        df = pd.DataFrame(dict(STATION_ID=data.STATION_ID,
-                               ANTENNA_ID=data.ANTENNA_ID,
-                               BEAM_ID=data.BEAM_ID,
-                               W=W))
+        df = pd.DataFrame(
+            dict(STATION_ID=data.STATION_ID, ANTENNA_ID=data.ANTENNA_ID, BEAM_ID=data.BEAM_ID, W=W)
+        )
         return _as_BeamWeights(df)

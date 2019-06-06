@@ -25,10 +25,13 @@ def check(*args):
     """
     Validate function parameters using boolean tests.
 
-    It is common to check parameters for correctness before executing the function/class to which they are bound using boolean tests.
-    :py:func:`~pypeline.util.argcheck.check` is a decorator that intercepts the output of boolean functions and raises :py:exc:`ValueError` when the result is :py:obj:`False`.
+    It is common to check parameters for correctness before executing the function/class to which
+    they are bound using boolean tests.  :py:func:`~pypeline.util.argcheck.check` is a decorator
+    that intercepts the output of boolean functions and raises :py:exc:`ValueError` when the result
+    is :py:obj:`False`.
 
-    This function can be completely disabled by setting the ``util.argcheck.check.ignore_checks`` flag to ``False``.
+    This function can be completely disabled by setting the ``util.argcheck.check.ignore_checks``
+    flag to ``False``.
 
     Parameters
     ----------
@@ -67,7 +70,8 @@ def check(*args):
        def is_str(obj):
            return isinstance(obj, str)
 
-    Suppose we have the following boolean functions to test an object for similarity to the number 5:
+    Suppose we have the following boolean functions to test an object for similarity to the number
+    5:
 
     .. doctest::
 
@@ -80,7 +84,8 @@ def check(*args):
        >>> def is_str(obj):
        ...     return isinstance(obj, str)
 
-    When used in conjunction with :py:func:`~pypeline.util.argcheck.check`, type-checking function parameters becomes possible:
+    When used in conjunction with :py:func:`~pypeline.util.argcheck.check`, type-checking function
+    parameters becomes possible:
 
     .. doctest::
 
@@ -115,15 +120,15 @@ def check(*args):
     elif len(args) == 2:
         return _check(m={args[0]: args[1]})
     else:
-        raise ValueError('Expected 1 or 2 arguments.')
+        raise ValueError("Expected 1 or 2 arguments.")
 
 
 def _check(m):
     if not isinstance(m, abc.Mapping):
-        raise TypeError('Expected (str, boolean function) map')
+        raise TypeError("Expected (str, boolean function) map")
 
-    key_error = lambda k: f'Key[{k}] must be a valid string identifier.'
-    value_error = lambda k: f'Value[Key[{k}]] must be a boolean function.'
+    key_error = lambda k: f"Key[{k}] must be a valid string identifier."
+    value_error = lambda k: f"Value[Key[{k}]] must be a boolean function."
 
     for k, v in m.items():
         if not isinstance(k, str):
@@ -136,8 +141,7 @@ def _check(m):
 
     def decorator(func):
         # Ignore checks if appropriate config flag set.
-        ignore_checks = pypeline.config.getboolean('util.argcheck.check',
-                                                   'ignore_checks')
+        ignore_checks = pypeline.config.getboolean("util.argcheck.check", "ignore_checks")
         if ignore_checks:
             return func
 
@@ -147,12 +151,15 @@ def _check(m):
 
             for k, fn in m.items():
                 if k not in func_args:
-                    raise ValueError(f'Parameter[{k}] not part of '
-                                     f'{func.__qualname__}() parameter list.')
+                    raise ValueError(
+                        f"Parameter[{k}] not part of " f"{func.__qualname__}() parameter list."
+                    )
 
                 if fn(func_args[k]) is False:
-                    raise ValueError(f'Parameter[{k}] of {func.__qualname__}()'
-                                     f' does not satisfy {fn.__name__}().')
+                    raise ValueError(
+                        f"Parameter[{k}] of {func.__qualname__}()"
+                        f" does not satisfy {fn.__name__}()."
+                    )
 
             return func(*args, **kwargs)
 
@@ -165,7 +172,8 @@ def allow_None(func):
     """
     Relax boolean function for :py:obj:`None` input.
 
-    A boolean function wrapped by :py:func:`~pypeline.util.argcheck.allow_None` returns :py:obj:`True` if it's input is :py:obj:`None`.
+    A boolean function wrapped by :py:func:`~pypeline.util.argcheck.allow_None` returns
+    :py:obj:`True` if it's input is :py:obj:`None`.
 
     Parameters
     ----------
@@ -194,7 +202,8 @@ def allow_None(func):
        >>> allow_None(is_5)(None)
        True
 
-    When used in conjunction with :py:func:`~pypeline.util.argcheck.check`, it is possible to type-check parameters having default arguments set to :py:obj:`None`:
+    When used in conjunction with :py:func:`~pypeline.util.argcheck.check`, it is possible to
+    type-check parameters having default arguments set to :py:obj:`None`:
 
     .. doctest::
 
@@ -217,7 +226,7 @@ def allow_None(func):
        None
     """
     if not inspect.isfunction(func):
-        raise TypeError('Parameter[func] must be a boolean function.')
+        raise TypeError("Parameter[func] must be a boolean function.")
 
     @functools.wraps(func)
     def wrapper(x):
@@ -226,7 +235,7 @@ def allow_None(func):
 
         return func(x)
 
-    wrapper.__name__ = f'allow_None({func.__name__})'
+    wrapper.__name__ = f"allow_None({func.__name__})"
 
     return wrapper
 
@@ -273,7 +282,8 @@ def accept_any(*funcs):
        >>> accept_any(is_int, is_5)('5')  # fails both
        False
 
-    When used with :py:func:`~pypeline.util.argcheck.check`, a parameter  can be verified to satisfy one of several choices.
+    When used with :py:func:`~pypeline.util.argcheck.check`, a parameter  can be verified to satisfy
+    one of several choices.
 
     .. doctest::
 
@@ -288,7 +298,7 @@ def accept_any(*funcs):
        6
     """
     if not all(inspect.isfunction(_) for _ in funcs):
-        raise TypeError('Parameter[*funcs] must contain boolean functions.')
+        raise TypeError("Parameter[*funcs] must contain boolean functions.")
 
     def union(x):
         for fn in funcs:
@@ -297,7 +307,7 @@ def accept_any(*funcs):
 
         return False
 
-    union.__name__ = f'accept_any({[fn.__name__ for fn in funcs]})'
+    union.__name__ = f"accept_any({[fn.__name__ for fn in funcs]})"
 
     return union
 
@@ -343,7 +353,8 @@ def require_all(*funcs):
        >>> require_all(is_int, is_5)(5)  # both pass
        True
 
-    When used with :py:func:`~pypeline.util.argcheck.check`, a parameter can be verified to satisfy several functions simultaneously:
+    When used with :py:func:`~pypeline.util.argcheck.check`, a parameter can be verified to satisfy
+    several functions simultaneously:
 
     .. doctest::
 
@@ -370,7 +381,7 @@ def require_all(*funcs):
        ValueError: Parameter[x] of f() does not satisfy require_all(['gt_0', 'le_5'])(). # noqa: E501
     """
     if not all(inspect.isfunction(_) for _ in funcs):
-        raise TypeError('Parameter[*funcs] must contain boolean functions.')
+        raise TypeError("Parameter[*funcs] must contain boolean functions.")
 
     def intersection(x):
         for fn in funcs:
@@ -379,7 +390,7 @@ def require_all(*funcs):
 
         return True
 
-    intersection.__name__ = f'require_all({[fn.__name__ for fn in funcs]})'
+    intersection.__name__ = f"require_all({[fn.__name__ for fn in funcs]})"
 
     return intersection
 
@@ -413,7 +424,8 @@ def is_instance(*klass):
        >>> is_instance(np.ndarray)([])
        False
 
-    When used with :py:func:`~pypeline.util.argcheck.check`, function parameters can verified to be of a certain type:
+    When used with :py:func:`~pypeline.util.argcheck.check`, function parameters can verified to be
+    of a certain type:
 
     .. doctest::
 
@@ -430,7 +442,7 @@ def is_instance(*klass):
        ValueError: Parameter[x] of f() does not satisfy is_instance(['str'])().
     """
     if not all(inspect.isclass(_) for _ in klass):
-        raise TypeError('Parameter[*klass] must contain types.')
+        raise TypeError("Parameter[*klass] must contain types.")
 
     def _is_instance(x):
         if isinstance(x, klass):
@@ -438,7 +450,7 @@ def is_instance(*klass):
 
         return False
 
-    _is_instance.__name__ = f'is_instance({[cl.__name__ for cl in klass]})'
+    _is_instance.__name__ = f"is_instance({[cl.__name__ for cl in klass]})"
 
     return _is_instance
 
@@ -516,9 +528,7 @@ def is_array_shape(x):
         x = np.array(x, copy=False)
 
         if x.ndim == 1:
-            if ((len(x) > 0) and
-                    np.issubdtype(x.dtype, np.integer) and
-                    np.all(x > 0)):
+            if (len(x) > 0) and np.issubdtype(x.dtype, np.integer) and np.all(x > 0):
                 return True
 
     return False
@@ -553,7 +563,7 @@ def has_shape(shape):
        False
     """
     if not is_array_shape(shape):
-        raise ValueError('Parameter[shape] must be a valid shape specifier.')
+        raise ValueError("Parameter[shape] must be a valid shape specifier.")
 
     shape = tuple(shape)
 
@@ -570,7 +580,7 @@ def has_shape(shape):
 
         return False
 
-    _has_shape.__name__ = f'has_shape({list(shape)})'
+    _has_shape.__name__ = f"has_shape({list(shape)})"
 
     return _has_shape
 
@@ -857,7 +867,7 @@ def is_complex(x):
        >>> is_complex(5 + 5j), is_complex(1j * np.r_[0][0])
        (True, True)
     """
-    if (isinstance(x, numbers.Complex) and (not isinstance(x, numbers.Real))):
+    if isinstance(x, numbers.Complex) and (not isinstance(x, numbers.Real)):
         return True
 
     return False
@@ -932,8 +942,7 @@ def has_reals(x):
     if is_array_like(x):
         x = np.array(x, copy=False)
 
-        if (np.issubdtype(x.dtype, np.integer) or
-                np.issubdtype(x.dtype, np.floating)):
+        if np.issubdtype(x.dtype, np.integer) or np.issubdtype(x.dtype, np.floating):
             return True
 
     return False

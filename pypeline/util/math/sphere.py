@@ -18,7 +18,7 @@ import pypeline.util.argcheck as chk
 import pypeline.util.math.func as func
 
 
-@chk.check('N', chk.is_integer)
+@chk.check("N", chk.is_integer)
 def ea_sample(N):
     r"""
     Open grid of Equal-Angle sample-points on the sphere.
@@ -38,7 +38,8 @@ def ea_sample(N):
 
     Examples
     --------
-    Sampling a zonal function :math:`f(r): \mathbb{S}^{2} \to \mathbb{C}` of order :math:`N` on the sphere:
+    Sampling a zonal function :math:`f(r): \mathbb{S}^{2} \to \mathbb{C}` of order :math:`N` on the
+    sphere:
 
     .. testsetup::
 
@@ -77,7 +78,7 @@ def ea_sample(N):
     .. [1] B. Rafaely, "Fundamentals of Spherical Array Processing", Springer 2015
     """
     if N <= 0:
-        raise ValueError('Parameter[N] must be non-negative.')
+        raise ValueError("Parameter[N] must be non-negative.")
 
     _2N2 = 2 * N + 2
     q, l = np.ogrid[:_2N2, :_2N2]
@@ -87,7 +88,7 @@ def ea_sample(N):
     return colat, lon
 
 
-@chk.check('N', chk.is_integer)
+@chk.check("N", chk.is_integer)
 def fibonacci_sample(N):
     r"""
     Grid of Fibonacci sample-points on the sphere.
@@ -104,7 +105,8 @@ def fibonacci_sample(N):
 
     Examples
     --------
-    Sampling a zonal function :math:`f(r): \mathbb{S}^{2} \to \mathbb{C}` of order :math:`N` on the sphere:
+    Sampling a zonal function :math:`f(r): \mathbb{S}^{2} \to \mathbb{C}` of order :math:`N` on the
+    sphere:
 
     .. testsetup::
 
@@ -144,7 +146,7 @@ def fibonacci_sample(N):
     .. [2] B. Rafaely, "Fundamentals of Spherical Array Processing", Springer 2015
     """
     if N <= 0:
-        raise ValueError('Parameter[N] must be non-negative.')
+        raise ValueError("Parameter[N] must be non-negative.")
 
     N_px = 4 * (N + 1) ** 2
     n = np.arange(N_px)
@@ -159,13 +161,13 @@ class Interpolator(core.Block):
     r"""
     Interpolate order-limited zonal function from spatial samples.
 
-    Computes :math:`f(r) = \sum_{q} \alpha_{q} f(r_{q}) K_{N}(\langle r, r_{q} \rangle)`, where :math:`r_{q} \in \mathbb{S}^{2}`
-    are points from a spatial sampling scheme, :math:`K_{N}(\cdot)` is the spherical Dirichlet kernel of order :math:`N`,
-    and the :math:`\alpha_{q}` are scaling factors tailored to the sampling scheme.
+    Computes :math:`f(r) = \sum_{q} \alpha_{q} f(r_{q}) K_{N}(\langle r, r_{q} \rangle)`, where
+    :math:`r_{q} \in \mathbb{S}^{2}` are points from a spatial sampling scheme, :math:`K_{N}(\cdot)`
+    is the spherical Dirichlet kernel of order :math:`N`, and the :math:`\alpha_{q}` are scaling
+    factors tailored to the sampling scheme.
     """
 
-    @chk.check(dict(N=chk.is_integer,
-                    approximate_kernel=chk.is_boolean))
+    @chk.check(dict(N=chk.is_integer, approximate_kernel=chk.is_boolean))
     def __init__(self, N, approximate_kernel=False):
         r"""
         Parameters
@@ -178,16 +180,23 @@ class Interpolator(core.Block):
         super().__init__()
 
         if not (N > 0):
-            raise ValueError('Parameter[N] must be positive.')
+            raise ValueError("Parameter[N] must be positive.")
         self._N = N
         self._kernel_func = func.SphericalDirichlet(N, approximate_kernel)
 
-    @chk.check(dict(weight=chk.has_reals,
-                    support=chk.has_reals,
-                    f=chk.accept_any(chk.has_reals, chk.has_complex),
-                    r=chk.has_reals,
-                    sparsity_mask=chk.allow_None(chk.require_all(chk.is_instance(sp.spmatrix),
-                                                                 lambda _: np.issubdtype(_.dtype, np.bool_)))))
+    @chk.check(
+        dict(
+            weight=chk.has_reals,
+            support=chk.has_reals,
+            f=chk.accept_any(chk.has_reals, chk.has_complex),
+            r=chk.has_reals,
+            sparsity_mask=chk.allow_None(
+                chk.require_all(
+                    chk.is_instance(sp.spmatrix), lambda _: np.issubdtype(_.dtype, np.bool_)
+                )
+            ),
+        )
+    )
     def __call__(self, weight, support, f, r, sparsity_mask=None):
         """
         Interpolate function samples at order `N`.
@@ -211,23 +220,23 @@ class Interpolator(core.Block):
             (L, N_px) function values at specified coordinates.
         """
         if not (weight.shape == (weight.size,)):
-            raise ValueError('Parameter[weight] must have shape (N_s,).')
+            raise ValueError("Parameter[weight] must have shape (N_s,).")
         N_s = weight.size
 
         if not (support.shape == (3, N_s)):
-            raise ValueError('Parameter[support] must have shape (3, N_s).')
+            raise ValueError("Parameter[support] must have shape (3, N_s).")
 
         L = len(f)
         if not (f.shape == (L, N_s)):
-            raise ValueError('Parameter[f] must have shape (L, N_s).')
+            raise ValueError("Parameter[f] must have shape (L, N_s).")
 
         if not ((r.ndim == 2) and (r.shape[0] == 3)):
-            raise ValueError('Parameter[r] must have shape (3, N_px).')
+            raise ValueError("Parameter[r] must have shape (3, N_px).")
         N_px = r.shape[1]
 
         if sparsity_mask is not None:
             if not (sparsity_mask.shape == (N_s, N_px)):
-                raise ValueError('Parameter[sparsity_mask] must have shape (N_s, N_px).')
+                raise ValueError("Parameter[sparsity_mask] must have shape (N_s, N_px).")
 
         if sparsity_mask is None:  # Dense evaluation
             kernel = self._kernel_func(support.T @ r)
@@ -248,20 +257,22 @@ class EqualAngleInterpolator(Interpolator):
     r"""
     Interpolate order-limited zonal function from Equal-Angle samples.
 
-    Computes :math:`f(r) = \sum_{q, l} \alpha_{q} f(r_{q, l}) K_{N}(\langle r, r_{q, l} \rangle)`, where
-    :math:`r_{q, l} \in \mathbb{S}^{2}` are points from an Equal-Angle sampling scheme, :math:`K_{N}(\cdot)` is the
-    spherical Dirichlet kernel of order :math:`N`, and the :math:`\alpha_{q}` are scaling factors tailored to an
-    Equal-Angle sampling scheme.
+    Computes :math:`f(r) = \sum_{q, l} \alpha_{q} f(r_{q, l}) K_{N}(\langle r, r_{q, l} \rangle)`,
+    where :math:`r_{q, l} \in \mathbb{S}^{2}` are points from an Equal-Angle sampling scheme,
+    :math:`K_{N}(\cdot)` is the spherical Dirichlet kernel of order :math:`N`, and the
+    :math:`\alpha_{q}` are scaling factors tailored to an Equal-Angle sampling scheme.
 
     Examples
     --------
-    Let :math:`\gamma_{N}(r): \mathbb{S}^{2} \to \mathbb{R}` be the order-:math:`N` approximation of :math:`\gamma(r) = \delta(r - r_{0})`:
+    Let :math:`\gamma_{N}(r): \mathbb{S}^{2} \to \mathbb{R}` be the order-:math:`N` approximation of
+    :math:`\gamma(r) = \delta(r - r_{0})`:
 
     .. math::
 
        \gamma_{N}(r) = \frac{N + 1}{4 \pi} \frac{P_{N + 1}(\langle r, r_{0} \rangle) - P_{N}(\langle r, r_{0} \rangle)}{\langle r, r_{0} \rangle -1}.
 
-    As :math:`\gamma_{N}` is order-limited, it can be exactly reconstructed from it's samples on an order-:math:`N` Equal-Angle grid:
+    As :math:`\gamma_{N}` is order-limited, it can be exactly reconstructed from it's samples on an
+    order-:math:`N` Equal-Angle grid:
 
     .. testsetup::
 
@@ -301,8 +312,7 @@ class EqualAngleInterpolator(Interpolator):
        True
     """
 
-    @chk.check(dict(N=chk.is_integer,
-                    approximate_kernel=chk.is_boolean))
+    @chk.check(dict(N=chk.is_integer, approximate_kernel=chk.is_boolean))
     def __init__(self, N, approximate_kernel=False):
         r"""
         Parameters
@@ -314,12 +324,19 @@ class EqualAngleInterpolator(Interpolator):
         """
         super().__init__(N, approximate_kernel)
 
-    @chk.check(dict(colat_idx=chk.has_integers,
-                    lon_idx=chk.has_integers,
-                    f=chk.accept_any(chk.has_reals, chk.has_complex),
-                    r=chk.has_reals,
-                    sparsity_mask=chk.allow_None(chk.require_all(chk.is_instance(sp.spmatrix),
-                                                                 lambda _: np.issubdtype(_.dtype, np.bool_)))))
+    @chk.check(
+        dict(
+            colat_idx=chk.has_integers,
+            lon_idx=chk.has_integers,
+            f=chk.accept_any(chk.has_reals, chk.has_complex),
+            r=chk.has_reals,
+            sparsity_mask=chk.allow_None(
+                chk.require_all(
+                    chk.is_instance(sp.spmatrix), lambda _: np.issubdtype(_.dtype, np.bool_)
+                )
+            ),
+        )
+    )
     def __call__(self, colat_idx, lon_idx, f, r, sparsity_mask=None):
         """
         Interpolate function samples at order `N`.
@@ -344,43 +361,53 @@ class EqualAngleInterpolator(Interpolator):
         """
         N_colat = colat_idx.size
         if not (colat_idx.shape == (N_colat,)):
-            raise ValueError('Parameter[colat_idx] must have shape (N_colat,).')
+            raise ValueError("Parameter[colat_idx] must have shape (N_colat,).")
 
         N_lon = lon_idx.size
         if not (lon_idx.shape == (N_lon,)):
-            raise ValueError('Parameter[lon_idx] must have shape (N_lon,).')
+            raise ValueError("Parameter[lon_idx] must have shape (N_lon,).")
 
         L = len(f)
         if not (f.shape == (L, N_colat, N_lon)):
-            raise ValueError('Parameter[f] must have shape (L, N_colat, N_lon).')
+            raise ValueError("Parameter[f] must have shape (L, N_colat, N_lon).")
 
         if not ((r.ndim == 2) and (r.shape[0] == 3)):
-            raise ValueError('Parameter[r] must have shape (3, N_px).')
+            raise ValueError("Parameter[r] must have shape (3, N_px).")
         N_px = r.shape[1]
 
         if sparsity_mask is not None:
             if not (sparsity_mask.shape == (N_colat * N_lon, N_px)):
-                raise ValueError('Parameter[sparsity_mask] must have shape (N_colat * N_lon, N_px).')
+                raise ValueError(
+                    "Parameter[sparsity_mask] must have shape (N_colat * N_lon, N_px)."
+                )
 
         # Apply weights directly onto `f` to avoid memory blow-up.
         colat, lon = ea_sample(self._N)
         a = np.arange(self._N + 1)
-        weight = (np.sum(np.sin((2 * a + 1) * colat[colat_idx]) / (2 * a + 1), axis=1, keepdims=True) *
-                  np.sin(colat[colat_idx]) /
-                  (2 * self._N + 2))  # (N_colat,)
+        weight = (
+            np.sum(np.sin((2 * a + 1) * colat[colat_idx]) / (2 * a + 1), axis=1, keepdims=True)
+            * np.sin(colat[colat_idx])
+            / (2 * self._N + 2)
+        )  # (N_colat,)
         fw = f * weight.reshape(1, N_colat, 1)  # (L, N_colat, N_lon)
 
-        f_interp = super().__call__(weight=np.broadcast_to([1], (N_colat * N_lon,)),
-                                    support=pol2cart(1, colat[colat_idx], lon[:, lon_idx]).reshape(3, -1),
-                                    f=fw.reshape(L, -1),
-                                    r=r,
-                                    sparsity_mask=sparsity_mask)
+        f_interp = super().__call__(
+            weight=np.broadcast_to([1], (N_colat * N_lon,)),
+            support=pol2cart(1, colat[colat_idx], lon[:, lon_idx]).reshape(3, -1),
+            f=fw.reshape(L, -1),
+            r=r,
+            sparsity_mask=sparsity_mask,
+        )
         return f_interp
 
 
-@chk.check(dict(r=chk.accept_any(chk.is_real, chk.has_reals),
-                colat=chk.accept_any(chk.is_real, chk.has_reals),
-                lon=chk.accept_any(chk.is_real, chk.has_reals)))
+@chk.check(
+    dict(
+        r=chk.accept_any(chk.is_real, chk.has_reals),
+        colat=chk.accept_any(chk.is_real, chk.has_reals),
+        lon=chk.accept_any(chk.is_real, chk.has_reals),
+    )
+)
 def pol2eq(r, colat, lon):
     """
     Polar coordinates to Equatorial coordinates.
@@ -409,9 +436,13 @@ def pol2eq(r, colat, lon):
     return r, lat, lon
 
 
-@chk.check(dict(r=chk.accept_any(chk.is_real, chk.has_reals),
-                lat=chk.accept_any(chk.is_real, chk.has_reals),
-                lon=chk.accept_any(chk.is_real, chk.has_reals)))
+@chk.check(
+    dict(
+        r=chk.accept_any(chk.is_real, chk.has_reals),
+        lat=chk.accept_any(chk.is_real, chk.has_reals),
+        lon=chk.accept_any(chk.is_real, chk.has_reals),
+    )
+)
 def eq2pol(r, lat, lon):
     """
     Equatorial coordinates to Polar coordinates.
@@ -440,9 +471,13 @@ def eq2pol(r, lat, lon):
     return r, colat, lon
 
 
-@chk.check(dict(r=chk.accept_any(chk.is_real, chk.has_reals),
-                lat=chk.accept_any(chk.is_real, chk.has_reals),
-                lon=chk.accept_any(chk.is_real, chk.has_reals)))
+@chk.check(
+    dict(
+        r=chk.accept_any(chk.is_real, chk.has_reals),
+        lat=chk.accept_any(chk.is_real, chk.has_reals),
+        lon=chk.accept_any(chk.is_real, chk.has_reals),
+    )
+)
 def eq2cart(r, lat, lon):
     """
     Equatorial coordinates to Cartesian coordinates.
@@ -480,16 +515,21 @@ def eq2cart(r, lat, lon):
     if np.any(r < 0):
         raise ValueError("Parameter[r] must be non-negative.")
 
-    XYZ = (coord.SphericalRepresentation(lon * u.rad, lat * u.rad, r)
-           .to_cartesian()
-           .xyz
-           .to_value(u.dimensionless_unscaled))
+    XYZ = (
+        coord.SphericalRepresentation(lon * u.rad, lat * u.rad, r)
+        .to_cartesian()
+        .xyz.to_value(u.dimensionless_unscaled)
+    )
     return XYZ
 
 
-@chk.check(dict(r=chk.accept_any(chk.is_real, chk.has_reals),
-                colat=chk.accept_any(chk.is_real, chk.has_reals),
-                lon=chk.accept_any(chk.is_real, chk.has_reals)))
+@chk.check(
+    dict(
+        r=chk.accept_any(chk.is_real, chk.has_reals),
+        colat=chk.accept_any(chk.is_real, chk.has_reals),
+        lon=chk.accept_any(chk.is_real, chk.has_reals),
+    )
+)
 def pol2cart(r, colat, lon):
     """
     Polar coordinates to Cartesian coordinates.
@@ -527,9 +567,13 @@ def pol2cart(r, colat, lon):
     return eq2cart(r, lat, lon)
 
 
-@chk.check(dict(x=chk.accept_any(chk.is_real, chk.has_reals),
-                y=chk.accept_any(chk.is_real, chk.has_reals),
-                z=chk.accept_any(chk.is_real, chk.has_reals)))
+@chk.check(
+    dict(
+        x=chk.accept_any(chk.is_real, chk.has_reals),
+        y=chk.accept_any(chk.is_real, chk.has_reals),
+        z=chk.accept_any(chk.is_real, chk.has_reals),
+    )
+)
 def cart2pol(x, y, z):
     """
     Cartesian coordinates to Polar coordinates.
@@ -584,9 +628,13 @@ def cart2pol(x, y, z):
     return r, colat, lon
 
 
-@chk.check(dict(x=chk.accept_any(chk.is_real, chk.has_reals),
-                y=chk.accept_any(chk.is_real, chk.has_reals),
-                z=chk.accept_any(chk.is_real, chk.has_reals)))
+@chk.check(
+    dict(
+        x=chk.accept_any(chk.is_real, chk.has_reals),
+        y=chk.accept_any(chk.is_real, chk.has_reals),
+        z=chk.accept_any(chk.is_real, chk.has_reals),
+    )
+)
 def cart2eq(x, y, z):
     """
     Cartesian coordinates to Equatorial coordinates.

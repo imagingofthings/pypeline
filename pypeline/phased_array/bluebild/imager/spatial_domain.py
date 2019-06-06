@@ -116,10 +116,11 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
     .. image:: _img/bluebild_SpatialIMFSBlock_integrate_example.png
     """
 
-    @chk.check(dict(wl=chk.is_real,
-                    pix_grid=chk.has_reals,
-                    N_level=chk.is_integer,
-                    precision=chk.is_integer))
+    @chk.check(
+        dict(
+            wl=chk.is_real, pix_grid=chk.has_reals, N_level=chk.is_integer, precision=chk.is_integer
+        )
+    )
     def __init__(self, wl, pix_grid, N_level, precision=64):
         """
         Parameters
@@ -144,21 +145,23 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             self._fp = np.float64
             self._cp = np.complex128
         else:
-            raise ValueError('Parameter[precision] must be 32 or 64.')
+            raise ValueError("Parameter[precision] must be 32 or 64.")
 
         if N_level <= 0:
-            raise ValueError('Parameter[N_level] must be positive.')
+            raise ValueError("Parameter[N_level] must be positive.")
         self._N_level = N_level
 
         self._synthesizer = ssd.SpatialFieldSynthesizerBlock(wl, pix_grid, precision)
 
-    @chk.check(dict(D=chk.has_reals,
-                    V=chk.has_complex,
-                    XYZ=chk.has_reals,
-                    W=chk.is_instance(np.ndarray,
-                                      sparse.csr_matrix,
-                                      sparse.csc_matrix),
-                    cluster_idx=chk.has_integers))
+    @chk.check(
+        dict(
+            D=chk.has_reals,
+            V=chk.has_complex,
+            XYZ=chk.has_reals,
+            W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
+            cluster_idx=chk.has_integers,
+        )
+    )
     def __call__(self, D, V, XYZ, W, cluster_idx):
         """
         Compute (clustered) integrated field statistics for least-squares and standardized estimates.

@@ -7,12 +7,16 @@
 r"""
 Parameter estimators.
 
-Bluebild field synthesizers output :math:`N_{\text{beam}}` energy levels, with :math:`N_{\text{beam}}` being the height of the visibility/Gram matrices :math:`\Sigma, G`.
-We are often not interested in such fined-grained energy decompositions but would rather have 4-5 well-separated energy levels as output.
+Bluebild field synthesizers output :math:`N_{\text{beam}}` energy levels, with :math:`N_{\text{beam}}`
+being the height of the visibility/Gram matrices :math:`\Sigma, G`.
+We are often not interested in such fined-grained energy decompositions but would rather have 4-5
+well-separated energy levels as output.
 This is accomplished by clustering energy levels together during the aggregation stage.
 
-As the energy scale depends on the visibilities, it is preferable to infer the cluster centroids (and any other parameters of interest) by scanning a portion of the data stream.
-Subclasses of :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.ParameterEstimator` are specifically tailored for such tasks.
+As the energy scale depends on the visibilities, it is preferable to infer the cluster centroids
+(and any other parameters of interest) by scanning a portion of the data stream.
+Subclasses of :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.ParameterEstimator` are
+specifically tailored for such tasks.
 """
 
 import numpy as np
@@ -67,9 +71,11 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
     Examples
     --------
     Assume we are imaging a portion of the Bootes field with LOFAR's 24 core stations.
-    As 24 energy levels exhibit a smooth spectrum, we decide to aggregate them into 4 well-separated energy levels through clustering.
+    As 24 energy levels exhibit a smooth spectrum, we decide to aggregate them into 4 well-separated
+    energy levels through clustering.
 
-    The short script below shows how to use :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.IntensityFieldParameterEstimator` to optimally choose cluster centroids.
+    The short script below shows how to use :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.IntensityFieldParameterEstimator`
+    to optimally choose cluster centroids.
 
     .. testsetup::
 
@@ -132,8 +138,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
        array([124.927,  65.09 ,  38.589,  23.256])
     """
 
-    @chk.check(dict(N_level=chk.is_integer,
-                    sigma=chk.is_real))
+    @chk.check(dict(N_level=chk.is_integer, sigma=chk.is_real))
     def __init__(self, N_level, sigma):
         """
         Parameters
@@ -146,19 +151,18 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
         super().__init__()
 
         if N_level <= 0:
-            raise ValueError('Parameter[N_level] must be positive.')
+            raise ValueError("Parameter[N_level] must be positive.")
         self._N_level = N_level
 
         if not (0 < sigma <= 1):
-            raise ValueError('Parameter[sigma] must lie in (0,1].')
+            raise ValueError("Parameter[sigma] must lie in (0,1].")
         self._sigma = sigma
 
         # Collected data.
         self._visibilities = []
         self._grams = []
 
-    @chk.check(dict(S=chk.is_instance(vis.VisibilityMatrix),
-                    G=chk.is_instance(gr.GramMatrix)))
+    @chk.check(dict(S=chk.is_instance(vis.VisibilityMatrix), G=chk.is_instance(gr.GramMatrix)))
     def collect(self, S, G):
         """
         Ingest data to internal queue for inference.
@@ -171,7 +175,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
             (N_beam, N_beam) gram matrix.
         """
         if not S.is_consistent_with(G, axes=[0, 0]):
-            raise ValueError('Parameters[S, G] are inconsistent.')
+            raise ValueError("Parameters[S, G] are inconsistent.")
 
         self._visibilities.append(S)
         self._grams.append(G)
@@ -194,8 +198,9 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
         D_all = np.zeros((N_data, N_eig_max))
         for i, (S, G) in enumerate(zip(self._visibilities, self._grams)):
             # Remove broken BEAM_IDs
-            broken_row_id = np.flatnonzero(np.isclose(np.sum(S.data, axis=0),
-                                                      np.sum(S.data, axis=1)))
+            broken_row_id = np.flatnonzero(
+                np.isclose(np.sum(S.data, axis=0), np.sum(S.data, axis=1))
+            )
             working_row_id = list(set(np.arange(N_beam)) - set(broken_row_id))
             idx = np.ix_(working_row_id, working_row_id)
             S, G = S.data[idx], G.data[idx]
@@ -203,11 +208,10 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
             # Functional PCA
             if not np.allclose(S, 0):
                 D, _ = pylinalg.eigh(S, G, tau=self._sigma)
-                D_all[i, :len(D)] = D
+                D_all[i, : len(D)] = D
 
         D_all = D_all[D_all.nonzero()]
-        kmeans = (skcl.KMeans(n_clusters=self._N_level)
-                  .fit(np.log(D_all).reshape(-1, 1)))
+        kmeans = skcl.KMeans(n_clusters=self._N_level).fit(np.log(D_all).reshape(-1, 1))
 
         # For extremely small telescopes or datasets that are mostly 'broken', we can have (N_eig < N_level).
         # In this case we have two options: (N_level = N_eig) or (N_eig = N_level).
@@ -227,7 +231,7 @@ class SensitivityFieldParameterEstimator(ParameterEstimator):
     Parameter estimator for computing sensitivity fields.
     """
 
-    @chk.check('sigma', chk.is_real)
+    @chk.check("sigma", chk.is_real)
     def __init__(self, sigma):
         """
         Parameters
@@ -238,13 +242,13 @@ class SensitivityFieldParameterEstimator(ParameterEstimator):
         super().__init__()
 
         if not (0 < sigma <= 1):
-            raise ValueError('Parameter[sigma] must lie in (0,1].')
+            raise ValueError("Parameter[sigma] must lie in (0,1].")
         self._sigma = sigma
 
         # Collected data.
         self._grams = []
 
-    @chk.check('G', chk.is_instance(gr.GramMatrix))
+    @chk.check("G", chk.is_instance(gr.GramMatrix))
     def collect(self, G):
         """
         Ingest data to internal queue for inference.
@@ -272,7 +276,7 @@ class SensitivityFieldParameterEstimator(ParameterEstimator):
         for i, G in enumerate(self._grams):
             # Functional PCA
             D, _ = pylinalg.eigh(G.data, np.eye(N_beam), tau=self._sigma)
-            D_all[i, :len(D)] = D
+            D_all[i, : len(D)] = D
 
         D_all = D_all[D_all.nonzero()]
 

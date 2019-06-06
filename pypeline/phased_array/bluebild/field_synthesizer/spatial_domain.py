@@ -125,9 +125,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
     .. image:: _img/bluebild_SpatialFieldSynthesizer_snapshot_example.png
     """
 
-    @chk.check(dict(wl=chk.is_real,
-                    pix_grid=chk.has_reals,
-                    precision=chk.is_integer))
+    @chk.check(dict(wl=chk.is_real, pix_grid=chk.has_reals, precision=chk.is_integer))
     def __init__(self, wl, pix_grid, precision=64):
         """
         Parameters
@@ -150,19 +148,21 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             self._fp = np.float64
             self._cp = np.complex128
         else:
-            raise ValueError('Parameter[precision] must be 32 or 64.')
+            raise ValueError("Parameter[precision] must be 32 or 64.")
 
         self._wl = wl
 
         if not ((pix_grid.ndim == 3) and (len(pix_grid) == 3)):
-            raise ValueError('Parameter[pix_grid] must have dimensions (3, N_height, N_width).')
+            raise ValueError("Parameter[pix_grid] must have dimensions (3, N_height, N_width).")
         self._grid = pix_grid / linalg.norm(pix_grid, axis=0)
 
-    @chk.check(dict(V=chk.has_complex,
-                    XYZ=chk.has_reals,
-                    W=chk.is_instance(np.ndarray,
-                                      sparse.csr_matrix,
-                                      sparse.csc_matrix)))
+    @chk.check(
+        dict(
+            V=chk.has_complex,
+            XYZ=chk.has_reals,
+            W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
+        )
+    )
     def __call__(self, V, XYZ, W):
         """
         Compute instantaneous field statistics.
@@ -186,7 +186,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
         if not _have_matching_shapes(V, XYZ, W):
-            raise ValueError('Parameters[V, XYZ, W] are inconsistent.')
+            raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
         XYZ = XYZ.astype(self._fp, copy=False)
         W = W.astype(self._cp, copy=False)
@@ -196,11 +196,12 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         XYZ = XYZ - XYZ.mean(axis=0)
         P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
-        ne.evaluate('exp(A * B)',
-                    dict(A=1j * 2 * np.pi / self._wl,
-                         B=np.tensordot(XYZ, self._grid, axes=1)),
-                    out=P,
-                    casting='same_kind')  # Due to limitations of NumExpr2
+        ne.evaluate(
+            "exp(A * B)",
+            dict(A=1j * 2 * np.pi / self._wl, B=np.tensordot(XYZ, self._grid, axes=1)),
+            out=P,
+            casting="same_kind",
+        )  # Due to limitations of NumExpr2
 
         PW = W.T @ P.reshape(N_antenna, N_height * N_width)
         PW = PW.reshape(N_beam, N_height, N_width)
@@ -209,7 +210,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         I = E.real ** 2 + E.imag ** 2
         return I
 
-    @chk.check('stat', chk.has_reals)
+    @chk.check("stat", chk.has_reals)
     def synthesize(self, stat):
         """
         Compute field values from statistics.
@@ -227,7 +228,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         stat = np.array(stat, copy=False)
 
         if stat.ndim != 3:
-            raise ValueError('Parameter[stat] is incorrectly shaped.')
+            raise ValueError("Parameter[stat] is incorrectly shaped.")
 
         N_level = len(stat)
         N_height, N_width = self._grid.shape[1:]

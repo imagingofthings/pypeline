@@ -7,7 +7,8 @@
 """
 Foundational constructs.
 
-Pypeline is structured around the concept of :py:class:`~pypeline.core.Block`: callable objects that perform certain actions given their optional inputs.
+Pypeline is structured around the concept of :py:class:`~pypeline.core.Block`: callable objects that
+perform certain actions given their optional inputs.
 """
 
 import abc
@@ -17,8 +18,9 @@ class Block(abc.ABC):
     """
     Abstract Block interface.
 
-    Blocks can have internal state of any kind and must implement :py:meth:`~pypeline.core.Block.__call__`.
-    This function is assumed to be useable directly after block initialization, unless said otherwise.
+    Blocks can have internal state of any kind and must implement
+    :py:meth:`~pypeline.core.Block.__call__`.  This function is assumed to be useable directly after
+    block initialization, unless said otherwise.
 
     Blocks are allowed to extend this interface with public attributes and methods.
 

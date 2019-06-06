@@ -26,7 +26,7 @@ import pypeline.util.math.sphere as sph
 import pypeline.util.plot as plot
 
 
-@chk.check('file_name', chk.is_instance(str))
+@chk.check("file_name", chk.is_instance(str))
 def from_fits(file_name):
     """
     Load image from FITS file.
@@ -42,11 +42,11 @@ def from_fits(file_name):
     -------
     I : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
     """
-    with fits.open(file_name, mode='readonly', memmap=True, lazy_load_hdus=True) as hdulist:
+    with fits.open(file_name, mode="readonly", memmap=True, lazy_load_hdus=True) as hdulist:
         # PrimaryHDU: grid / class info
         primary_hdu = hdulist[0]
-        image_hdu = hdulist['IMAGE']
-        klass = globals()[primary_hdu.header['IMG_TYPE']]
+        image_hdu = hdulist["IMAGE"]
+        klass = globals()[primary_hdu.header["IMG_TYPE"]]
 
         I = klass._from_fits(primary_hdu, image_hdu)
         return I
@@ -128,8 +128,7 @@ class SphericalImage:
     .. image:: _img/sphericalimage_lcc_example.png
     """
 
-    @chk.check(dict(data=chk.has_reals,
-                    grid=chk.has_reals))
+    @chk.check(dict(data=chk.has_reals, grid=chk.has_reals))
     def __init__(self, data, grid):
         """
         Parameters
@@ -156,7 +155,9 @@ class SphericalImage:
         For efficiency reasons, `data` and `grid` are not copied internally.
         """
         grid = np.array(grid, copy=False)
-        grid_shape_error_msg = ('Parameter[grid] must have shape (3, N_height, N_width) or (3, N_points).')
+        grid_shape_error_msg = (
+            "Parameter[grid] must have shape (3, N_height, N_width) or (3, N_points)."
+        )
         if len(grid) != 3:
             raise ValueError(grid_shape_error_msg)
         if grid.ndim == 2:
@@ -170,20 +171,20 @@ class SphericalImage:
         data = np.array(data, copy=False)
         if self._is_gridded is True:
             N_height, N_width = self._grid.shape[1:]
-            if ((data.ndim == 2) and chk.has_shape([N_height, N_width])(data)):
+            if (data.ndim == 2) and chk.has_shape([N_height, N_width])(data):
                 self._data = data[np.newaxis]
-            elif ((data.ndim == 3) and chk.has_shape([N_height, N_width])(data[0])):
+            elif (data.ndim == 3) and chk.has_shape([N_height, N_width])(data[0]):
                 self._data = data
             else:
-                raise ValueError('Parameters[grid, data] are inconsistent.')
+                raise ValueError("Parameters[grid, data] are inconsistent.")
         else:
             N_points = self._grid.shape[1]
-            if ((data.ndim == 1) and chk.has_shape([N_points, ])(data)):
+            if (data.ndim == 1) and chk.has_shape([N_points])(data):
                 self._data = data[np.newaxis]
-            elif ((data.ndim == 2) and chk.has_shape([N_points, ])(data[0])):
+            elif (data.ndim == 2) and chk.has_shape([N_points])(data[0]):
                 self._data = data
             else:
-                raise ValueError('Parameters[grid, data] are inconsistent.')
+                raise ValueError("Parameters[grid, data] are inconsistent.")
 
     @property
     def data(self):
@@ -205,7 +206,7 @@ class SphericalImage:
         """
         return self._grid
 
-    @chk.check('file_name', chk.is_instance(str))
+    @chk.check("file_name", chk.is_instance(str))
     def to_fits(self, file_name):
         """
         Save image to FITS file.
@@ -217,14 +218,17 @@ class SphericalImage:
 
         Notes
         -----
-        * :py:class:`~pypeline.phased_array.util.io.image.SphericalImage` subclasses that write WCS information assume the grid is specified in ICRS.
-          If this is not the case, rotate the grid accordingly before calling :py:meth:`~pypeline.phased_array.util.io.image.SphericalImage.to_fits`.
+        * :py:class:`~pypeline.phased_array.util.io.image.SphericalImage` subclasses that write WCS
+          information assume the grid is specified in ICRS.
+          If this is not the case, rotate the grid accordingly before calling
+          :py:meth:`~pypeline.phased_array.util.io.image.SphericalImage.to_fits`.
 
         * Data cubes are stored in a secondary IMAGE frame and can be viewed with DS9 using::
 
               $ ds9 <FITS_file>.fits[IMAGE]
 
-          WCS information is only available in external FITS viewers if using :py:class:`~pypeline.phased_array.util.io.image.EqualAngleImage`.
+          WCS information is only available in external FITS viewers if using
+          :py:class:`~pypeline.phased_array.util.io.image.EqualAngleImage`.
         """
         primary_hdu = self._PrimaryHDU()
         image_hdu = self._ImageHDU()
@@ -240,7 +244,7 @@ class SphericalImage:
         -------
         hdu : :py:class:`~astropy.io.fits.PrimaryHDU`
         """
-        metadata = dict(IMG_TYPE=(self.__class__.__name__, 'SphericalImage subclass'), )
+        metadata = dict(IMG_TYPE=(self.__class__.__name__, "SphericalImage subclass"))
 
         # grid: stored as angles to reduce file size.
         _, colat, lon = sph.cart2pol(*self._grid)
@@ -259,12 +263,13 @@ class SphericalImage:
         -------
         hdu : :py:class:`~astropy.io.fits.ImageHDU`
         """
-        hdu = fits.ImageHDU(data=self._data, name='IMAGE')
+        hdu = fits.ImageHDU(data=self._data, name="IMAGE")
         return hdu
 
     @classmethod
-    @chk.check(dict(primary_hdu=chk.is_instance(fits.PrimaryHDU),
-                    image_hdu=chk.is_instance(fits.ImageHDU)))
+    @chk.check(
+        dict(primary_hdu=chk.is_instance(fits.PrimaryHDU), image_hdu=chk.is_instance(fits.ImageHDU))
+    )
     def _from_fits(cls, primary_hdu, image_hdu):
         """
         Load image from Header Descriptor Units.
@@ -298,26 +303,31 @@ class SphericalImage:
         """
         return self._data.shape
 
-    @chk.check(dict(index=chk.accept_any(chk.is_integer, chk.has_integers,
-                                         chk.is_instance(slice)),
-                    projection=chk.is_instance(str),
-                    catalog=chk.allow_None(chk.is_instance(sky.SkyEmission)),
-                    show_gridlines=chk.is_boolean,
-                    show_colorbar=chk.is_boolean,
-                    ax=chk.allow_None(chk.is_instance(axes.Axes)),
-                    data_kwargs=chk.allow_None(chk.is_instance(dict)),
-                    grid_kwargs=chk.allow_None(chk.is_instance(dict)),
-                    catalog_kwargs=chk.allow_None(chk.is_instance(dict))))
-    def draw(self,
-             index=slice(None),
-             projection='AEQD',
-             catalog=None,
-             show_gridlines=True,
-             show_colorbar=True,
-             ax=None,
-             data_kwargs=None,
-             grid_kwargs=None,
-             catalog_kwargs=None):
+    @chk.check(
+        dict(
+            index=chk.accept_any(chk.is_integer, chk.has_integers, chk.is_instance(slice)),
+            projection=chk.is_instance(str),
+            catalog=chk.allow_None(chk.is_instance(sky.SkyEmission)),
+            show_gridlines=chk.is_boolean,
+            show_colorbar=chk.is_boolean,
+            ax=chk.allow_None(chk.is_instance(axes.Axes)),
+            data_kwargs=chk.allow_None(chk.is_instance(dict)),
+            grid_kwargs=chk.allow_None(chk.is_instance(dict)),
+            catalog_kwargs=chk.allow_None(chk.is_instance(dict)),
+        )
+    )
+    def draw(
+        self,
+        index=slice(None),
+        projection="AEQD",
+        catalog=None,
+        show_gridlines=True,
+        show_colorbar=True,
+        ax=None,
+        data_kwargs=None,
+        grid_kwargs=None,
+        catalog_kwargs=None,
+    ):
         """
         Plot spherical image using a 2D projection.
 
@@ -375,10 +385,13 @@ class SphericalImage:
             * polar_plot : bool
                 Correct RA/DEC gridlines when mapping polar regions. (Default: False)
 
-                When mapping polar regions, meridian lines may be doubled at 180W/E, making it seem like a meridian line is missing.
-                Setting `polar_plot` to :py:obj:`True` redistributes the meridians differently to correct the issue.
+                When mapping polar regions, meridian lines may be doubled at 180W/E, making it seem
+                like a meridian line is missing.
+                Setting `polar_plot` to :py:obj:`True` redistributes the meridians differently to
+                correct the issue.
 
-                This option only makes sense when mapping polar regions, and will produce incorrect gridlines otherwise.
+                This option only makes sense when mapping polar regions, and will produce incorrect
+                gridlines otherwise.
             * ticks : bool
                 Add RA/DEC labels next to gridlines. (Default: False)
                 TODO: change to True once implemented
@@ -405,7 +418,7 @@ class SphericalImage:
 
         return ax
 
-    @chk.check('projection', chk.is_instance(str))
+    @chk.check("projection", chk.is_instance(str))
     def _draw_projection(self, projection):
         """
         Setup :py:class:`pyproj.Proj` object to do (lon,lat) <-> (x,y) transforms.
@@ -431,51 +444,37 @@ class SphericalImage:
         grid_lon = coord.Angle(grid_lon * u.rad).wrap_at(180 * u.deg).to_value(u.deg)
 
         p_name = projection.lower()
-        if p_name == 'lcc':
+        if p_name == "lcc":
             # Lambert Conformal Conic
-            proj = pyproj.Proj(proj='lcc',
-                               lon_0=grid_lon,
-                               lat_0=grid_lat,
-                               R=1)
-        elif p_name == 'aeqd':
+            proj = pyproj.Proj(proj="lcc", lon_0=grid_lon, lat_0=grid_lat, R=1)
+        elif p_name == "aeqd":
             # Azimuthal Equi-Distant
-            proj = pyproj.Proj(proj='aeqd',
-                               lon_0=grid_lon,
-                               lat_0=grid_lat,
-                               R=1)
-        elif p_name == 'laea':
+            proj = pyproj.Proj(proj="aeqd", lon_0=grid_lon, lat_0=grid_lat, R=1)
+        elif p_name == "laea":
             # Lambert Equal-Area
-            proj = pyproj.Proj(proj='laea',
-                               lon_0=grid_lon,
-                               lat_0=grid_lat,
-                               R=1)
-        elif p_name == 'robin':
+            proj = pyproj.Proj(proj="laea", lon_0=grid_lon, lat_0=grid_lat, R=1)
+        elif p_name == "robin":
             # Robinson
-            proj = pyproj.Proj(proj='robin',
-                               lon_0=grid_lon,
-                               R=1)
-        elif p_name == 'gnom':
+            proj = pyproj.Proj(proj="robin", lon_0=grid_lon, R=1)
+        elif p_name == "gnom":
             # Gnomonic
-            proj = pyproj.Proj(proj='gnom',
-                               lon_0=grid_lon,
-                               lat_0=grid_lat,
-                               R=1)
-        elif p_name == 'healpix':
+            proj = pyproj.Proj(proj="gnom", lon_0=grid_lon, lat_0=grid_lat, R=1)
+        elif p_name == "healpix":
             # Hierarchical Equal-Area Pixelisation
-            proj = pyproj.Proj(proj='healpix',
-                               lon_0=grid_lon,
-                               lat_0=grid_lat,
-                               R=1)
+            proj = pyproj.Proj(proj="healpix", lon_0=grid_lon, lat_0=grid_lat, R=1)
         else:
-            raise ValueError('Parameter[projection] is not a valid projection specifier.')
+            raise ValueError("Parameter[projection] is not a valid projection specifier.")
 
         return proj
 
-    @chk.check(dict(index=chk.accept_any(chk.is_integer, chk.has_integers,
-                                         chk.is_instance(slice)),
-                    data_kwargs=chk.allow_None(chk.is_instance(dict)),
-                    projection=chk.is_instance(pyproj.Proj),
-                    ax=chk.is_instance(axes.Axes)))
+    @chk.check(
+        dict(
+            index=chk.accept_any(chk.is_integer, chk.has_integers, chk.is_instance(slice)),
+            data_kwargs=chk.allow_None(chk.is_instance(dict)),
+            projection=chk.is_instance(pyproj.Proj),
+            ax=chk.is_instance(axes.Axes),
+        )
+    )
     def _draw_data(self, index, data_kwargs, projection, ax):
         """
         Contour plot of data.
@@ -506,14 +505,15 @@ class SphericalImage:
         else:  # slice()
             index = np.arange(N_image, dtype=int)[index]
             if index.size == 0:
-                raise ValueError('No data-cube slice chosen.')
+                raise ValueError("No data-cube slice chosen.")
         if not np.all((0 <= index) & (index < N_image)):
-            raise ValueError('Parameter[index] is out of bounds.')
+            raise ValueError("Parameter[index] is out of bounds.")
         data = np.sum(self._data[index], axis=0)
 
         # Transform (lon,lat) to (x,y).
         # Some projections have unmappable regions or exhibit singularities at certain points.
-        # These regions are colored white in contour plots by replacing their incorrect value (1e30) with NaN.
+        # These regions are colored white in contour plots by replacing their incorrect value (1e30)
+        # with NaN.
         _, grid_lat, grid_lon = sph.cart2eq(*self._grid)
         grid_lat = coord.Angle(grid_lat * u.rad).to_value(u.deg)
         grid_lon = coord.Angle(grid_lon * u.rad).wrap_at(180 * u.deg).to_value(u.deg)
@@ -523,41 +523,43 @@ class SphericalImage:
         grid_y[np.isclose(grid_y, 1e30)] = np.nan
 
         # Colormap choice
-        if 'cmap' in data_kwargs:
-            obj = data_kwargs.pop('cmap')
+        if "cmap" in data_kwargs:
+            obj = data_kwargs.pop("cmap")
             if chk.is_instance(str)(obj):
                 cmap = cm.get_cmap(obj)
             else:
                 cmap = obj
         else:
-            cmap = plot.cmap('matthieu-custom-sky', N=38)
+            cmap = plot.cmap("matthieu-custom-sky", N=38)
 
         if self._is_gridded:
-            scm = ax.contourf(grid_x, grid_y, data,
-                              cmap.N, cmap=cmap,
-                              **data_kwargs)
+            scm = ax.contourf(grid_x, grid_y, data, cmap.N, cmap=cmap, **data_kwargs)
         else:
             triangulation = tri.Triangulation(grid_x, grid_y)
-            scm = ax.tricontourf(triangulation, data,
-                                 cmap.N, cmap=cmap,
-                                 **data_kwargs)
+            scm = ax.tricontourf(triangulation, data, cmap.N, cmap=cmap, **data_kwargs)
 
         # Show coordinates in status bar
         def sexagesimal_coords(x, y):
             lon, lat = projection(x, y, errcheck=False, inverse=True)
-            lon = coord.Angle(lon * u.deg).wrap_at(180 * u.deg).to_string(unit=u.hourangle, sep='hms')
-            lat = coord.Angle(lat * u.deg).to_string(unit=u.degree, sep='dms')
+            lon = (
+                coord.Angle(lon * u.deg).wrap_at(180 * u.deg).to_string(unit=u.hourangle, sep="hms")
+            )
+            lat = coord.Angle(lat * u.deg).to_string(unit=u.degree, sep="dms")
 
-            msg = f'RA: {lon}, DEC: {lat}'
+            msg = f"RA: {lon}, DEC: {lat}"
             return msg
 
         ax.format_coord = sexagesimal_coords
 
         return scm
 
-    @chk.check(dict(show_colorbar=chk.is_boolean,
-                    scm=chk.is_instance(cm.ScalarMappable),
-                    ax=chk.is_instance(axes.Axes)))
+    @chk.check(
+        dict(
+            show_colorbar=chk.is_boolean,
+            scm=chk.is_instance(cm.ScalarMappable),
+            ax=chk.is_instance(axes.Axes),
+        )
+    )
     def _draw_colorbar(self, show_colorbar, scm, ax):
         """
         Attach colorbar.
@@ -582,10 +584,14 @@ class SphericalImage:
 
         return cbar
 
-    @chk.check(dict(show_gridlines=chk.is_boolean,
-                    grid_kwargs=chk.allow_None(chk.is_instance(dict)),
-                    projection=chk.is_instance(pyproj.Proj),
-                    ax=chk.is_instance(axes.Axes)))
+    @chk.check(
+        dict(
+            show_gridlines=chk.is_boolean,
+            grid_kwargs=chk.allow_None(chk.is_instance(dict)),
+            projection=chk.is_instance(pyproj.Proj),
+            ax=chk.is_instance(axes.Axes),
+        )
+    )
     def _draw_gridlines(self, show_gridlines, grid_kwargs, projection, ax):
         """
         Plot Right-Ascension / Declination lines.
@@ -604,39 +610,36 @@ class SphericalImage:
         if grid_kwargs is None:
             grid_kwargs = dict()
 
-        if 'N_parallel' in grid_kwargs:
-            N_parallel = grid_kwargs.pop('N_parallel')
+        if "N_parallel" in grid_kwargs:
+            N_parallel = grid_kwargs.pop("N_parallel")
             if not (chk.is_integer(N_parallel) and (N_parallel >= 3)):
-                raise ValueError('Value[N_parallel] must be at least 3.')
+                raise ValueError("Value[N_parallel] must be at least 3.")
         else:
             N_parallel = 3
 
-        if 'N_meridian' in grid_kwargs:
-            N_meridian = grid_kwargs.pop('N_meridian')
+        if "N_meridian" in grid_kwargs:
+            N_meridian = grid_kwargs.pop("N_meridian")
             if not (chk.is_integer(N_meridian) and (N_meridian >= 3)):
-                raise ValueError('Value[N_meridian] must be at least 3.')
+                raise ValueError("Value[N_meridian] must be at least 3.")
         else:
             N_meridian = 3
 
-        if 'polar_plot' in grid_kwargs:
-            polar_plot = grid_kwargs.pop('polar_plot')
+        if "polar_plot" in grid_kwargs:
+            polar_plot = grid_kwargs.pop("polar_plot")
             if not chk.is_boolean(polar_plot):
-                raise ValueError('Value[polar_plot] must be boolean.')
+                raise ValueError("Value[polar_plot] must be boolean.")
         else:
             polar_plot = False
 
-        if 'ticks' in grid_kwargs:
-            show_ticks = grid_kwargs.pop('ticks')
+        if "ticks" in grid_kwargs:
+            show_ticks = grid_kwargs.pop("ticks")
             if not chk.is_boolean(show_ticks):
-                raise ValueError('Value[ticks] must be boolean.')
+                raise ValueError("Value[ticks] must be boolean.")
         else:
             # TODO: change to True once implemented.
             show_ticks = False
 
-        plot_style = dict(alpha=0.5,
-                          color='k',
-                          linewidth=1,
-                          linestyle='solid')
+        plot_style = dict(alpha=0.5, color="k", linewidth=1, linestyle="solid")
         plot_style.update(grid_kwargs)
 
         _, grid_lat, grid_lon = sph.cart2eq(*self._grid)
@@ -655,7 +658,8 @@ class SphericalImage:
 
             # Transform (lon,lat) to (x,y).
             # Some projections have unmappable regions or exhibit singularities at certain points.
-            # These regions are colored white in contour plots by replacing their incorrect value (1e30) with NaN.
+            # These regions are colored white in contour plots by replacing their incorrect value
+            # (1e30) with NaN.
             grid_x, grid_y = projection(ra_span, dec_span, errcheck=False)
             grid_x[np.isclose(grid_x, 1e30)] = np.nan
             grid_y[np.isclose(grid_y, 1e30)] = np.nan
@@ -676,7 +680,8 @@ class SphericalImage:
 
             # Transform (lon,lat) to (x,y).
             # Some projections have unmappable regions or exhibit singularities at certain points.
-            # These regions are colored white in contour plots by replacing their incorrect value (1e30) with NaN.
+            # These regions are colored white in contour plots by replacing their incorrect value
+            # (1e30) with NaN.
             grid_x, grid_y = projection(ra_span, dec_span, errcheck=False)
             grid_x[np.isclose(grid_x, 1e30)] = np.nan
             grid_y[np.isclose(grid_y, 1e30)] = np.nan
@@ -687,11 +692,15 @@ class SphericalImage:
 
         # LAT/LON ticks
         if show_gridlines and show_ticks:
-            raise NotImplementedError('Not yet implemented.')
+            raise NotImplementedError("Not yet implemented.")
 
-    @chk.check(dict(catalog=chk.allow_None(chk.is_instance(sky.SkyEmission)),
-                    projection=chk.is_instance(pyproj.Proj),
-                    ax=chk.is_instance(axes.Axes)))
+    @chk.check(
+        dict(
+            catalog=chk.allow_None(chk.is_instance(sky.SkyEmission)),
+            projection=chk.is_instance(pyproj.Proj),
+            ax=chk.is_instance(axes.Axes),
+        )
+    )
     def _draw_catalog(self, catalog, catalog_kwargs, projection, ax):
         """
         Overlay catalog on top of map.
@@ -719,15 +728,12 @@ class SphericalImage:
             if catalog_kwargs is None:
                 catalog_kwargs = dict()
 
-            plot_style = dict(s=400,
-                              facecolors='none',
-                              edgecolors='w')
+            plot_style = dict(s=400, facecolors="none", edgecolors="w")
             plot_style.update(catalog_kwargs)
 
             ax.scatter(c_x, c_y, **plot_style)
 
-    @chk.check(dict(projection=chk.is_instance(pyproj.Proj),
-                    ax=chk.is_instance(axes.Axes)))
+    @chk.check(dict(projection=chk.is_instance(pyproj.Proj), ax=chk.is_instance(axes.Axes)))
     def _draw_beautify(self, projection, ax):
         """
         Format plot.
@@ -739,8 +745,8 @@ class SphericalImage:
         ax : :py:class:`~matplotlib.axes.Axes`
             Axes to draw on.
         """
-        ax.axis('off')
-        ax.axis('equal')
+        ax.axis("off")
+        ax.axis("equal")
 
 
 class EqualAngleImage(SphericalImage):
@@ -748,8 +754,7 @@ class EqualAngleImage(SphericalImage):
     Specialized container for Equal-Angle sampled images on :math:`\mathbb{S}^{2}.`
     """
 
-    @chk.check(dict(colat=chk.has_reals,
-                    lon=chk.has_reals))
+    @chk.check(dict(colat=chk.has_reals, lon=chk.has_reals))
     def __init__(self, data, colat, lon):
         """
         Parameters
@@ -768,10 +773,10 @@ class EqualAngleImage(SphericalImage):
         """
         N_height = colat.size
         if not chk.has_shape([N_height, 1])(colat):
-            raise ValueError('Parameter[colat] must have shape (N_height, 1).')
+            raise ValueError("Parameter[colat] must have shape (N_height, 1).")
         N_width = lon.size
         if not chk.has_shape([1, N_width])(lon):
-            raise ValueError('Parameter[lon] must have shape (1, N_width).')
+            raise ValueError("Parameter[lon] must have shape (1, N_width).")
 
         grid = sph.pol2cart(1, colat, lon)
         super().__init__(data, grid)
@@ -786,13 +791,13 @@ class EqualAngleImage(SphericalImage):
         lon = lon[0, lon_idx][0]
         lon_step = lon[1] - lon[0]
         if not u.allclose(np.diff(lon), lon_step):
-            raise ValueError('Parameter[lon] must be equi-spaced.')
+            raise ValueError("Parameter[lon] must be equi-spaced.")
         self._lon = lon.reshape(1, N_width)
 
         colat = colat[colat_idx, 0][:, 0]
         colat_step = colat[1] - colat[0]
         if not u.allclose(np.diff(colat), colat_step):
-            raise ValueError('Parameter[colat] must be equi-spaced.')
+            raise ValueError("Parameter[colat] must be equi-spaced.")
         self._colat = colat.reshape(N_height, 1)
 
     def _PrimaryHDU(self):
@@ -806,13 +811,16 @@ class EqualAngleImage(SphericalImage):
         N_height = self._colat.size
         N_width = self._lon.size
 
-        metadata = {'IMG_TYPE': (self.__class__.__name__, 'SphericalImage subclass'),
-                    'N_HEIGHT': (N_height, 'N_rows'),
-                    'N_WIDTH': (N_width, 'N_columns')}
+        metadata = {
+            "IMG_TYPE": (self.__class__.__name__, "SphericalImage subclass"),
+            "N_HEIGHT": (N_height, "N_rows"),
+            "N_WIDTH": (N_width, "N_columns"),
+        }
 
         # grid: store ogrid-style mesh in 1D form for compactness.
-        coordinates = np.r_[np.rad2deg(self._colat).reshape(N_height),
-                            np.rad2deg(self._lon).reshape(N_width)]
+        coordinates = np.r_[
+            np.rad2deg(self._colat).reshape(N_height), np.rad2deg(self._lon).reshape(N_width)
+        ]
 
         hdu = fits.PrimaryHDU(data=coordinates)
         for k, v in metadata.items():
@@ -839,19 +847,20 @@ class EqualAngleImage(SphericalImage):
         hdu = super()._ImageHDU()
         wcs = WCS(hdu.header)
         wcs.wcs.cd = np.diag([RA[1] - RA[0], DEC[1] - DEC[0], 1])  # CD_ija
-        wcs.wcs.cname = ['RA', 'DEC', 'ENERGY_LEVEL']  # CNAMEa
+        wcs.wcs.cname = ["RA", "DEC", "ENERGY_LEVEL"]  # CNAMEa
         wcs.wcs.crpix = [1, 1, 1]  # CRPIX_ja
         wcs.wcs.crval = [RA[0], DEC[0], 0]  # CRVAL_ia
-        wcs.wcs.ctype = ['RA', 'DEC', '']  # CTYPE_ia
-        wcs.wcs.cunit = ['deg', 'deg', '']  # CUNIT_ia
-        wcs.wcs.name = 'ICRS'  # WCSNAMEa
+        wcs.wcs.ctype = ["RA", "DEC", ""]  # CTYPE_ia
+        wcs.wcs.cunit = ["deg", "deg", ""]  # CUNIT_ia
+        wcs.wcs.name = "ICRS"  # WCSNAMEa
 
         hdu.header.extend(wcs.to_header().cards, update=True)
         return hdu
 
     @classmethod
-    @chk.check(dict(primary_hdu=chk.is_instance(fits.PrimaryHDU),
-                    image_hdu=chk.is_instance(fits.ImageHDU)))
+    @chk.check(
+        dict(primary_hdu=chk.is_instance(fits.PrimaryHDU), image_hdu=chk.is_instance(fits.ImageHDU))
+    )
     def _from_fits(cls, primary_hdu, image_hdu):
         """
         Load image from Header Descriptor Units.
@@ -866,10 +875,10 @@ class EqualAngleImage(SphericalImage):
         I : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
         """
         # PrimaryHDU: grid specification.
-        N_height = primary_hdu.header['N_HEIGHT']
+        N_height = primary_hdu.header["N_HEIGHT"]
         colat = np.deg2rad(primary_hdu.data[:N_height].reshape(N_height, 1))
 
-        N_width = primary_hdu.header['N_WIDTH']
+        N_width = primary_hdu.header["N_WIDTH"]
         lon = np.deg2rad(primary_hdu.data[-N_width:].reshape(1, N_width))
 
         # ImageHDU: extract data cube.

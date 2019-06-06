@@ -30,7 +30,8 @@ class DataProcessorBlock(core.Block):
 
     def __call__(self, *args, **kwargs):
         """
-        fPCA decomposition and data formatting for :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
+        fPCA decomposition and data formatting for
+        :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
 
         Parameters
         ----------
@@ -47,8 +48,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
     Data processor for computing intensity fields.
     """
 
-    @chk.check(dict(N_eig=chk.is_integer,
-                    cluster_centroids=chk.has_reals))
+    @chk.check(dict(N_eig=chk.is_integer, cluster_centroids=chk.has_reals))
     def __init__(self, N_eig, cluster_centroids):
         """
         Parameters
@@ -60,20 +60,23 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
 
         Notes
         -----
-        Both parameters should preferably be set by calling the :py:meth:`~pypeline.phased_array.bluebild.parameter_estimator.IntensityFieldParameterEstimator.infer_parameters` method from :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.IntensityFieldParameterEstimator`.
+        Both parameters should preferably be set by calling the
+        :py:meth:`~pypeline.phased_array.bluebild.parameter_estimator.IntensityFieldParameterEstimator.infer_parameters`
+        method from
+        :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.IntensityFieldParameterEstimator`.
         """
         if N_eig <= 0:
-            raise ValueError('Parameter[N_eig] must be positive.')
+            raise ValueError("Parameter[N_eig] must be positive.")
 
         super().__init__()
         self._N_eig = N_eig
         self._cluster_centroids = np.array(cluster_centroids, copy=False)
 
-    @chk.check(dict(S=chk.is_instance(vis.VisibilityMatrix),
-                    G=chk.is_instance(gram.GramMatrix)))
+    @chk.check(dict(S=chk.is_instance(vis.VisibilityMatrix), G=chk.is_instance(gram.GramMatrix)))
     def __call__(self, S, G):
         """
-        fPCA decomposition and data formatting for :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
+        fPCA decomposition and data formatting for
+        :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
 
         .. todo:: How to deal with ill-conditioned G?
 
@@ -142,12 +145,11 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
            array([0, 0])
         """
         if not S.is_consistent_with(G, axes=[0, 0]):
-            raise ValueError('Parameters[S, G] are inconsistent.')
+            raise ValueError("Parameters[S, G] are inconsistent.")
 
         # Remove broken BEAM_IDs
         N_beam = len(G.data)
-        broken_row_id = np.flatnonzero(np.isclose(np.sum(S.data, axis=0),
-                                                  np.sum(S.data, axis=1)))
+        broken_row_id = np.flatnonzero(np.isclose(np.sum(S.data, axis=0), np.sum(S.data, axis=1)))
         working_row_id = list(set(np.arange(N_beam)) - set(broken_row_id))
         idx = np.ix_(working_row_id, working_row_id)
         S, G = S.data[idx], G.data[idx]
@@ -163,8 +165,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
         V_aligned[working_row_id] = V
 
         # Determine energy-level clustering
-        cluster_dist = np.absolute(D.reshape(-1, 1) -
-                                   self._cluster_centroids.reshape(1, -1))
+        cluster_dist = np.absolute(D.reshape(-1, 1) - self._cluster_centroids.reshape(1, -1))
         cluster_idx = np.argmin(cluster_dist, axis=1)
 
         return D, V_aligned, cluster_idx
@@ -175,7 +176,7 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
     Data processor for computing sensitivity fields.
     """
 
-    @chk.check('N_eig', chk.is_integer)
+    @chk.check("N_eig", chk.is_integer)
     def __init__(self, N_eig):
         """
         Parameters
@@ -185,18 +186,22 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
 
         Notes
         -----
-        `N_eig` should preferably be set by calling the :py:meth:`~pypeline.phased_array.bluebild.parameter_estimator.SensitivityFieldParameterEstimator.infer_parameters` method from :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.SensitivityFieldParameterEstimator`.
+        `N_eig` should preferably be set by calling the
+        :py:meth:`~pypeline.phased_array.bluebild.parameter_estimator.SensitivityFieldParameterEstimator.infer_parameters`
+        method from
+        :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.SensitivityFieldParameterEstimator`.
         """
         if N_eig <= 0:
-            raise ValueError('Parameter[N_eig] must be positive.')
+            raise ValueError("Parameter[N_eig] must be positive.")
 
         super().__init__()
         self._N_eig = N_eig
 
-    @chk.check('G', chk.is_instance(gram.GramMatrix))
+    @chk.check("G", chk.is_instance(gram.GramMatrix))
     def __call__(self, G):
         """
-        fPCA decomposition and data formatting for :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
+        fPCA decomposition and data formatting for
+        :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
 
         Parameters
         ----------

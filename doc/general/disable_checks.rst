@@ -8,7 +8,8 @@
 Disable Argument Validation for Faster Execution
 ================================================
 
-In an effort to add static type checking to Pypeline, most functions/methods are decorated with :py:func:`~pypeline.util.argcheck.check` such as below:
+In an effort to add static type checking to Pypeline, most functions/methods are decorated with
+:py:func:`~pypeline.util.argcheck.check` such as below:
 
 .. doctest::
 
@@ -29,8 +30,10 @@ In an effort to add static type checking to Pypeline, most functions/methods are
        ...
    ValueError: Parameter[x] of f() does not satisfy is_5().
 
-Argument checks can be expensive when used extensively.
-If you know your Pypeline scripts are correct (i.e., they execute without error), you can disable validation tests done with :py:func:`~pypeline.util.argcheck.check` by setting ``util.argcheck.check.ignore_checks`` to ``False`` in ``~/.pypeline/pypeline.cfg``::
+Argument checks can be expensive when used extensively.  If you know your Pypeline scripts are
+correct (i.e., they execute without error), you can disable validation tests done with
+:py:func:`~pypeline.util.argcheck.check` by setting ``util.argcheck.check.ignore_checks`` to
+``False`` in ``~/.pypeline/pypeline.cfg``::
 
 
    # ##########################################################################
@@ -43,7 +46,8 @@ If you know your Pypeline scripts are correct (i.e., they execute without error)
 
 .. hint::
 
-   If you do not want to restart the Python interpreter to enforce this change, it is possible to reload Pypeline's configuration::
+   If you do not want to restart the Python interpreter to enforce this change, it is possible to
+   reload Pypeline's configuration::
 
       >>> # Modify pypeline.cfg to disable checks.
       >>> import pypeline

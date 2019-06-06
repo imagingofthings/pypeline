@@ -125,14 +125,17 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
     .. image:: _img/bluebild_FourierFieldSynthesizer_snapshot_example.png
     """
 
-    @chk.check(dict(wl=chk.is_real,
-                    grid_colat=chk.has_reals,
-                    grid_lon=chk.has_reals,
-                    N_FS=chk.is_odd,
-                    T=chk.is_real,
-                    R=chk.require_all(chk.has_shape([3, 3]),
-                                      chk.has_reals),
-                    precision=chk.is_integer))
+    @chk.check(
+        dict(
+            wl=chk.is_real,
+            grid_colat=chk.has_reals,
+            grid_lon=chk.has_reals,
+            N_FS=chk.is_odd,
+            T=chk.is_real,
+            R=chk.require_all(chk.has_shape([3, 3]), chk.has_reals),
+            precision=chk.is_integer,
+        )
+    )
     def __init__(self, wl, grid_colat, grid_lon, N_FS, T, R, precision=64):
         r"""
         Parameters
@@ -169,21 +172,21 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             self._fp = np.float64
             self._cp = np.complex128
         else:
-            raise ValueError('Parameter[precision] must be 32 or 64.')
+            raise ValueError("Parameter[precision] must be 32 or 64.")
 
         self._wl = wl
 
         if N_FS <= 0:
-            raise ValueError('Parameter[N_FS] must be positive.')
+            raise ValueError("Parameter[N_FS] must be positive.")
 
         if not (0 < T <= 2 * np.pi):
-            raise ValueError(f'Parameter[T] is out of bounds.')
+            raise ValueError(f"Parameter[T] is out of bounds.")
 
         if not np.isclose(T, 2 * np.pi):  # PeriodicSynthesis
             self._alpha_window = 0.1
             T_min = (1 + self._alpha_window) * grid_lon.ptp()
             if T < T_min:
-                raise ValueError(f'Parameter[T] must be greater that {T_min}.')
+                raise ValueError(f"Parameter[T] must be greater that {T_min}.")
             self._T = T
 
             aw = self._alpha_window
@@ -211,11 +214,13 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         self._FSk = None  # (N_antenna, N_height, N_FS+Q) FS coefficients
         self._XYZk = None  # (N_antenna, 3) BFSF coordinates
 
-    @chk.check(dict(V=chk.has_complex,
-                    XYZ=chk.has_reals,
-                    W=chk.is_instance(np.ndarray,
-                                      sparse.csr_matrix,
-                                      sparse.csc_matrix)))
+    @chk.check(
+        dict(
+            V=chk.has_complex,
+            XYZ=chk.has_reals,
+            W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
+        )
+    )
     def __call__(self, V, XYZ, W):
         """
         Compute instantaneous field statistics.
@@ -237,7 +242,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             (N_eig, N_height, N_FS + Q) field statistics.
         """
         if not fsd._have_matching_shapes(V, XYZ, W):
-            raise ValueError('Parameters[V, XYZ, W] are inconsistent.')
+            raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
         XYZ = XYZ.astype(self._fp, copy=False)
         W = W.astype(self._cp, copy=False)
@@ -260,14 +265,14 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         PW_FS = W.T @ self._FSk.reshape(N_antenna, N_height * _2N1Q)
         E_FS = np.tensordot(V.T, PW_FS.reshape(N_beam, N_height, _2N1Q), axes=1)
 
-        mod_phase = (-1j * 2 * np.pi * phase_shift / self._T)
-        E_FS *= np.exp(mod_phase) ** np.r_[-N:N + 1, np.zeros(Q)]
+        mod_phase = -1j * 2 * np.pi * phase_shift / self._T
+        E_FS *= np.exp(mod_phase) ** np.r_[-N : N + 1, np.zeros(Q)]
 
         E_Ny = fourier.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2)
         I_Ny = E_Ny.real ** 2 + E_Ny.imag ** 2
         return I_Ny
 
-    @chk.check('stat', chk.has_reals)
+    @chk.check("stat", chk.has_reals)
     def synthesize(self, stat):
         """
         Compute field values from statistics.
@@ -285,7 +290,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         stat = np.array(stat, copy=False)
 
         if stat.ndim != 3:
-            raise ValueError('Parameter[stat] is incorrectly shaped.')
+            raise ValueError("Parameter[stat] is incorrectly shaped.")
 
         N_level = len(stat)
         N_height, _2N1Q = self._FSk.shape[1:]
@@ -294,13 +299,15 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             raise ValueError("Parameter[stat] does not match the kernel's dimensions.")
 
         field_FS = fourier.ffs(stat, self._T, self._Tc, self._NFS, axis=2)
-        field = fourier.fs_interp(field_FS[:, :, :self._NFS],
-                                  T=self._T,
-                                  a=self._grid_lon[0, 0],
-                                  b=self._grid_lon[0, -1],
-                                  M=self._grid_lon.size,
-                                  axis=2,
-                                  real_x=True)
+        field = fourier.fs_interp(
+            field_FS[:, :, : self._NFS],
+            T=self._T,
+            a=self._grid_lon[0, 0],
+            b=self._grid_lon[0, -1],
+            M=self._grid_lon.size,
+            axis=2,
+            real_x=True,
+        )
         return field
 
     def _phase_shift(self, XYZ):
@@ -355,12 +362,16 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         XYZ_c = XYZ - XYZ.mean(axis=0)
         window = func.Tukey(self._T, self._Tc, self._alpha_window)
         k_smpl = np.zeros((N_antenna, N_height, N_samples), dtype=self._cp)
-        ne.evaluate('exp(A * B) * C',
-                    dict(A=1j * 2 * np.pi / self._wl,
-                         B=np.tensordot(XYZ_c, pix_smpl, axes=1),
-                         C=window(lon_smpl)),
-                    out=k_smpl,
-                    casting='same_kind')  # Due to limitations of NumExpr2
+        ne.evaluate(
+            "exp(A * B) * C",
+            dict(
+                A=1j * 2 * np.pi / self._wl,
+                B=np.tensordot(XYZ_c, pix_smpl, axes=1),
+                C=window(lon_smpl),
+            ),
+            out=k_smpl,
+            casting="same_kind",
+        )  # Due to limitations of NumExpr2
 
         self._FSk = fourier.ffs(k_smpl, self._T, self._Tc, self._NFS, axis=2)
         self._XYZk = XYZ

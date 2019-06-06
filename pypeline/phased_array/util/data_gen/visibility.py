@@ -48,8 +48,11 @@ class VisibilityMatrix(array.LabeledMatrix):
               [0., 0., 0., 0., 1.]])
     """
 
-    @chk.check(dict(data=chk.accept_any(chk.has_reals, chk.has_complex),
-                    beam_idx=beamforming.is_beam_index))
+    @chk.check(
+        dict(
+            data=chk.accept_any(chk.has_reals, chk.has_complex), beam_idx=beamforming.is_beam_index
+        )
+    )
     def __init__(self, data, beam_idx):
         """
         Parameters
@@ -63,10 +66,10 @@ class VisibilityMatrix(array.LabeledMatrix):
         N_beam = len(beam_idx)
 
         if not chk.has_shape((N_beam, N_beam))(data):
-            raise ValueError('Parameters[data, beam_idx] are not consistent.')
+            raise ValueError("Parameters[data, beam_idx] are not consistent.")
 
         if not np.allclose(data, data.conj().T):
-            raise ValueError('Parameter[data] must be hermitian symmetric.')
+            raise ValueError("Parameter[data] must be hermitian symmetric.")
 
         super().__init__(data, beam_idx, beam_idx)
 
@@ -76,10 +79,14 @@ class VisibilityGeneratorBlock(core.Block):
     Generate synthetic visibility matrices.
     """
 
-    @chk.check(dict(sky_model=chk.is_instance(sky.SkyEmission),
-                    T=chk.is_real,
-                    fs=chk.is_integer,
-                    SNR=chk.is_real))
+    @chk.check(
+        dict(
+            sky_model=chk.is_instance(sky.SkyEmission),
+            T=chk.is_real,
+            fs=chk.is_integer,
+            SNR=chk.is_real,
+        )
+    )
     def __init__(self, sky_model, T, fs, SNR):
         """
         Parameters
@@ -98,9 +105,13 @@ class VisibilityGeneratorBlock(core.Block):
         self._SNR = 10 ** (SNR / 10)
         self._sky_model = sky_model
 
-    @chk.check(dict(XYZ=chk.is_instance(instrument.InstrumentGeometry),
-                    W=chk.is_instance(beamforming.BeamWeights),
-                    wl=chk.is_real))
+    @chk.check(
+        dict(
+            XYZ=chk.is_instance(instrument.InstrumentGeometry),
+            W=chk.is_instance(beamforming.BeamWeights),
+            wl=chk.is_real,
+        )
+    )
     def __call__(self, XYZ, W, wl):
         """
         Compute visibility matrix.
@@ -162,7 +173,7 @@ class VisibilityGeneratorBlock(core.Block):
            True
         """
         if not XYZ.is_consistent_with(W, axes=[0, 0]):
-            raise ValueError('Parameters[XYZ, W] are inconsistent.')
+            raise ValueError("Parameters[XYZ, W] are inconsistent.")
 
         A = np.exp((1j * 2 * np.pi / wl) * (self._sky_model.xyz @ XYZ.data.T))
         S_sky = (W.data.conj().T @ (A.conj().T * self._sky_model.intensity)) @ (A @ W.data)

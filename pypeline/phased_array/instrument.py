@@ -7,13 +7,17 @@
 """
 Instrument-related operations.
 
-Phased-arrays are collections of receiving elements (i.e., antennas or microphones) that sense a random field around them.
-These instruments are characterized by the properties of their receiving elements, such as position, sensitivity, etc.
+Phased-arrays are collections of receiving elements (i.e., antennas or microphones) that sense a
+random field around them.
+These instruments are characterized by the properties of their receiving elements, such as position,
+sensitivity, etc.
 
 Only positional information is modeled at the moment, and can be accessed through 2 objects:
 
- * :py:class:`~pypeline.phased_array.instrument.InstrumentGeometryBlock` : compute positional information.
- * :py:class:`~pypeline.phased_array.instrument.InstrumentGeometry` : container for positional information.
+ * :py:class:`~pypeline.phased_array.instrument.InstrumentGeometryBlock` : compute positional
+   information.
+ * :py:class:`~pypeline.phased_array.instrument.InstrumentGeometry` : container for positional
+   information.
 """
 
 import pathlib
@@ -44,7 +48,7 @@ def is_antenna_index(x):
     * ANTENNA_ID : int
     """
     if chk.is_instance(pd.MultiIndex)(x):
-        col_names = ('STATION_ID', 'ANTENNA_ID')
+        col_names = ("STATION_ID", "ANTENNA_ID")
         if tuple(x.names) == col_names:
             for col in col_names:
                 ids = x.get_level_values(col).values
@@ -56,8 +60,7 @@ def is_antenna_index(x):
 
 
 def _as_InstrumentGeometry(df):
-    XYZ = InstrumentGeometry(xyz=df.values,
-                             ant_idx=df.index)
+    XYZ = InstrumentGeometry(xyz=df.values, ant_idx=df.index)
     return XYZ
 
 
@@ -95,8 +98,7 @@ class InstrumentGeometry(array.LabeledMatrix):
                   names=['STATION_ID', 'ANTENNA_ID'])
     """
 
-    @chk.check(dict(xyz=chk.has_reals,
-                    ant_idx=is_antenna_index))
+    @chk.check(dict(xyz=chk.has_reals, ant_idx=is_antenna_index))
     def __init__(self, xyz, ant_idx):
         """
         Parameters
@@ -109,13 +111,13 @@ class InstrumentGeometry(array.LabeledMatrix):
         xyz = np.array(xyz, copy=False)
         N_antenna = len(xyz)
         if not chk.has_shape((N_antenna, 3))(xyz):
-            raise ValueError('Parameter[xyz] must be a (N_antenna, 3) array.')
+            raise ValueError("Parameter[xyz] must be a (N_antenna, 3) array.")
 
         N_idx = len(ant_idx)
         if N_idx != N_antenna:
-            raise ValueError('Parameter[xyz] and Parameter[ant_idx] are not compatible.')
+            raise ValueError("Parameter[xyz] and Parameter[ant_idx] are not compatible.")
 
-        col_idx = pd.Index(['X', 'Y', 'Z'], name='COORDINATE')
+        col_idx = pd.Index(["X", "Y", "Z"], name="COORDINATE")
         super().__init__(xyz, ant_idx, col_idx)
 
     def as_frame(self):
@@ -125,13 +127,11 @@ class InstrumentGeometry(array.LabeledMatrix):
         :py:class:`~pandas.DataFrame`
             (N_antenna, 3) view of coordinates.
         """
-        df = pd.DataFrame(data=self.data,
-                          index=self.index[0],
-                          columns=self.index[1].values)
+        df = pd.DataFrame(data=self.data, index=self.index[0], columns=self.index[1].values)
         return df
 
-    @chk.check('title', chk.is_instance(str))
-    def draw(self, title=''):
+    @chk.check("title", chk.is_instance(str))
+    def draw(self, title=""):
         """
         Plot antenna coordinates in 3D.
 
@@ -165,47 +165,53 @@ class InstrumentGeometry(array.LabeledMatrix):
         """
         # Cartesian Axes
         arm_length = np.std(self.data, axis=0).max()
-        frame_trace = go.Scatter3d(hoverinfo='text+name',
-                                   line={'width': 6},
-                                   marker={'color': 'rgb(0,0.5,0)'},
-                                   mode='lines+markers+text',
-                                   name='Reference Frame',
-                                   text=['X', 'O', 'Y', 'O', 'Z'],
-                                   textfont={'color': 'black'},
-                                   textposition='middle center',
-                                   x=[arm_length, 0, 0, 0, 0],
-                                   y=[0, 0, arm_length, 0, 0],
-                                   z=[0, 0, 0, 0, arm_length])
+        frame_trace = go.Scatter3d(
+            hoverinfo="text+name",
+            line={"width": 6},
+            marker={"color": "rgb(0,0.5,0)"},
+            mode="lines+markers+text",
+            name="Reference Frame",
+            text=["X", "O", "Y", "O", "Z"],
+            textfont={"color": "black"},
+            textposition="middle center",
+            x=[arm_length, 0, 0, 0, 0],
+            y=[0, 0, arm_length, 0, 0],
+            z=[0, 0, 0, 0, arm_length],
+        )
 
         # Instrument Layout
         df = self.as_frame()
         df = df - df.mean()
         instrument_trace = []
-        for station_id, station in df.groupby(level='STATION_ID'):
+        for station_id, station in df.groupby(level="STATION_ID"):
             X, Y, Z = station.values.T
 
-            antenna_id = station.index.get_level_values('ANTENNA_ID')
-            labels = [f'antenna {_}' for _ in antenna_id]
+            antenna_id = station.index.get_level_values("ANTENNA_ID")
+            labels = [f"antenna {_}" for _ in antenna_id]
 
-            station_trace = go.Scatter3d(hoverinfo='text+name',
-                                         marker={'size': 2},
-                                         mode='markers',
-                                         name=f'station {station_id}',
-                                         text=labels,
-                                         x=X,
-                                         y=Y,
-                                         z=Z)
+            station_trace = go.Scatter3d(
+                hoverinfo="text+name",
+                marker={"size": 2},
+                mode="markers",
+                name=f"station {station_id}",
+                text=labels,
+                x=X,
+                y=Y,
+                z=Z,
+            )
             instrument_trace += [station_trace]
 
         data = go.Data([frame_trace] + instrument_trace)
-        layout = go.Layout(scene={'aspectmode': 'data',
-                                  'camera': {'eye': {'x': 1.25,
-                                                     'y': 1.25,
-                                                     'z': 1.25}},
-                                  'xaxis': {'title': 'X [m]'},
-                                  'yaxis': {'title': 'Y [m]'},
-                                  'zaxis': {'title': 'Z [m]'}},
-                           title=title)
+        layout = go.Layout(
+            scene={
+                "aspectmode": "data",
+                "camera": {"eye": {"x": 1.25, "y": 1.25, "z": 1.25}},
+                "xaxis": {"title": "X [m]"},
+                "yaxis": {"title": "Y [m]"},
+                "zaxis": {"title": "Z [m]"},
+            },
+            title=title,
+        )
 
         fig = go.Figure(data=data, layout=layout)
         return fig
@@ -216,8 +222,9 @@ class InstrumentGeometryBlock(core.Block):
     Compute antenna positions.
     """
 
-    @chk.check(dict(XYZ=chk.is_instance(InstrumentGeometry),
-                    N_station=chk.allow_None(chk.is_integer)))
+    @chk.check(
+        dict(XYZ=chk.is_instance(InstrumentGeometry), N_station=chk.allow_None(chk.is_integer))
+    )
     def __init__(self, XYZ, N_station=None):
         """
         Parameters
@@ -228,19 +235,18 @@ class InstrumentGeometryBlock(core.Block):
             Number of stations to use. (Default = all)
 
             Sometimes only a subset of an instrument's stations are desired.
-            Setting `N_station` limits the number of stations to those that appear first in `XYZ` when sorted by STATION_ID.
+            Setting `N_station` limits the number of stations to those that appear first in `XYZ`
+            when sorted by STATION_ID.
         """
         super().__init__()
         if N_station is not None:
             if N_station < 1:
-                raise ValueError('Parameter[N_station] must be positive.')
+                raise ValueError("Parameter[N_station] must be positive.")
 
         self._layout = XYZ.as_frame()
 
         if N_station is not None:
-            stations = np.unique(XYZ
-                                 .index[0]
-                                 .get_level_values('STATION_ID'))[:N_station]
+            stations = np.unique(XYZ.index[0].get_level_values("STATION_ID"))[:N_station]
             self._layout = self._layout.loc[stations]
 
     def __call__(self, *args, **kwargs):
@@ -260,7 +266,7 @@ class InstrumentGeometryBlock(core.Block):
         """
         raise NotImplementedError
 
-    @chk.check('wl', chk.is_real)
+    @chk.check("wl", chk.is_real)
     def nyquist_rate(self, wl):
         """
         Order of imageable complex plane-waves.
@@ -291,8 +297,7 @@ class InstrumentGeometryBlock(core.Block):
            8753
         """
         XYZ = self._layout.values
-        baseline = linalg.norm(XYZ[:, np.newaxis, :] -
-                               XYZ[np.newaxis, :, :], axis=-1)
+        baseline = linalg.norm(XYZ[:, np.newaxis, :] - XYZ[np.newaxis, :, :], axis=-1)
 
         N = sp.spherical_jn_series_threshold((2 * np.pi / wl) * baseline.max())
         return N
@@ -303,8 +308,9 @@ class StationaryInstrumentGeometryBlock(InstrumentGeometryBlock):
     Sub-class specialized in instruments that are stationary, i.e. that do not move with time.
     """
 
-    @chk.check(dict(XYZ=chk.is_instance(InstrumentGeometry),
-                    N_station=chk.allow_None(chk.is_integer)))
+    @chk.check(
+        dict(XYZ=chk.is_instance(InstrumentGeometry), N_station=chk.allow_None(chk.is_integer))
+    )
     def __init__(self, XYZ, N_station=None):
         """
         Parameters
@@ -315,7 +321,8 @@ class StationaryInstrumentGeometryBlock(InstrumentGeometryBlock):
             Number of stations to use. (Default = all)
 
             Sometimes only a subset of an instrument's stations are desired.
-            Setting `N_station` limits the number of stations to those that appear first in `XYZ` when sorted by STATION_ID.
+            Setting `N_station` limits the number of stations to those that appear first in `XYZ`
+            when sorted by STATION_ID.
         """
         super().__init__(XYZ, N_station)
 
@@ -323,7 +330,9 @@ class StationaryInstrumentGeometryBlock(InstrumentGeometryBlock):
         """
         Determine instrument antenna positions.
 
-        As the instrument's geometry does not change through time, :py:func:`~pypeline.phased_array.instrument.StationaryInstrumentGeometryBlock.__call__` always returns the same object.
+        As the instrument's geometry does not change through time,
+        :py:func:`~pypeline.phased_array.instrument.StationaryInstrumentGeometryBlock.__call__`
+        always returns the same object.
 
         Returns
         -------
@@ -372,33 +381,36 @@ class PyramicBlock(StationaryInstrumentGeometryBlock):
         """
         x = 0.27 + 2 * 0.015  # length of one side
         c1, c2, c3, c4 = 1 / np.sqrt(3), np.sqrt(2 / 3), np.sqrt(3) / 6, 0.5
-        corners = np.array([[0, x * c1, -x * c3, -x * c3],
-                            [0, 0, x * c4, -x * c4],
-                            [0, x * c2, x * c2, x * c2]])
+        corners = np.array(
+            [[0, x * c1, -x * c3, -x * c3], [0, 0, x * c4, -x * c4], [0, x * c2, x * c2, x * c2]]
+        )
 
         # Relative placement of microphones on one PCB.
         pcb = np.r_[-0.100, -0.060, -0.020, -0.004, 0.004, 0.020, 0.060, 0.100]
 
         def line(p1, p2, dist):
-            center = (p1 + p2) / 2.
+            center = (p1 + p2) / 2.0
             unit_vec = (p2 - p1) / linalg.norm(p2 - p1)
 
             pts = [center + d * unit_vec for d in dist]
             return pts
 
-        coordinates = np.array(line(corners[:, 0], corners[:, 3], pcb) +
-                               line(corners[:, 3], corners[:, 2], pcb) +
-                               line(corners[:, 0], corners[:, 1], pcb) +
-                               line(corners[:, 1], corners[:, 3], pcb) +
-                               line(corners[:, 0], corners[:, 2], pcb) +
-                               line(corners[:, 2], corners[:, 1], pcb))
+        coordinates = np.array(
+            line(corners[:, 0], corners[:, 3], pcb)
+            + line(corners[:, 3], corners[:, 2], pcb)
+            + line(corners[:, 0], corners[:, 1], pcb)
+            + line(corners[:, 1], corners[:, 3], pcb)
+            + line(corners[:, 0], corners[:, 2], pcb)
+            + line(corners[:, 2], corners[:, 1], pcb)
+        )
 
         # Reference point is 1cm below zero-th microphone
         coordinates[:, 2] += 0.01 - coordinates[0, 2]
 
         N_mic = len(coordinates)
-        idx = pd.MultiIndex.from_product([range(N_mic), range(1)],
-                                         names=['STATION_ID', 'ANTENNA_ID'])
+        idx = pd.MultiIndex.from_product(
+            [range(N_mic), range(1)], names=["STATION_ID", "ANTENNA_ID"]
+        )
         XYZ = InstrumentGeometry(coordinates, idx)
         return XYZ
 
@@ -427,12 +439,11 @@ class CompactSixBlock(StationaryInstrumentGeometryBlock):
         radius = 0.0675
 
         angle = np.linspace(0, 2 * np.pi, num=N_mic, endpoint=False)
-        coordinates = radius * np.stack((np.cos(angle),
-                                         np.sin(angle),
-                                         np.zeros(N_mic)), axis=1)
+        coordinates = radius * np.stack((np.cos(angle), np.sin(angle), np.zeros(N_mic)), axis=1)
 
-        idx = pd.MultiIndex.from_product([range(N_mic), range(1)],
-                                         names=['STATION_ID', 'ANTENNA_ID'])
+        idx = pd.MultiIndex.from_product(
+            [range(N_mic), range(1)], names=["STATION_ID", "ANTENNA_ID"]
+        )
         XYZ = InstrumentGeometry(coordinates, idx)
         return XYZ
 
@@ -442,8 +453,9 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
     Sub-class specialized in instruments that move with the Earth, such as radio telescopes.
     """
 
-    @chk.check(dict(XYZ=chk.is_instance(InstrumentGeometry),
-                    N_station=chk.allow_None(chk.is_integer)))
+    @chk.check(
+        dict(XYZ=chk.is_instance(InstrumentGeometry), N_station=chk.allow_None(chk.is_integer))
+    )
     def __init__(self, XYZ, N_station=None):
         """
         Parameters
@@ -454,11 +466,12 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
             Number of stations to use. (Default = all)
 
             Sometimes only a subset of an instrument’s stations are desired.
-            Setting `N_station` limits the number of stations to those that appear first in `XYZ` when sorted by STATION_ID.
+            Setting `N_station` limits the number of stations to those that appear first in `XYZ`
+            when sorted by STATION_ID.
         """
         super().__init__(XYZ, N_station)
 
-    @chk.check('time', chk.is_instance(time.Time))
+    @chk.check("time", chk.is_instance(time.Time))
     def __call__(self, time):
         """
         Determine instrument antenna positions in ICRS.
@@ -502,22 +515,18 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
                   [ 1620400.53, -3497583.69,  5064544.37],
                   [ 1620405.5 , -3497583.23,  5064543.11]])
         """
-        layout = self._layout.loc[:, ['X', 'Y', 'Z']].values.T
+        layout = self._layout.loc[:, ["X", "Y", "Z"]].values.T
         r = linalg.norm(layout, axis=0)
 
         itrs_layout = coord.CartesianRepresentation(layout)
-        itrs_position = coord.SkyCoord(itrs_layout, obstime=time, frame='itrs')
-        icrs_position = r * (itrs_position
-                             .transform_to('icrs')
-                             .cartesian
-                             .xyz)
-        icrs_layout = pd.DataFrame(data=icrs_position.T,
-                                   index=self._layout.index,
-                                   columns=('X', 'Y', 'Z'))
+        itrs_position = coord.SkyCoord(itrs_layout, obstime=time, frame="itrs")
+        icrs_position = r * (itrs_position.transform_to("icrs").cartesian.xyz)
+        icrs_layout = pd.DataFrame(
+            data=icrs_position.T, index=self._layout.index, columns=("X", "Y", "Z")
+        )
         return _as_InstrumentGeometry(icrs_layout)
 
-    @chk.check(dict(obs_start=chk.is_instance(time.Time),
-                    obs_end=chk.is_instance(time.Time)))
+    @chk.check(dict(obs_start=chk.is_instance(time.Time), obs_end=chk.is_instance(time.Time)))
     def icrs2bfsf_rot(self, obs_start, obs_end):
         """
         Rotation matrix from ICRS to the local *Bluebild FastSynthesis Frame* (BFSF).
@@ -555,14 +564,14 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
                   [-0.   ,  0.   , -1.   ]])
         """
         if obs_start > obs_end:
-            raise ValueError('Parameter[obs_start] must precede Parameter[obs_end].')
+            raise ValueError("Parameter[obs_start] must precede Parameter[obs_end].")
 
         # Find the position of the antennas at several time-instants
         # during `period`.
         N_interval = 20
-        sampling_times = (obs_start +
-                          ((obs_end - obs_start) / (N_interval - 1)) *
-                          np.arange(N_interval))
+        sampling_times = obs_start + ((obs_end - obs_start) / (N_interval - 1)) * np.arange(
+            N_interval
+        )
         icrs_layouts = [self.__call__(t).data for t in sampling_times]
         icrs_layouts = np.stack(icrs_layouts, axis=1)  # (N_antenna, N_time, 3)
 
@@ -586,9 +595,11 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
         R /= linalg.norm(R, axis=1, keepdims=True)
         return R
 
-    @chk.check(dict(wl=chk.is_real,
-                    obs_start=chk.is_instance(time.Time),
-                    obs_end=chk.is_instance(time.Time)))
+    @chk.check(
+        dict(
+            wl=chk.is_real, obs_start=chk.is_instance(time.Time), obs_end=chk.is_instance(time.Time)
+        )
+    )
     def bfsf_kernel_bandwidth(self, wl, obs_start, obs_end):
         r"""
         Bandwidth of :math:`2 \pi`-periodic complex plane-wave kernel in BFSF coordinates.
@@ -634,8 +645,7 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
         bfsf_XYZ = icrs_XYZ @ R.T
         bfsf_XYZ -= np.mean(bfsf_XYZ, axis=0)
         bfsf_XY = bfsf_XYZ[:, :2]
-        XY_baseline = linalg.norm(bfsf_XY[:, np.newaxis, :] -
-                                  bfsf_XY[np.newaxis, :, :], axis=-1)
+        XY_baseline = linalg.norm(bfsf_XY[:, np.newaxis, :] - bfsf_XY[np.newaxis, :, :], axis=-1)
 
         N = sp.jv_series_threshold((2 * np.pi / wl) * XY_baseline.max())
         return 2 * N + 1
@@ -648,8 +658,7 @@ class LofarBlock(EarthBoundInstrumentGeometryBlock):
     This LOFAR model consists of 62 stations, each containing between 17 to 24 HBA dipole antennas.
     """
 
-    @chk.check(dict(N_station=chk.allow_None(chk.is_integer),
-                    station_only=chk.is_boolean))
+    @chk.check(dict(N_station=chk.allow_None(chk.is_integer), station_only=chk.is_boolean))
     def __init__(self, N_station=None, station_only=False):
         """
         Parameters
@@ -658,7 +667,8 @@ class LofarBlock(EarthBoundInstrumentGeometryBlock):
             Number of stations to use. (Default = all)
 
             Sometimes only a subset of an instrument’s stations are desired.
-            Setting `N_station` limits the number of stations to those that appear first in `XYZ` when sorted by STATION_ID.
+            Setting `N_station` limits the number of stations to those that appear first in `XYZ`
+            when sorted by STATION_ID.
 
         station_only : bool
             If :py:obj:`True`, model LOFAR stations as single-element antennas. (Default = False)
@@ -675,18 +685,17 @@ class LofarBlock(EarthBoundInstrumentGeometryBlock):
         :py:class:`~pypeline.phased_array.instrument.InstrumentGeometry`
             ITRS instrument geometry.
         """
-        rel_path = pathlib.Path('data', 'phased_array', 'instrument', 'LOFAR.csv')
-        abs_path = pkg.resource_filename('pypeline', str(rel_path))
+        rel_path = pathlib.Path("data", "phased_array", "instrument", "LOFAR.csv")
+        abs_path = pkg.resource_filename("pypeline", str(rel_path))
 
-        itrs_geom = (pd.read_csv(abs_path)
-                     .set_index(['STATION_ID', 'ANTENNA_ID']))
+        itrs_geom = pd.read_csv(abs_path).set_index(["STATION_ID", "ANTENNA_ID"])
 
         if station_only:
-            itrs_geom = itrs_geom.groupby('STATION_ID').mean()
-            station_id = itrs_geom.index.get_level_values('STATION_ID')
-            itrs_geom.index = (pd.MultiIndex
-                               .from_product([station_id, [0]],
-                                             names=['STATION_ID', 'ANTENNA_ID']))
+            itrs_geom = itrs_geom.groupby("STATION_ID").mean()
+            station_id = itrs_geom.index.get_level_values("STATION_ID")
+            itrs_geom.index = pd.MultiIndex.from_product(
+                [station_id, [0]], names=["STATION_ID", "ANTENNA_ID"]
+            )
 
         XYZ = _as_InstrumentGeometry(itrs_geom)
         return XYZ
@@ -699,8 +708,7 @@ class MwaBlock(EarthBoundInstrumentGeometryBlock):
     MWA consists of 128 stations, each containing 16 dipole antennas.
     """
 
-    @chk.check(dict(N_station=chk.allow_None(chk.is_integer),
-                    station_only=chk.is_boolean))
+    @chk.check(dict(N_station=chk.allow_None(chk.is_integer), station_only=chk.is_boolean))
     def __init__(self, N_station=None, station_only=False):
         """
         Parameters
@@ -709,7 +717,8 @@ class MwaBlock(EarthBoundInstrumentGeometryBlock):
             Number of stations to use. (Default = all)
 
             Sometimes only a subset of an instrument’s stations are desired.
-            Setting `N_station` limits the number of stations to those that appear first in `XYZ` when sorted by STATION_ID.
+            Setting `N_station` limits the number of stations to those that appear first in `XYZ`
+            when sorted by STATION_ID.
 
         station_only : bool
             If :py:obj:`True`, model MWA stations as single-element antennas. (Default = False)
@@ -731,45 +740,42 @@ class MwaBlock(EarthBoundInstrumentGeometryBlock):
         :py:class:`~pypeline.phased_array.instrument.InstrumentGeometry`
             ITRS instrument geometry.
         """
-        rel_path = pathlib.Path('data', 'phased_array', 'instrument', 'MWA.csv')
-        abs_path = pkg.resource_filename('pypeline', str(rel_path))
+        rel_path = pathlib.Path("data", "phased_array", "instrument", "MWA.csv")
+        abs_path = pkg.resource_filename("pypeline", str(rel_path))
 
-        itrs_geom = (pd.read_csv(abs_path)
-                     .set_index('STATION_ID'))
+        itrs_geom = pd.read_csv(abs_path).set_index("STATION_ID")
 
-        station_id = itrs_geom.index.get_level_values('STATION_ID')
+        station_id = itrs_geom.index.get_level_values("STATION_ID")
         if station_only:
-            itrs_geom.index = (pd.MultiIndex
-                               .from_product([station_id, [0]],
-                                             names=['STATION_ID', 'ANTENNA_ID']))
+            itrs_geom.index = pd.MultiIndex.from_product(
+                [station_id, [0]], names=["STATION_ID", "ANTENNA_ID"]
+            )
         else:
             # Generate flat 4x4 antenna grid pointing towards the Noth pole.
             x_lim = y_lim = 1.65
-            lY, lX = np.meshgrid(np.linspace(-y_lim, y_lim, 4),
-                                 np.linspace(-x_lim, x_lim, 4),
-                                 indexing='ij')
+            lY, lX = np.meshgrid(
+                np.linspace(-y_lim, y_lim, 4), np.linspace(-x_lim, x_lim, 4), indexing="ij"
+            )
             l = np.stack((lX, lY, np.zeros((4, 4))), axis=0)
 
             # For each station: rotate 4x4 array to lie on the sphere's surface.
-            xyz_station = itrs_geom.loc[:, ['X', 'Y', 'Z']].values
+            xyz_station = itrs_geom.loc[:, ["X", "Y", "Z"]].values
             df_stations = []
             for st_id, st_cog in zip(station_id, xyz_station):
                 _, st_colat, st_lon = sph.cart2pol(*st_cog)
                 st_cog_unit = sph.pol2cart(1, st_colat, st_lon).reshape(-1)
 
                 R_1 = pylinalg.rot([0, 0, 1], st_lon)
-                R_2 = pylinalg.rot(axis=np.cross([0, 0, 1], st_cog_unit),
-                                   angle=st_colat)
+                R_2 = pylinalg.rot(axis=np.cross([0, 0, 1], st_cog_unit), angle=st_colat)
                 R = R_2 @ R_1
 
-                st_layout = np.reshape(st_cog.reshape(3, 1, 1) +
-                                       np.tensordot(R, l, axes=1), (3, -1))
-                idx = (pd.MultiIndex
-                       .from_product([[st_id], range(16)],
-                                     names=['STATION_ID', 'ANTENNA_ID']))
-                df_stations += [pd.DataFrame(data=st_layout.T,
-                                             index=idx,
-                                             columns=['X', 'Y', 'Z'])]
+                st_layout = np.reshape(
+                    st_cog.reshape(3, 1, 1) + np.tensordot(R, l, axes=1), (3, -1)
+                )
+                idx = pd.MultiIndex.from_product(
+                    [[st_id], range(16)], names=["STATION_ID", "ANTENNA_ID"]
+                )
+                df_stations += [pd.DataFrame(data=st_layout.T, index=idx, columns=["X", "Y", "Z"])]
             itrs_geom = pd.concat(df_stations)
 
         XYZ = _as_InstrumentGeometry(itrs_geom)

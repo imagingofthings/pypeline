@@ -13,8 +13,9 @@ Fast Fourier Series Evaluation for Bandlimited Periodic Signals
 Theory
 ******
 
-Let :math:`\phi: \mathbb{R} \to \mathbb{C}` be a :math:`T`-periodic function of bandwidth :math:`N_{FS} = 2 N + 1`.
-Then :math:`\phi` is fully characterized by its :math:`N_{FS}` Fourier Series coefficients :math:`\{\phi_{k}^{FS}, k = -N, \ldots, N\}` such that
+Let :math:`\phi: \mathbb{R} \to \mathbb{C}` be a :math:`T`-periodic function of bandwidth
+:math:`N_{FS} = 2 N + 1`.  Then :math:`\phi` is fully characterized by its :math:`N_{FS}` Fourier
+Series coefficients :math:`\{\phi_{k}^{FS}, k = -N, \ldots, N\}` such that
 
 .. math::
    :label: BL_FS_expansion
@@ -30,8 +31,10 @@ where :math:`\{\phi_{k}^{FS}, k = -N, \ldots, N\}` is defined as
 
 with :math:`T_{c}` being one of :math:`\phi`'s period mid-points.
 
-Computing the :math:`\phi_{k}^{FS}` with :eq:`FS_def` can be prohibitive when closed-form solutions are unavailable.
-However, it is possible to calculate the FS coefficients exactly from :math:`N_{s} = N_{FS} + Q` judiciously-placed samples of :math:`\phi`, where :math:`Q \in \mathbb{N}` can be arbitrarily chosen.
+Computing the :math:`\phi_{k}^{FS}` with :eq:`FS_def` can be prohibitive when closed-form solutions
+are unavailable.  However, it is possible to calculate the FS coefficients exactly from :math:`N_{s}
+= N_{FS} + Q` judiciously-placed samples of :math:`\phi`, where :math:`Q \in \mathbb{N}` can be
+arbitrarily chosen.
 
 
 :math:`N_{s} \in 2 \mathbb{N} + 1`
@@ -39,7 +42,8 @@ However, it is possible to calculate the FS coefficients exactly from :math:`N_{
 
 .. admonition:: Theorem
 
-   Let :math:`\phi: \mathbb{R} \to \mathbb{C}` be a :math:`T`-periodic function of bandwidth :math:`N_{FS} = 2 N + 1`, with
+   Let :math:`\phi: \mathbb{R} \to \mathbb{C}` be a :math:`T`-periodic function of bandwidth
+   :math:`N_{FS} = 2 N + 1`, with
 
    * :math:`T_{c}`: mid-point of one period,
    * :math:`\{\phi_{k}^{FS}, k = -N, \ldots, N\}`: Fourier Series coefficients of :math:`\phi`.
@@ -81,7 +85,8 @@ However, it is possible to calculate the FS coefficients exactly from :math:`N_{
 
 .. admonition:: Theorem
 
-   Let :math:`\phi: \mathbb{R} \to \mathbb{C}` be a :math:`T`-periodic function of bandwidth :math:`N_{FS} = 2 N + 1`, with
+   Let :math:`\phi: \mathbb{R} \to \mathbb{C}` be a :math:`T`-periodic function of bandwidth
+   :math:`N_{FS} = 2 N + 1`, with
 
    * :math:`T_{c}`: mid-point of one period,
    * :math:`\{\phi_{k}^{FS}, k = -N, \ldots, N\}`: Fourier Series coefficients of :math:`\phi`.
@@ -126,6 +131,7 @@ However, it is possible to calculate the FS coefficients exactly from :math:`N_{
 Implementation Notes
 ********************
 
-:py:func:`~pypeline.util.math.fourier.ffs` and :py:func:`~pypeline.util.math.fourier.iffs` can be used to obtain Fourier Series coefficients / spatial samples of a function using the algorithms above.
-Due to the reliance on :math:`\text{(i)DFT}_{N_{s}}`, it is recommended to choose :math:`N_{s}` highly-composite.
-
+:py:func:`~pypeline.util.math.fourier.ffs` and :py:func:`~pypeline.util.math.fourier.iffs` can be
+used to obtain Fourier Series coefficients / spatial samples of a function using the algorithms
+above.  Due to the reliance on :math:`\text{(i)DFT}_{N_{s}}`, it is recommended to choose
+:math:`N_{s}` highly-composite.

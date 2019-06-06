@@ -4,12 +4,12 @@
 # Author : Sepand KASHANI [sep@zurich.ibm.com]
 # #############################################################################
 
-# This file contains a superset of Pypeline's dependencies listed in
-# `requirements.txt` that can be installed through conda packages.
-# These packages are the preferred way to install dependencies if available.
+# This file contains a superset of Pypeline's dependencies listed in `requirements.txt` that can be
+# installed through conda packages.  These packages are the preferred way to install dependencies if
+# available.
 #
-# When modifying dependencies, don't forget to update both `requirements.txt`
-# and `conda_requirements.txt`.
+# When modifying dependencies, don't forget to update both `requirements.txt` and
+# `conda_requirements.txt`.
 
 python == 3.6.*
 astropy == 3.1.*
