@@ -13,18 +13,17 @@
 
 python == 3.6.*
 astropy == 3.1.*
-flake8 == 3.6.*
-ipython == 7.2.*
-matplotlib == 3.0.*
+ipython == 7.5.*
+matplotlib == 3.1.*
 ncurses == 5.9.*
 numexpr == 2.6.*
-numpy == 1.15.*
+numpy == 1.16.*
 pandas == 0.24.*
 plotly == 3.5.*
 pyproj == 1.9.*
-pytest == 4.2.*
+pytest == 4.5.*
 python-casacore == 2.2.*
-scikit-learn == 0.20.*
+scikit-learn == 0.21.*
 scipy == 1.2.*
 sphinx == 1.8.*
 sphinx_rtd_theme == 0.4.*

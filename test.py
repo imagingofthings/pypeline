@@ -16,21 +16,28 @@ import subprocess
 import sys
 
 project_root_dir = pathlib.Path(__file__).parent.absolute()
-cmds = dict(pytest=[f'source "{project_root_dir}/pypeline.sh" --no_shell',
-                    f'pytest "{project_root_dir}/pypeline/test"'],
-            flake8=[f'source "{project_root_dir}/pypeline.sh" --no_shell',
-                    f'flake8 --ignore=E122,E128,E501,E731,E741,W504 "{project_root_dir}/pypeline"'],
-            doctest=[f'source "{project_root_dir}/pypeline.sh" --no_shell',
-                     f'sphinx-build -b doctest "{project_root_dir}/doc" "{project_root_dir}/build/doctest"'])
+cmds = dict(
+    pytest=[
+        f'source "{project_root_dir}/pypeline.sh" --no_shell',
+        f'pytest "{project_root_dir}/pypeline/test"',
+    ],
+    black=[
+        f'source "{project_root_dir}/pypeline.sh" --no_shell',
+        f'black --config="{project_root_dir}/codestyle.toml"  "{project_root_dir}/pypeline"',
+    ],
+    doctest=[
+        f'source "{project_root_dir}/pypeline.sh" --no_shell',
+        f'sphinx-build -b doctest "{project_root_dir}/doc" "{project_root_dir}/build/doctest"',
+    ],
+)
 for k in cmds:
-    cmds[k].insert(0, 'export PYPELINE_RUNNING_TESTS=1')
+    cmds[k].insert(0, "export PYPELINE_RUNNING_TESTS=1")
 
-parser = argparse.ArgumentParser(description='Pypeline test runner.',
-                                 epilog='When run with no arguments, all tests are executed.')
-parser.add_argument('-e',
-                    help='Name of test to run.',
-                    type=str,
-                    choices=cmds.keys())
+parser = argparse.ArgumentParser(
+    description="Pypeline test runner.",
+    epilog="When run with no arguments, all tests are executed.",
+)
+parser.add_argument("-e", help="Name of test to run.", type=str, choices=cmds.keys())
 args = parser.parse_args()
 
 
@@ -44,20 +51,22 @@ def run_test(test_name):
         Name of a key in `cmds`.
     """
     if not isinstance(test_name, str):
-        raise ValueError('Parameter[test_name] must be a str.')
+        raise ValueError("Parameter[test_name] must be a str.")
     if test_name not in cmds:
-        raise ValueError('Parameter[test_name] is not a valid test.')
+        raise ValueError("Parameter[test_name] is not a valid test.")
 
-    status = subprocess.run('; '.join(cmds[test_name]),
-                            stdin=None,
-                            stdout=sys.stdout,
-                            stderr=sys.stderr,
-                            shell=True,
-                            cwd=project_root_dir)
+    status = subprocess.run(
+        "; ".join(cmds[test_name]),
+        stdin=None,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        shell=True,
+        cwd=project_root_dir,
+    )
     return status
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     status = []
 
     if args.e is None:
@@ -68,9 +77,9 @@ if __name__ == '__main__':
         s = run_test(args.e)
         status.append(s)
 
-    print('\nSummary\n=======')
+    print("\nSummary\n=======")
     for s in status:
-        print('Success' if (s.returncode == 0) else 'Failure')
-        cmd_list = s.args.split('; ')
+        print("Success" if (s.returncode == 0) else "Failure")
+        cmd_list = s.args.split("; ")
         for c in cmd_list:
-            print(f'   {c}')
+            print(f"   {c}")
