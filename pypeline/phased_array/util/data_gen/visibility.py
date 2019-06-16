@@ -11,6 +11,7 @@ Due to the high data-rates emanating from antennas, raw antenna time-series are 
 Instead, signals from different antennas are correlated together to form *visibility* matrices.
 """
 
+import imot_tools.math.stat as stat
 import imot_tools.util.argcheck as chk
 import numpy as np
 
@@ -19,7 +20,6 @@ import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
 import pypeline.phased_array.util.data_gen.sky as sky
 import pypeline.util.array as array
-import pypeline.util.math.stat as stat
 
 
 class VisibilityMatrix(array.LabeledMatrix):

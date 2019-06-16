@@ -67,11 +67,12 @@ class SphericalImage:
     --------
     .. doctest::
 
+       import imot_tools.math.stat as stat
        import numpy as np
+
        import pypeline.phased_array.util.grid as grid
        import pypeline.phased_array.util.io.image as image
        import pypeline.util.math.sphere as sph
-       import pypeline.util.math.stat as stat
 
        # grid settings =======================
        direction = sph.eq2cart(1, lat=np.deg2rad(30), lon=np.deg2rad(20)).reshape(-1)

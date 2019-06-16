@@ -9,7 +9,6 @@ pypeline.util.math
    :toctree:
 
    ~pypeline.util.math.func
-   ~pypeline.util.math.stat
    ~pypeline.util.math.linalg
    ~pypeline.util.math.sphere
    ~pypeline.util.math.special
