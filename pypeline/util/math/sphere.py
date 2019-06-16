@@ -10,12 +10,12 @@ Spherical geometry tools.
 
 import astropy.coordinates as coord
 import astropy.units as u
+import imot_tools.math.func as func
 import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.sparse as sp
 
 import pypeline.core as core
-import pypeline.util.math.func as func
 
 
 @chk.check("N", chk.is_integer)
@@ -175,7 +175,7 @@ class Interpolator(core.Block):
         N : int
             Order of the reconstructed zonal function.
         approximate_kernel : bool
-            If :py:obj:`True`, pass the `approx` option to :py:class:`~pypeline.util.math.func.SphericalDirichlet`.
+            If :py:obj:`True`, pass the `approx` option to :py:class:`~imot_tools.math.func.SphericalDirichlet`.
         """
         super().__init__()
 
@@ -277,7 +277,7 @@ class EqualAngleInterpolator(Interpolator):
     .. testsetup::
 
        import numpy as np
-       from pypeline.util.math.func import SphericalDirichlet
+       from imot_tools.math.func import SphericalDirichlet
        from pypeline.util.math.sphere import EqualAngleInterpolator, ea_sample, pol2cart
 
        def gammaN(r, r0, N):
@@ -320,7 +320,7 @@ class EqualAngleInterpolator(Interpolator):
         N : int
             Order of the reconstructed zonal function.
         approximate_kernel : bool
-            If :py:obj:`True`, pass the `approx` option to :py:class:`~pypeline.util.math.func.SphericalDirichlet`.
+            If :py:obj:`True`, pass the `approx` option to :py:class:`~imot_tools.math.func.SphericalDirichlet`.
         """
         super().__init__(N, approximate_kernel)
 

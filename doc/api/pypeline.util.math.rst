@@ -8,5 +8,4 @@ pypeline.util.math
 .. autosummary::
    :toctree:
 
-   ~pypeline.util.math.func
    ~pypeline.util.math.sphere
