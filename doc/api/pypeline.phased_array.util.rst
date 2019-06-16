@@ -9,4 +9,3 @@ pypeline.phased\_array.util
    :toctree:
 
    ~pypeline.phased_array.util.data_gen
-   ~pypeline.phased_array.util.grid

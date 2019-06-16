@@ -48,7 +48,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        from pypeline.phased_array.bluebild.gram import GramBlock
        from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
        from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
-       from pypeline.phased_array.util.grid import ea_grid
+       from imot_tools.math.sphere.grid import equal_angle
        from imot_tools.math.sphere.transform import pol2cart
 
        np.random.seed(0)
@@ -85,9 +85,9 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        >>> T_kernel = np.deg2rad(10)
 
        # Pixel grid: make sure to generate it in BFSF coordinates by applying R.
-       >>> px_colat, px_lon = ea_grid(direction=np.dot(R, field_center.transform_to('icrs').cartesian.xyz.value),
-       ...                            FoV=field_of_view,
-       ...                            size=[256, 386])
+       >>> _, _, px_colat, px_lon = equal_angle(N=dev.nyquist_rate(wl),
+       ...                                      direction=np.dot(R, field_center.transform_to('icrs').cartesian.xyz.value),
+       ...                                      FoV=field_of_view)
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
@@ -114,10 +114,10 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        from imot_tools.io.s2image import Image
        # Transform grid to ICRS coordinates before plotting.
        px_grid = np.tensordot(R.T, pol2cart(1, px_colat, px_lon), axes=1)
-       I_snapshot = lImage(data=field, grid=px_grid)
+       I_snapshot = Image(data=field, grid=px_grid)
 
        ax = I_snapshot.draw(index=slice(None),  # Collapse all energy levels
-                            catalog=sky_model,
+                            catalog=sky_model.T,
                             data_kwargs=dict(cmap='cubehelix'),
                             catalog_kwargs=dict(s=600))
        ax.get_figure().show()
@@ -159,7 +159,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         Notes
         -----
-        * `grid_colat` and `grid_lon` should be generated using :py:func:`~pypeline.phased_array.util.grid.ea_grid` or :py:func:`~pypeline.phased_array.util.grid.ea_harmonic_grid`.
+        * `grid_colat` and `grid_lon` should be generated using :py:func:`~imot_tools.math.sphere.grid.equal_angle`.
         * `N_FS` can be optimally chosen by calling :py:meth:`~pypeline.phased_array.instrument.EarthBoundInstrumentGeometryBlock.bfsf_kernel_bandwidth`.
         * `R` can be obtained by calling :py:meth:`~pypeline.phased_array.instrument.EarthBoundInstrumentGeometryBlock.icrs2bfsf_rot`.
         """

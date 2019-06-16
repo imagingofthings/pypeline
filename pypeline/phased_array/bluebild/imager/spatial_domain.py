@@ -43,7 +43,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        from pypeline.phased_array.bluebild.gram import GramBlock
        from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
        from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
-       from pypeline.phased_array.util.grid import spherical_grid
+       from imot_tools.math.sphere.grid import spherical
 
        np.random.seed(0)
 
@@ -72,9 +72,9 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
        ### Energy-level imaging ============================================
        # Pixel grid
-       >>> px_grid = spherical_grid(field_center.transform_to('icrs').cartesian.xyz.value,
-       ...                          FoV=field_of_view,
-       ...                          size=[256, 386])
+       >>> px_grid = spherical(field_center.transform_to('icrs').cartesian.xyz.value,
+       ...                     FoV=field_of_view,
+       ...                     size=[256, 386])
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
