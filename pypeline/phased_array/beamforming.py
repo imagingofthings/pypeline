@@ -12,9 +12,6 @@ operator, with the dual role of:
 
 * Reducing data-rates from antennas;
 * Form super-antennas with particular radiation patterns.
-
-Only simple beamformers are included here: more advanced variants can be found in the
-:py:mod:`pypeline_extras` package.
 """
 
 import collections.abc as abc
