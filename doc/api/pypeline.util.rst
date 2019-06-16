@@ -9,5 +9,4 @@ pypeline.util
    :toctree:
 
    ~pypeline.util.plot
-   ~pypeline.util.math
    ~pypeline.util.array
