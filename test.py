@@ -21,7 +21,7 @@ cmds = dict(
         f'source "{project_root_dir}/pypeline.sh" --no_shell',
         f'pytest "{project_root_dir}/pypeline/test"',
     ],
-    black=[
+    black=[  # Not really a test, but automates codestyle checks.
         f'source "{project_root_dir}/pypeline.sh" --no_shell',
         f'black --config="{project_root_dir}/codestyle.toml"  "{project_root_dir}/pypeline"',
     ],
