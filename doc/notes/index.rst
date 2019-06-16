@@ -10,5 +10,3 @@ Notes
 
 .. toctree::
    :maxdepth: 1
-
-   func_interpolation_OL_zonal
