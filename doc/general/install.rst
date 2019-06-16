@@ -28,6 +28,14 @@ After installing `Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda
     $ python3 setup.py develop
     # See pyFFS installation instructions to build documentation and/or run tests.
 
+* Install `ImoT_tools <https://github.com/imagingofthings/ImoT_tools>`_::
+
+    $ git clone git@github.com:imagingofthings/ImoT_tools.git
+    $ cd <ImoT_tools_dir>/
+    $ git checkout v1.0
+    $ python3 setup.py develop
+    # See ImoT_tools installation instructions to build documentation and/or run tests.
+
 * Install `pypeline`::
 
     $ cd <pypeline_dir>/

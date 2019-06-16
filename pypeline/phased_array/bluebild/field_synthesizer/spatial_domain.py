@@ -14,7 +14,7 @@ import scipy.linalg as linalg
 import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
-import pypeline.util.argcheck as chk
+import imot_tools.util.argcheck as chk
 
 
 def _have_matching_shapes(V, XYZ, W):
@@ -50,10 +50,10 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        from pypeline.phased_array.bluebild.field_synthesizer.spatial_domain import SpatialFieldSynthesizerBlock
        from pypeline.phased_array.instrument import LofarBlock
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
-       from pypeline.phased_array.util.gram import GramBlock
-       from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
-       from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
-       from pypeline.phased_array.util.grid import spherical_grid
+       from pypeline.phased_array.bluebild.gram import GramBlock
+       from pypeline.phased_array.data_gen.source import from_tgss_catalog
+       from pypeline.phased_array.data_gen.statistics import VisibilityGeneratorBlock
+       from imot_tools.math.sphere.grid import spherical
 
        np.random.seed(0)
 
@@ -82,9 +82,9 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
        ### Energy-level imaging ============================================
        # Pixel grid
-       >>> px_grid = spherical_grid(field_center.transform_to('icrs').cartesian.xyz.value,
-       ...                          FoV=field_of_view,
-       ...                          size=[256, 386])
+       >>> px_grid = spherical(field_center.transform_to('icrs').cartesian.xyz.value,
+       ...                     FoV=field_of_view,
+       ...                     size=[256, 386])
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
@@ -113,8 +113,8 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
     .. doctest::
 
-       from pypeline.phased_array.util.io.image import SphericalImage
-       I_snapshot = SphericalImage(data=field, grid=px_grid)
+       from imot_tools.io.s2image import Image
+       I_snapshot = Image(data=field, grid=px_grid)
 
        ax = I_snapshot.draw(index=slice(None),  # Collapse all energy levels
                             catalog=sky_model,

@@ -8,13 +8,13 @@
 Gram-related operations and tools.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.linalg as linalg
 
 import pypeline.core as core
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
-import pypeline.util.argcheck as chk
 import pypeline.util.array as array
 
 
@@ -28,7 +28,7 @@ class GramMatrix(array.LabeledMatrix):
 
        import numpy as np
        import pandas as pd
-       from pypeline.phased_array.util.gram import GramMatrix
+       from pypeline.phased_array.bluebild.gram import GramMatrix
 
     .. doctest::
 
@@ -116,7 +116,7 @@ class GramBlock(core.Block):
            import astropy.coordinates as coord
            from pypeline.phased_array.instrument import LofarBlock
            from pypeline.phased_array.beamforming import MatchedBeamformerBlock
-           from pypeline.phased_array.util.gram import GramBlock
+           from pypeline.phased_array.bluebild.gram import GramBlock
 
         .. doctest::
 

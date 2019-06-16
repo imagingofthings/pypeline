@@ -13,8 +13,8 @@ import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as ssd
 import pypeline.phased_array.bluebild.imager as bim
-import pypeline.phased_array.util.io.image as image
-import pypeline.util.argcheck as chk
+import imot_tools.io.s2image as image
+import imot_tools.util.argcheck as chk
 import pypeline.util.array as array
 
 
@@ -40,10 +40,10 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        from pypeline.phased_array.bluebild.imager.spatial_domain import Spatial_IMFS_Block
        from pypeline.phased_array.instrument import LofarBlock
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
-       from pypeline.phased_array.util.gram import GramBlock
-       from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
-       from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
-       from pypeline.phased_array.util.grid import spherical_grid
+       from pypeline.phased_array.bluebild.gram import GramBlock
+       from pypeline.phased_array.data_gen.source import from_tgss_catalog
+       from pypeline.phased_array.data_gen.statistics import VisibilityGeneratorBlock
+       from imot_tools.math.sphere.grid import spherical
 
        np.random.seed(0)
 
@@ -72,9 +72,9 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
        ### Energy-level imaging ============================================
        # Pixel grid
-       >>> px_grid = spherical_grid(field_center.transform_to('icrs').cartesian.xyz.value,
-       ...                          FoV=field_of_view,
-       ...                          size=[256, 386])
+       >>> px_grid = spherical(field_center.transform_to('icrs').cartesian.xyz.value,
+       ...                     FoV=field_of_view,
+       ...                     size=[256, 386])
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
@@ -97,7 +97,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
     .. doctest::
 
-       from pypeline.phased_array.util.io.image import SphericalImage
+       from imot_tools.io.s2image import Image
        import matplotlib.pyplot as plt
 
        fig, ax = plt.subplots(ncols=2)
@@ -192,7 +192,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         stat_lsq = stat_std * D.reshape(-1, 1, 1)
 
         stat = np.stack([stat_std, stat_lsq], axis=0)
-        stat = array._cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
+        stat = bim.cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
 
         self._update(stat)
         return stat
@@ -203,18 +203,18 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         Returns
         -------
-        std : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        std : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) standardized energy-levels.
 
-        lsq : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        lsq : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) least-squares energy-levels.
         """
         grid = self._synthesizer._grid
 
         stat_std = self._statistics[0]
-        std = image.SphericalImage(stat_std, grid)
+        std = image.Image(stat_std, grid)
 
         stat_lsq = self._statistics[1]
-        lsq = image.SphericalImage(stat_lsq, grid)
+        lsq = image.Image(stat_lsq, grid)
 
         return std, lsq

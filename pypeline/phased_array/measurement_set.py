@@ -1,6 +1,6 @@
 # #############################################################################
-# ms.py
-# =====
+# measurement_set.py
+# ==================
 # Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
@@ -15,14 +15,14 @@ import astropy.table as tb
 import astropy.time as time
 import astropy.units as u
 import casacore.tables as ct
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
 
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
-import pypeline.phased_array.util.data_gen.visibility as vis
-import pypeline.util.argcheck as chk
+import pypeline.phased_array.data_gen.statistics as vis
 
 
 @chk.check(
@@ -44,14 +44,14 @@ def filter_data(S, W):
 
     Parameters
     ----------
-    S : :py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`
+    S : :py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`
         (N_beam1, N_beam1) visibility matrix.
     W : :py:class:`~pypeline.phased_array.beamforming.BeamWeights`
         (N_antenna, N_beam2) beamforming matrix.
 
     Returns
     -------
-    S : :py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`
+    S : :py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`
         (N_beam2, N_beam2) filtered visibility matrix.
     W : :py:class:`~pypeline.phased_array.beamforming.BeamWeights`
         (N_antenna, N_beam2) filtered beamforming matrix.
@@ -236,9 +236,9 @@ class MeasurementSet:
         Parameters
         ----------
         channel_id : array-like(int) or slice
-            Several CHANNEL_IDs from :py:attr:`~pypeline.phased_array.util.io.ms.MeasurementSet.channels`.
+            Several CHANNEL_IDs from :py:attr:`~pypeline.phased_array.util.measurement_set.MeasurementSet.channels`.
         time_id : int or slice
-            Several TIME_IDs from :py:attr:`~pypeline.phased_array.util.io.ms.MeasurementSet.time`.
+            Several TIME_IDs from :py:attr:`~pypeline.phased_array.util.measurement_set.MeasurementSet.time`.
         column : str
             Column name from MAIN table where visibility data resides.
 
@@ -252,7 +252,7 @@ class MeasurementSet:
 
             * time (:py:class:`~astropy.time.Time`): moment the visibility was formed;
             * freq (:py:class:`~astropy.units.Quantity`): center frequency of the visibility;
-            * S (:py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`)
+            * S (:py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`)
         """
         if column not in ct.taql(f"select * from {self._msf}").colnames():
             raise ValueError(f"column={column} does not exist in {self._msf}::MAIN.")

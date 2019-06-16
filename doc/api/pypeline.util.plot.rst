@@ -6,6 +6,5 @@ pypeline.util.plot
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       cmap
-      colorbar

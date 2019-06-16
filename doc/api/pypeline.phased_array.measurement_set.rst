@@ -1,9 +1,8 @@
-pypeline.phased\_array.util.io.ms
-=================================
+pypeline.phased\_array.measurement\_set
+=======================================
 
-.. automodule:: pypeline.phased_array.util.io.ms
+.. automodule:: pypeline.phased_array.measurement_set
    :special-members: __init__
-
    
    
    .. rubric:: Functions
@@ -19,12 +18,13 @@ pypeline.phased\_array.util.io.ms
    .. rubric:: Classes
 
    .. autosummary::
-
+   
       MeasurementSet
       LofarMeasurementSet
       MwaMeasurementSet
    
    
 
+   
    
    

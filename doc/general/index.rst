@@ -12,4 +12,3 @@ General
    :maxdepth: 1
 
    install
-   disable_checks

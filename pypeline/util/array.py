@@ -8,11 +8,10 @@
 Tools and utilities for manipulating arrays.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
-
-import pypeline.util.argcheck as chk
 
 
 class LabeledMatrix:
@@ -190,102 +189,3 @@ class LabeledMatrix:
                     return True
 
         return False
-
-
-@chk.check(
-    dict(
-        x=chk.is_instance(np.ndarray),
-        axis=chk.is_integer,
-        index_spec=chk.accept_any(chk.is_integer, chk.is_instance(slice)),
-    )
-)
-def _index(x, axis, index_spec):
-    """
-    Form indexing tuple for NumPy arrays.
-
-    Given an array `x`, generates the indexing tuple that has :py:class:`slice` in each axis except
-    `axis`, where `index_spec` is used instead.
-
-    Parameters
-    ----------
-    x : :py:class:`~numpy.ndarray`
-        Array to index.
-    axis : int
-        Dimension along which to apply `index_spec`.
-    index_spec : slice or int
-        Index/slice to use.
-
-    Returns
-    -------
-    tuple
-        indexing tuple.
-
-    Examples
-    --------
-    .. testsetup::
-
-       from pypeline.util.array import _index
-
-    .. doctest::
-
-       >>> x = np.arange(5 * 4).reshape(5, 4)
-       >>> idx = _index(x, 0, 3)
-       >>> x[idx] = 0
-       >>> print(x)
-      [[ 0  1  2  3]
-       [ 4  5  6  7]
-       [ 8  9 10 11]
-       [ 0  0  0  0]
-       [16 17 18 19]]
-
-    .. doctest::
-
-       >>> x = np.arange(5 * 4).reshape(5, 4)
-       >>> idx = _index(x, 1, slice(2))
-       >>> x[idx] = 0
-       >>> print(x)
-      [[ 0  0  2  3]
-       [ 0  0  6  7]
-       [ 0  0 10 11]
-       [ 0  0 14 15]
-       [ 0  0 18 19]]
-    """
-    if not (-x.ndim <= axis < x.ndim):
-        raise ValueError("Parameter[axis] is out-of-bounds.")
-
-    indexer = [slice(None)] * x.ndim
-    indexer[axis] = index_spec
-    return tuple(indexer)
-
-
-@chk.check(dict(x=chk.is_array_like, idx=chk.has_integers, N=chk.is_integer, axis=chk.is_integer))
-def _cluster_layers(x, idx, N, axis):
-    """
-    Additive tensor compression along an axis.
-
-    Parameters
-    ----------
-    x : array-like
-        (..., K, ...) array.
-    idx : array-like(int)
-        (K,) cluster indices.
-    N : int
-        Total number of levels along compression axis.
-    axis : int
-        Dimension along which to compress.
-
-    Returns
-    -------
-    :py:class:`~numpy.ndarray`
-        (..., N, ...) array
-    """
-    x = np.array(x, copy=False)
-    idx = np.array(idx, copy=False)
-
-    y_shape = list(x.shape)
-    y_shape[axis] = N
-    y = np.zeros(y_shape, dtype=x.dtype)
-
-    for x_id, y_id in enumerate(idx):
-        y[_index(y, axis, y_id)] += x[_index(x, axis, x_id)]
-    return y

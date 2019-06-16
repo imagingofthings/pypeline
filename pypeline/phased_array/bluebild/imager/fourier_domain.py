@@ -8,15 +8,15 @@
 High-level Bluebild interfaces that work in Fourier Series domain.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as psd
 import pypeline.phased_array.bluebild.imager as bim
-import pypeline.phased_array.util.io.image as image
-import pypeline.util.argcheck as chk
+import imot_tools.io.s2image as image
 import pypeline.util.array as array
-import pypeline.util.math.sphere as sph
+import imot_tools.math.sphere.transform as transform
 
 
 class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
@@ -41,11 +41,11 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        from pypeline.phased_array.bluebild.imager.fourier_domain import Fourier_IMFS_Block
        from pypeline.phased_array.instrument import LofarBlock
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
-       from pypeline.phased_array.util.gram import GramBlock
-       from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
-       from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
-       from pypeline.phased_array.util.grid import ea_grid
-       from pypeline.util.math.sphere import pol2cart
+       from pypeline.phased_array.bluebild.gram import GramBlock
+       from pypeline.phased_array.data_gen.source import from_tgss_catalog
+       from pypeline.phased_array.data_gen.statistics import VisibilityGeneratorBlock
+       from imot_tools.math.sphere.grid import equal_angle
+       from imot_tools.math.sphere.transform import pol2cart
 
        np.random.seed(0)
 
@@ -81,9 +81,9 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        >>> T_kernel = np.deg2rad(10)
 
        # Pixel grid: make sure to generate it in BFSF coordinates by applying R.
-       >>> px_colat, px_lon = ea_grid(direction=np.dot(R, field_center.transform_to('icrs').cartesian.xyz.value),
-       ...                            FoV=field_of_view,
-       ...                            size=[256, 386])
+       >>> _, _, px_colat, px_lon = equal_angle(N=dev.nyquist_rate(wl),
+       ...                                      direction=np.dot(R, field_center.transform_to('icrs').cartesian.xyz.value),
+       ...                                      FoV=field_of_view)
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
@@ -105,7 +105,7 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
     .. doctest::
 
-       from pypeline.phased_array.util.io.image import SphericalImage
+       from imot_tools.io.s2image import Image
        import matplotlib.pyplot as plt
 
        # Transform grid to ICRS coordinates before plotting.
@@ -113,13 +113,13 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
        fig, ax = plt.subplots(ncols=2)
        I_std.draw(index=slice(None),  # Collapse all energy levels
-                  catalog=sky_model,
+                  catalog=sky_model.xyz.T,
                   data_kwargs=dict(cmap='cubehelix'),
                   catalog_kwargs=dict(s=600),
                   ax=ax[0])
        ax[0].set_title('Standardized Estimate')
        I_lsq.draw(index=slice(None),  # Collapse all energy levels
-                  catalog=sky_model,
+                  catalog=sky_model.xyz.T,
                   data_kwargs=dict(cmap='cubehelix'),
                   catalog_kwargs=dict(s=600),
                   ax=ax[1])
@@ -166,7 +166,7 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         Notes
         -----
-        * `grid_colat` and `grid_lon` should be generated using :py:func:`~pypeline.phased_array.util.grid.ea_grid` or :py:func:`~pypeline.phased_array.util.grid.ea_harmonic_grid`.
+        * `grid_colat` and `grid_lon` should be generated using :py:func:`~imot_tools.math.sphere.grid.equal_angle`.
         * `N_FS` can be optimally chosen by calling :py:meth:`~pypeline.phased_array.instrument.EarthBoundInstrumentGeometryBlock.bfsf_kernel_bandwidth`.
         * `R` can be obtained by calling :py:meth:`~pypeline.phased_array.instrument.EarthBoundInstrumentGeometryBlock.icrs2bfsf_rot`.
         """
@@ -228,7 +228,7 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         stat_lsq = stat_std * D.reshape(-1, 1, 1)
 
         stat = np.stack([stat_std, stat_lsq], axis=0)
-        stat = array._cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
+        stat = bim.cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
 
         self._update(stat)
         return stat
@@ -239,21 +239,23 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         Returns
         -------
-        std : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        std : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) standardized energy-levels.
 
-        lsq : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        lsq : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) least-squares energy-levels.
         """
-        bfsf_grid = sph.pol2cart(1, self._synthesizer._grid_colat, self._synthesizer._grid_lon)
+        bfsf_grid = transform.pol2cart(
+            1, self._synthesizer._grid_colat, self._synthesizer._grid_lon
+        )
         icrs_grid = np.tensordot(self._synthesizer._R.T, bfsf_grid, axes=1)
 
         stat_std = self._statistics[0]
         field_std = self._synthesizer.synthesize(stat_std)
-        std = image.SphericalImage(field_std, icrs_grid)
+        std = image.Image(field_std, icrs_grid)
 
         stat_lsq = self._statistics[1]
         field_lsq = self._synthesizer.synthesize(stat_lsq)
-        lsq = image.SphericalImage(field_lsq, icrs_grid)
+        lsq = image.Image(field_lsq, icrs_grid)
 
         return std, lsq
