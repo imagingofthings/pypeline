@@ -174,10 +174,6 @@ def ffs(x, T, T_c, N_FS, axis=-1):
        >>> np.allclose(diric_FS[:N_FS], diric_FS_exact)
        True
 
-    Notes
-    -----
-    Theory: :ref:`FFS_def`.
-
     See Also
     --------
     :py:func:`~pypeline.util.math.fourier.ffs_sample`,
@@ -253,10 +249,6 @@ def iffs(x_FS, T, T_c, N_FS, axis=-1):
 
         In short: :math:`(\text{iFFS} \circ \text{FFS})\{ X \} = X`.
 
-    Notes
-    -----
-    Theory: :ref:`FFS_def`.
-
     See Also
     --------
     :py:func:`~pypeline.util.math.fourier.ffs_sample`,
@@ -308,8 +300,6 @@ def iffs(x_FS, T, T_c, N_FS, axis=-1):
 def czt(x, A, W, M, axis=-1):
     """
     Chirp Z-Transform.
-
-    This implementation follows the semantics defined in :ref:`CZT_def`.
 
     Parameters
     ----------
@@ -544,11 +534,6 @@ def fs_interp(x_FS, T, a, b, M, axis=-1, real_x=False):
 
        >>> np.allclose(diric_sig, diric_sig_exact)
        True
-
-
-    Notes
-    -----
-    Theory: :ref:`fp_interp_def`.
 
     See Also
     --------
