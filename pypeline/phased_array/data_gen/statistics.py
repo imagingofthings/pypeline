@@ -1,6 +1,6 @@
 # #############################################################################
-# data_gen.py
-# ===========
+# statistics.py
+# =============
 # Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
@@ -32,7 +32,7 @@ class VisibilityMatrix(array.LabeledMatrix):
 
        import numpy as np
        import pandas as pd
-       from pypeline.phased_array.data_gen.visibility import VisibilityMatrix
+       from pypeline.phased_array.data_gen.statistics import VisibilityMatrix
 
     .. doctest::
 
@@ -127,7 +127,7 @@ class VisibilityGeneratorBlock(core.Block):
 
         Returns
         -------
-        :py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`
+        :py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`
             (N_beam, N_beam) visibility matrix.
 
         Examples
@@ -140,7 +140,7 @@ class VisibilityGeneratorBlock(core.Block):
            import astropy.units as u
            import astropy.time as atime
            import astropy.coordinates as coord
-           from pypeline.phased_array.data_gen.visibility import VisibilityGeneratorBlock
+           from pypeline.phased_array.data_gen.statistics import VisibilityGeneratorBlock
            from pypeline.phased_array.data_gen.source import from_tgss_catalog
 
         .. doctest::

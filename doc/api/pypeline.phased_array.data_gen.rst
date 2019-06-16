@@ -9,4 +9,4 @@ pypeline.phased\_array.data\_gen
    :toctree:
 
    ~pypeline.phased_array.data_gen.source
-   ~pypeline.phased_array.data_gen.visibility
+   ~pypeline.phased_array.data_gen.statistics

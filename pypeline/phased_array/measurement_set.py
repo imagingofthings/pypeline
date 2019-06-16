@@ -22,7 +22,7 @@ import scipy.sparse as sparse
 
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
-import pypeline.phased_array.data_gen.visibility as vis
+import pypeline.phased_array.data_gen.statistics as vis
 
 
 @chk.check(
@@ -44,14 +44,14 @@ def filter_data(S, W):
 
     Parameters
     ----------
-    S : :py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`
+    S : :py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`
         (N_beam1, N_beam1) visibility matrix.
     W : :py:class:`~pypeline.phased_array.beamforming.BeamWeights`
         (N_antenna, N_beam2) beamforming matrix.
 
     Returns
     -------
-    S : :py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`
+    S : :py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`
         (N_beam2, N_beam2) filtered visibility matrix.
     W : :py:class:`~pypeline.phased_array.beamforming.BeamWeights`
         (N_antenna, N_beam2) filtered beamforming matrix.
@@ -252,7 +252,7 @@ class MeasurementSet:
 
             * time (:py:class:`~astropy.time.Time`): moment the visibility was formed;
             * freq (:py:class:`~astropy.units.Quantity`): center frequency of the visibility;
-            * S (:py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`)
+            * S (:py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`)
         """
         if column not in ct.taql(f"select * from {self._msf}").colnames():
             raise ValueError(f"column={column} does not exist in {self._msf}::MAIN.")

@@ -24,7 +24,7 @@ import imot_tools.util.argcheck as chk
 import numpy as np
 import sklearn.cluster as skcl
 
-import pypeline.phased_array.data_gen.visibility as vis
+import pypeline.phased_array.data_gen.statistics as vis
 import pypeline.phased_array.bluebild.gram as gr
 
 
@@ -89,7 +89,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
        from pypeline.phased_array.bluebild.gram import GramBlock
        from pypeline.phased_array.data_gen.source import from_tgss_catalog
-       from pypeline.phased_array.data_gen.visibility import VisibilityGeneratorBlock
+       from pypeline.phased_array.data_gen.statistics import VisibilityGeneratorBlock
 
        np.random.seed(0)
 
@@ -169,7 +169,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
 
         Parameters
         ----------
-        S : :py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`
+        S : :py:class:`~pypeline.phased_array.data_gen.statistics.VisibilityMatrix`
             (N_beam, N_beam) visibility matrix.
         G : :py:class:`~pypeline.phased_array.bluebild.gram.GramMatrix`
             (N_beam, N_beam) gram matrix.
