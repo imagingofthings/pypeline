@@ -8,5 +8,5 @@ pypeline.phased\_array.data\_gen
 .. autosummary::
    :toctree:
 
-   ~pypeline.phased_array.data_gen.sky
+   ~pypeline.phased_array.data_gen.source
    ~pypeline.phased_array.data_gen.visibility

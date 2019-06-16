@@ -1,7 +1,7 @@
-pypeline.phased\_array.data\_gen.sky
-====================================
+pypeline.phased\_array.data\_gen.source
+=======================================
 
-.. automodule:: pypeline.phased_array.data_gen.sky
+.. automodule:: pypeline.phased_array.data_gen.source
    :special-members: __init__
 
 

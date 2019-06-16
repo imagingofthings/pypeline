@@ -18,7 +18,7 @@ import numpy as np
 import pypeline.core as core
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
-import pypeline.phased_array.data_gen.sky as sky
+import pypeline.phased_array.data_gen.source as sky
 import pypeline.util.array as array
 
 
@@ -91,7 +91,7 @@ class VisibilityGeneratorBlock(core.Block):
         """
         Parameters
         ----------
-        sky_model : :py:class:`~pypeline.phased_array.data_gen.sky.SkyEmission`
+        sky_model : :py:class:`~pypeline.phased_array.data_gen.source.SkyEmission`
             Source model from which to generate data.
         T : float
             Integration time [s].
@@ -141,7 +141,7 @@ class VisibilityGeneratorBlock(core.Block):
            import astropy.time as atime
            import astropy.coordinates as coord
            from pypeline.phased_array.data_gen.visibility import VisibilityGeneratorBlock
-           from pypeline.phased_array.data_gen.sky import from_tgss_catalog
+           from pypeline.phased_array.data_gen.source import from_tgss_catalog
 
         .. doctest::
 
