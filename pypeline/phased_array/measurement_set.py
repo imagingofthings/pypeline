@@ -1,6 +1,6 @@
 # #############################################################################
-# ms.py
-# =====
+# measurement_set.py
+# ==================
 # Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
@@ -236,9 +236,9 @@ class MeasurementSet:
         Parameters
         ----------
         channel_id : array-like(int) or slice
-            Several CHANNEL_IDs from :py:attr:`~pypeline.phased_array.util.io.ms.MeasurementSet.channels`.
+            Several CHANNEL_IDs from :py:attr:`~pypeline.phased_array.util.measurement_set.MeasurementSet.channels`.
         time_id : int or slice
-            Several TIME_IDs from :py:attr:`~pypeline.phased_array.util.io.ms.MeasurementSet.time`.
+            Several TIME_IDs from :py:attr:`~pypeline.phased_array.util.measurement_set.MeasurementSet.time`.
         column : str
             Column name from MAIN table where visibility data resides.
 
