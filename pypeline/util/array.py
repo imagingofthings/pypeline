@@ -8,7 +8,6 @@
 Tools and utilities for manipulating arrays.
 """
 
-import imot_tools.util.array as array
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
@@ -191,36 +190,3 @@ class LabeledMatrix:
                     return True
 
         return False
-
-
-@chk.check(dict(x=chk.is_array_like, idx=chk.has_integers, N=chk.is_integer, axis=chk.is_integer))
-def _cluster_layers(x, idx, N, axis):
-    """
-    Additive tensor compression along an axis.
-
-    Parameters
-    ----------
-    x : array-like
-        (..., K, ...) array.
-    idx : array-like(int)
-        (K,) cluster indices.
-    N : int
-        Total number of levels along compression axis.
-    axis : int
-        Dimension along which to compress.
-
-    Returns
-    -------
-    :py:class:`~numpy.ndarray`
-        (..., N, ...) array
-    """
-    x = np.array(x, copy=False)
-    idx = np.array(idx, copy=False)
-
-    y_shape = list(x.shape)
-    y_shape[axis] = N
-    y = np.zeros(y_shape, dtype=x.dtype)
-
-    for x_id, y_id in enumerate(idx):
-        y[array.index(y, axis, y_id)] += x[array.index(x, axis, x_id)]
-    return y

@@ -17,8 +17,14 @@ pypeline.phased\_array.bluebild.imager
 
 
 
+   .. rubric:: Functions
 
-   
+   .. autosummary::
+
+      cluster_layers
+
+
+
    .. rubric:: Modules
 
    .. autosummary::
