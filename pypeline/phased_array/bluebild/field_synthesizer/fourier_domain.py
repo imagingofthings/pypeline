@@ -46,8 +46,8 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        from pypeline.phased_array.instrument import LofarBlock
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
        from pypeline.phased_array.bluebild.gram import GramBlock
-       from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
-       from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
+       from pypeline.phased_array.data_gen.sky import from_tgss_catalog
+       from pypeline.phased_array.data_gen.visibility import VisibilityGeneratorBlock
        from imot_tools.math.sphere.grid import equal_angle
        from imot_tools.math.sphere.transform import pol2cart
 

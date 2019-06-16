@@ -24,7 +24,7 @@ import pandas as pd
 def is_source_config(x):
     """
     Return :py:obj:`True` if `x` is a valid
-    :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission` config specification.
+    :py:class:`~pypeline.phased_array.data_gen.sky.SkyEmission` config specification.
 
     A source config spec is considered valid if it is a collection of pairs (a, b), with
 
@@ -67,7 +67,7 @@ class SkyEmission:
        from astropy.coordinates import SkyCoord
        import astropy.units as u
        import numpy as np
-       from pypeline.phased_array.util.data_gen.sky import SkyEmission
+       from pypeline.phased_array.data_gen.sky import SkyEmission
 
     .. doctest::
 
@@ -92,7 +92,7 @@ class SkyEmission:
         ----------
         source_config
             Source configuration.
-            Must satisfy :py:func:`~pypeline.phased_array.util.data_gen.sky.is_source_config`.
+            Must satisfy :py:func:`~pypeline.phased_array.data_gen.sky.is_source_config`.
         """
         N_src = len(source_config)
         intensity = [None] * N_src
@@ -128,7 +128,7 @@ class SkyEmission:
 @chk.check(dict(direction=chk.is_instance(coord.SkyCoord), FoV=chk.is_real, N_src=chk.is_integer))
 def from_tgss_catalog(direction, FoV, N_src):
     """
-    Generate :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission` from the
+    Generate :py:class:`~pypeline.phased_array.data_gen.sky.SkyEmission` from the
     `TGSS <http://tgssadr.strw.leidenuniv.nl/doku.php>`_ catalog.
 
     This function will automatically download and cache the catalog on disk for subsequent calls.
@@ -144,7 +144,7 @@ def from_tgss_catalog(direction, FoV, N_src):
 
     Returns
     -------
-    :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission`
+    :py:class:`~pypeline.phased_array.data_gen.sky.SkyEmission`
         Sky model.
     """
     if FoV <= 0:

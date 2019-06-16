@@ -13,7 +13,7 @@ import imot_tools.util.argcheck as chk
 import numpy as np
 
 import pypeline.core as core
-import pypeline.phased_array.util.data_gen.visibility as vis
+import pypeline.phased_array.data_gen.visibility as vis
 import pypeline.phased_array.bluebild.gram as gram
 
 
@@ -82,7 +82,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
 
         Parameters
         ----------
-        S : :py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`
+        S : :py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`
             (N_beam, N_beam) visibility matrix.
         G : :py:class:`~pypeline.phased_array.bluebild.gram.GramMatrix`
             (N_beam, N_beam) gram matrix.
@@ -102,7 +102,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
         --------
         .. testsetup::
 
-           from pypeline.phased_array.util.data_gen.visibility import VisibilityMatrix
+           from pypeline.phased_array.data_gen.visibility import VisibilityMatrix
            from pypeline.phased_array.bluebild.gram import GramMatrix
            from pypeline.phased_array.bluebild.data_processor import IntensityFieldDataProcessorBlock
            import numpy as np

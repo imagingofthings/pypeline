@@ -18,7 +18,7 @@ import numpy as np
 import pypeline.core as core
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
-import pypeline.phased_array.util.data_gen.sky as sky
+import pypeline.phased_array.data_gen.sky as sky
 import pypeline.util.array as array
 
 
@@ -32,7 +32,7 @@ class VisibilityMatrix(array.LabeledMatrix):
 
        import numpy as np
        import pandas as pd
-       from pypeline.phased_array.util.data_gen.visibility import VisibilityMatrix
+       from pypeline.phased_array.data_gen.visibility import VisibilityMatrix
 
     .. doctest::
 
@@ -91,7 +91,7 @@ class VisibilityGeneratorBlock(core.Block):
         """
         Parameters
         ----------
-        sky_model : :py:class:`~pypeline.phased_array.util.data_gen.sky.SkyEmission`
+        sky_model : :py:class:`~pypeline.phased_array.data_gen.sky.SkyEmission`
             Source model from which to generate data.
         T : float
             Integration time [s].
@@ -127,7 +127,7 @@ class VisibilityGeneratorBlock(core.Block):
 
         Returns
         -------
-        :py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`
+        :py:class:`~pypeline.phased_array.data_gen.visibility.VisibilityMatrix`
             (N_beam, N_beam) visibility matrix.
 
         Examples
@@ -140,8 +140,8 @@ class VisibilityGeneratorBlock(core.Block):
            import astropy.units as u
            import astropy.time as atime
            import astropy.coordinates as coord
-           from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
-           from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
+           from pypeline.phased_array.data_gen.visibility import VisibilityGeneratorBlock
+           from pypeline.phased_array.data_gen.sky import from_tgss_catalog
 
         .. doctest::
 
