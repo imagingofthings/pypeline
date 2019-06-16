@@ -1,7 +1,7 @@
 # #############################################################################
 # parameter_estimator.py
 # ======================
-# Author : Sepand KASHANI [sep@zurich.ibm.com]
+# Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
 r"""

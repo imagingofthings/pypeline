@@ -1,7 +1,7 @@
 .. ############################################################################
 .. func_interpolation_OL_zonal.rst
 .. ===============================
-.. Author : Sepand KASHANI [sep@zurich.ibm.com]
+.. Author : Sepand KASHANI [kashani.sepand@gmail.com]
 .. ############################################################################
 
 

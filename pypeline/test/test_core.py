@@ -1,7 +1,7 @@
 # #############################################################################
 # test_core.py
 # ============
-# Author : Sepand KASHANI [sep@zurich.ibm.com]
+# Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # Revision : 0.0
 # Last updated : 2018-04-05 14:09:31 UTC
 # #############################################################################

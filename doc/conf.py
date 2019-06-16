@@ -1,7 +1,7 @@
 # #############################################################################
 # conf.py
 # =======
-# Author : Sepand KASHANI [sep@zurich.ibm.com]
+# Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
 import configparser
@@ -49,8 +49,7 @@ def pkg_info() -> Mapping:
 cfg, info = setup_config(), pkg_info()
 project = cfg.get("metadata", "name")
 copyright = (
-    f"{datetime.date.today().year}, "
-    "Imaging of Things Team (ImoT), IBM Research Zurich"
+    f"{datetime.date.today().year}, Imaging of Things Group (ImoT)"
 )
 author = cfg.get("metadata", "author")
 version = release = info["version"]

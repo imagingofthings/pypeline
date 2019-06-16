@@ -1,7 +1,7 @@
 # #############################################################################
 # requirements.txt
 # ================
-# Author : Sepand KASHANI [sep@zurich.ibm.com]
+# Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
 # This file contains the complete list of Pypeline's Python dependencies.  It is preferable to
