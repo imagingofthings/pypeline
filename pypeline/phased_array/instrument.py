@@ -24,6 +24,7 @@ import pathlib
 
 import astropy.coordinates as coord
 import astropy.time as time
+import imot_tools.math.special as sp
 import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
@@ -34,7 +35,6 @@ import scipy.linalg as linalg
 import pypeline.core as core
 import pypeline.util.array as array
 import pypeline.util.math.linalg as pylinalg
-import pypeline.util.math.special as sp
 import pypeline.util.math.sphere as sph
 
 

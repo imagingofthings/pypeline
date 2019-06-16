@@ -11,4 +11,3 @@ pypeline.util.math
    ~pypeline.util.math.func
    ~pypeline.util.math.linalg
    ~pypeline.util.math.sphere
-   ~pypeline.util.math.special
