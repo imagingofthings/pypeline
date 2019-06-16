@@ -25,7 +25,7 @@ import numpy as np
 import sklearn.cluster as skcl
 
 import pypeline.phased_array.util.data_gen.visibility as vis
-import pypeline.phased_array.util.gram as gr
+import pypeline.phased_array.bluebild.gram as gr
 
 
 class ParameterEstimator:
@@ -87,7 +87,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
        from pypeline.phased_array.bluebild.parameter_estimator import IntensityFieldParameterEstimator
        from pypeline.phased_array.instrument import LofarBlock
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
-       from pypeline.phased_array.util.gram import GramBlock
+       from pypeline.phased_array.bluebild.gram import GramBlock
        from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
        from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
 
@@ -171,7 +171,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
         ----------
         S : :py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`
             (N_beam, N_beam) visibility matrix.
-        G : :py:class:`~pypeline.phased_array.util.gram.GramMatrix`
+        G : :py:class:`~pypeline.phased_array.bluebild.gram.GramMatrix`
             (N_beam, N_beam) gram matrix.
         """
         if not S.is_consistent_with(G, axes=[0, 0]):
@@ -255,7 +255,7 @@ class SensitivityFieldParameterEstimator(ParameterEstimator):
 
         Parameters
         ----------
-        G : :py:class:`~pypeline.phased_array.util.gram.GramMatrix`
+        G : :py:class:`~pypeline.phased_array.bluebild.gram.GramMatrix`
             (N_beam, N_beam) gram matrix.
         """
         self._grams.append(G)

@@ -14,7 +14,7 @@ import numpy as np
 
 import pypeline.core as core
 import pypeline.phased_array.util.data_gen.visibility as vis
-import pypeline.phased_array.util.gram as gram
+import pypeline.phased_array.bluebild.gram as gram
 
 
 class DataProcessorBlock(core.Block):
@@ -84,7 +84,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
         ----------
         S : :py:class:`~pypeline.phased_array.util.data_gen.visibility.VisibilityMatrix`
             (N_beam, N_beam) visibility matrix.
-        G : :py:class:`~pypeline.phased_array.util.gram.GramMatrix`
+        G : :py:class:`~pypeline.phased_array.bluebild.gram.GramMatrix`
             (N_beam, N_beam) gram matrix.
 
         Returns
@@ -103,7 +103,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
         .. testsetup::
 
            from pypeline.phased_array.util.data_gen.visibility import VisibilityMatrix
-           from pypeline.phased_array.util.gram import GramMatrix
+           from pypeline.phased_array.bluebild.gram import GramMatrix
            from pypeline.phased_array.bluebild.data_processor import IntensityFieldDataProcessorBlock
            import numpy as np
            import pandas as pd
@@ -205,7 +205,7 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
 
         Parameters
         ----------
-        G : :py:class:`~pypeline.phased_array.util.gram.GramMatrix`
+        G : :py:class:`~pypeline.phased_array.bluebild.gram.GramMatrix`
             (N_beam, N_beam) gram matrix.
 
         Returns
@@ -220,7 +220,7 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
         --------
         .. testsetup::
 
-           from pypeline.phased_array.util.gram import GramMatrix
+           from pypeline.phased_array.bluebild.gram import GramMatrix
            from pypeline.phased_array.bluebild.data_processor import SensitivityFieldDataProcessorBlock
            import numpy as np
            import pandas as pd

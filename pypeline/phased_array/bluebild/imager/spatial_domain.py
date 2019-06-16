@@ -40,7 +40,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        from pypeline.phased_array.bluebild.imager.spatial_domain import Spatial_IMFS_Block
        from pypeline.phased_array.instrument import LofarBlock
        from pypeline.phased_array.beamforming import MatchedBeamformerBlock
-       from pypeline.phased_array.util.gram import GramBlock
+       from pypeline.phased_array.bluebild.gram import GramBlock
        from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
        from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
        from pypeline.phased_array.util.grid import spherical_grid
