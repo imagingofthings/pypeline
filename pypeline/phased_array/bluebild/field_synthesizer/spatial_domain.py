@@ -8,13 +8,13 @@
 Field synthesizers that work in the spatial domain.
 """
 
-import imot_tools.util.argcheck as chk
 import numexpr as ne
 import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
+import imot_tools.util.argcheck as chk
 
 
 def _have_matching_shapes(V, XYZ, W):
@@ -113,8 +113,8 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
     .. doctest::
 
-       from pypeline.phased_array.util.io.image import SphericalImage
-       I_snapshot = SphericalImage(data=field, grid=px_grid)
+       from imot_tools.io.s2image import Image
+       I_snapshot = Image(data=field, grid=px_grid)
 
        ax = I_snapshot.draw(index=slice(None),  # Collapse all energy levels
                             catalog=sky_model,

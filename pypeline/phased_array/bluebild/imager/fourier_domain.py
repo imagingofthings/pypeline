@@ -14,7 +14,7 @@ import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as psd
 import pypeline.phased_array.bluebild.imager as bim
-import pypeline.phased_array.util.io.image as image
+import imot_tools.io.s2image as image
 import pypeline.util.array as array
 import imot_tools.math.sphere.transform as transform
 
@@ -105,7 +105,7 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
     .. doctest::
 
-       from pypeline.phased_array.util.io.image import SphericalImage
+       from imot_tools.io.s2image import Image
        import matplotlib.pyplot as plt
 
        # Transform grid to ICRS coordinates before plotting.
@@ -239,10 +239,10 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         Returns
         -------
-        std : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        std : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) standardized energy-levels.
 
-        lsq : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        lsq : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) least-squares energy-levels.
         """
         bfsf_grid = transform.pol2cart(
@@ -252,10 +252,10 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         stat_std = self._statistics[0]
         field_std = self._synthesizer.synthesize(stat_std)
-        std = image.SphericalImage(field_std, icrs_grid)
+        std = image.Image(field_std, icrs_grid)
 
         stat_lsq = self._statistics[1]
         field_lsq = self._synthesizer.synthesize(stat_lsq)
-        lsq = image.SphericalImage(field_lsq, icrs_grid)
+        lsq = image.Image(field_lsq, icrs_grid)
 
         return std, lsq

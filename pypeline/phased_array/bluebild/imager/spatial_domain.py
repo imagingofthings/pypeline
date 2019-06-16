@@ -8,13 +8,13 @@
 High-level Bluebild interfaces that work in the spatial domain.
 """
 
-import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as ssd
 import pypeline.phased_array.bluebild.imager as bim
-import pypeline.phased_array.util.io.image as image
+import imot_tools.io.s2image as image
+import imot_tools.util.argcheck as chk
 import pypeline.util.array as array
 
 
@@ -97,7 +97,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
     .. doctest::
 
-       from pypeline.phased_array.util.io.image import SphericalImage
+       from imot_tools.io.s2image import Image
        import matplotlib.pyplot as plt
 
        fig, ax = plt.subplots(ncols=2)
@@ -203,18 +203,18 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         Returns
         -------
-        std : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        std : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) standardized energy-levels.
 
-        lsq : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
+        lsq : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_height, N_width) least-squares energy-levels.
         """
         grid = self._synthesizer._grid
 
         stat_std = self._statistics[0]
-        std = image.SphericalImage(stat_std, grid)
+        std = image.Image(stat_std, grid)
 
         stat_lsq = self._statistics[1]
-        lsq = image.SphericalImage(stat_lsq, grid)
+        lsq = image.Image(stat_lsq, grid)
 
         return std, lsq
