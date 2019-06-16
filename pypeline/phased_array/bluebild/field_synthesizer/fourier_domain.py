@@ -10,6 +10,7 @@ Field synthesizers that work in Fourier Series domain.
 
 import imot_tools.math.func as func
 import imot_tools.math.linalg as pylinalg
+import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
 import numexpr as ne
 import numpy as np
@@ -20,7 +21,6 @@ import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as fsd
-import pypeline.util.math.sphere as sph
 
 
 class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
@@ -49,7 +49,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
        from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
        from pypeline.phased_array.util.grid import ea_grid
-       from pypeline.util.math.sphere import pol2cart
+       from imot_tools.math.sphere.transform import pol2cart
 
        np.random.seed(0)
 
@@ -353,7 +353,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         """
         N_samples = fftpack.next_fast_len(self._NFS)
         lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples)
-        pix_smpl = sph.pol2cart(1, self._grid_colat, lon_smpl.reshape(1, -1))
+        pix_smpl = transform.pol2cart(1, self._grid_colat, lon_smpl.reshape(1, -1))
 
         N_antenna = len(XYZ)
         N_height = len(self._grid_colat)

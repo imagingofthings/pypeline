@@ -15,11 +15,10 @@ import urllib.request
 
 import astropy.coordinates as coord
 import astropy.units as u
+import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
-
-import pypeline.util.math.sphere as sph
 
 
 def is_source_config(x):
@@ -173,7 +172,7 @@ def from_tgss_catalog(direction, FoV, N_src):
 
     lat = np.deg2rad(catalog_full.loc[:, "DEC"].values)
     lon = np.deg2rad(catalog_full.loc[:, "RA"].values)
-    xyz = sph.eq2cart(1, lat, lon)
+    xyz = transform.eq2cart(1, lat, lon)
     I = catalog_full.loc[:, "Total_flux"].values * 1e-3  # mJy in catalog.
 
     # Reduce catalog to area of interest
@@ -186,7 +185,7 @@ def from_tgss_catalog(direction, FoV, N_src):
     I_region, xyz_region = I[mask], xyz[:, mask]
     idx = np.argsort(I_region)[-N_src:]
     I_region, xyz_region = I_region[idx], xyz_region[:, idx]
-    _, lat_region, lon_region = sph.cart2eq(*xyz_region)
+    _, lat_region, lon_region = transform.cart2eq(*xyz_region)
 
     source_config = [
         (coord.SkyCoord(az * u.rad, el * u.rad, frame="icrs"), intensity)

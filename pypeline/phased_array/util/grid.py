@@ -11,11 +11,11 @@ Pixel-grid generation and utilities for spherical surfaces.
 import astropy.coordinates as coord
 import astropy.units as u
 import imot_tools.math.linalg as pylinalg
+import imot_tools.math.sphere.grid as grid
+import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.linalg as linalg
-
-import pypeline.util.math.sphere as sph
 
 
 @chk.check(
@@ -60,10 +60,10 @@ def spherical_grid(direction, FoV, size):
     colat, lon = np.meshgrid(
         np.linspace(0, FoV / 2, N_height), np.linspace(0, 2 * np.pi, N_width), indexing="ij"
     )
-    XYZ = sph.pol2cart(1, colat, lon)
+    XYZ = transform.pol2cart(1, colat, lon)
 
     # Center grid at 'direction'
-    _, dir_colat, _ = sph.cart2pol(*direction)
+    _, dir_colat, _ = transform.cart2pol(*direction)
     R_axis = np.cross([0, 0, 1], direction)
     if np.allclose(R_axis, 0):
         # R_axis is in span(E_z), so we must manually set R
@@ -123,7 +123,7 @@ def uniform_grid(direction, FoV, size):
     XYZ = np.stack([X, Y, Z], axis=0)
 
     # Center grid at 'direction'
-    _, dir_colat, dir_lon = sph.cart2pol(*direction)
+    _, dir_colat, dir_lon = transform.cart2pol(*direction)
     R1 = pylinalg.rot(axis=[0, 0, 1], angle=dir_lon)
     R2_axis = np.cross([0, 0, 1], direction)
     if np.allclose(R2_axis, 0):
@@ -180,7 +180,7 @@ def ea_grid(direction, FoV, size):
     if np.any(size <= 0):
         raise ValueError("Parameter[size] must contain positive entries.")
 
-    _, dir_colat, dir_lon = sph.cart2pol(*direction)
+    _, dir_colat, dir_lon = transform.cart2pol(*direction)
     lim_lon = dir_lon + (FoV / 2) * np.r_[-1, 1]
     lim_colat = dir_colat + (FoV / 2) * np.r_[-1, 1]
     lim_colat = (max(np.deg2rad(0.5), lim_colat[0]), min(lim_colat[1], np.deg2rad(179.5)))
@@ -224,10 +224,6 @@ def ea_harmonic_grid(direction, FoV, N):
 
     lon : :py:class:`~numpy.ndarray`
         (1, N_width) azimuthal angles [rad].
-
-    See Also
-    --------
-    :py:class:`~pypeline.util.math.sphere.EqualAngleInterpolator`
     """
     direction = np.array(direction, dtype=float)
     direction /= linalg.norm(direction)
@@ -241,13 +237,13 @@ def ea_harmonic_grid(direction, FoV, N):
     if N <= 0:
         raise ValueError("Parameter[N] must be non-negative.")
 
-    _, dir_colat, dir_lon = sph.cart2pol(*direction)
+    _, dir_colat, dir_lon = transform.cart2pol(*direction)
     lim_lon = dir_lon + (FoV / 2) * np.r_[-1, 1]
     lim_lon = coord.Angle(lim_lon * u.rad).wrap_at(360 * u.deg).to_value(u.rad)
     lim_colat = dir_colat + (FoV / 2) * np.r_[-1, 1]
     lim_colat = (max(np.deg2rad(0.5), lim_colat[0]), min(lim_colat[1], np.deg2rad(179.5)))
 
-    colat_full, lon_full = sph.ea_sample(N)
+    colat_full, lon_full = grid.ea_sample(N)
     q_full = np.arange(colat_full.size).reshape(-1, 1)
     l_full = np.arange(lon_full.size).reshape(1, -1)
 
@@ -288,10 +284,6 @@ def fibonacci_harmonic_grid(direction, FoV, N):
     -------
     :py:class:`~numpy.ndarray`
         (3, N_px) pixel grid.
-
-    See Also
-    --------
-    :py:class:`~pypeline.util.math.sphere.FibonacciInterpolator`
     """
     direction = np.array(direction, dtype=float)
     direction /= linalg.norm(direction)
@@ -303,7 +295,7 @@ def fibonacci_harmonic_grid(direction, FoV, N):
         raise ValueError("Parameter[N] must be non-negative.")
 
     # TODO: Current grid generation is highly inefficient when interested in small FoVs
-    XYZ = sph.fibonacci_sample(N)
+    XYZ = grid.fibonacci_sample(N)
 
     min_similarity = np.cos(FoV / 2)
     mask = (direction @ XYZ) >= min_similarity

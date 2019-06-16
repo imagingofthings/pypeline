@@ -26,6 +26,7 @@ import astropy.coordinates as coord
 import astropy.time as time
 import imot_tools.math.linalg as pylinalg
 import imot_tools.math.special as sp
+import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
@@ -35,7 +36,6 @@ import scipy.linalg as linalg
 
 import pypeline.core as core
 import pypeline.util.array as array
-import pypeline.util.math.sphere as sph
 
 
 def is_antenna_index(x):
@@ -762,8 +762,8 @@ class MwaBlock(EarthBoundInstrumentGeometryBlock):
             xyz_station = itrs_geom.loc[:, ["X", "Y", "Z"]].values
             df_stations = []
             for st_id, st_cog in zip(station_id, xyz_station):
-                _, st_colat, st_lon = sph.cart2pol(*st_cog)
-                st_cog_unit = sph.pol2cart(1, st_colat, st_lon).reshape(-1)
+                _, st_colat, st_lon = transform.cart2pol(*st_cog)
+                st_cog_unit = transform.pol2cart(1, st_colat, st_lon).reshape(-1)
 
                 R_1 = pylinalg.rot([0, 0, 1], st_lon)
                 R_2 = pylinalg.rot(axis=np.cross([0, 0, 1], st_cog_unit), angle=st_colat)

@@ -7,5 +7,3 @@ pypeline.util.math
 
 .. autosummary::
    :toctree:
-
-   ~pypeline.util.math.sphere

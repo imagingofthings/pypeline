@@ -11,6 +11,7 @@ Image containers, visualization and export facilities.
 import astropy.coordinates as coord
 import astropy.io.fits as fits
 import astropy.units as u
+import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
 import matplotlib.axes as axes
 import matplotlib.cm as cm
@@ -22,7 +23,6 @@ import scipy.linalg as linalg
 from astropy.wcs import WCS
 
 import pypeline.phased_array.util.data_gen.sky as sky
-import pypeline.util.math.sphere as sph
 import pypeline.util.plot as plot
 
 
@@ -72,10 +72,10 @@ class SphericalImage:
 
        import pypeline.phased_array.util.grid as grid
        import pypeline.phased_array.util.io.image as image
-       import pypeline.util.math.sphere as sph
+       import imot_tools.math.sphere.transform as transform
 
        # grid settings =======================
-       direction = sph.eq2cart(1, lat=np.deg2rad(30), lon=np.deg2rad(20)).reshape(-1)
+       direction = transform.eq2cart(1, lat=np.deg2rad(30), lon=np.deg2rad(20)).reshape(-1)
        FoV = np.deg2rad(60)
        N_height, N_width = 256, 384
        px_grid = grid.uniform_grid(direction, FoV, size=[N_height, N_width])
@@ -248,7 +248,7 @@ class SphericalImage:
         metadata = dict(IMG_TYPE=(self.__class__.__name__, "SphericalImage subclass"))
 
         # grid: stored as angles to reduce file size.
-        _, colat, lon = sph.cart2pol(*self._grid)
+        _, colat, lon = transform.cart2pol(*self._grid)
         coordinates = np.stack([colat, lon], axis=0)
 
         hdu = fits.PrimaryHDU(data=coordinates)
@@ -286,7 +286,7 @@ class SphericalImage:
         """
         # PrimaryHDU: grid specification.
         colat, lon = np.deg2rad(primary_hdu.data)
-        grid = sph.pol2cart(1, colat, lon)
+        grid = transform.pol2cart(1, colat, lon)
 
         # ImageHDU: extract data cube.
         data = image_hdu.data
@@ -440,7 +440,7 @@ class SphericalImage:
             grid_dir = np.mean(self._grid, axis=(1, 2))
         else:  # (3, N_points) grid
             grid_dir = np.mean(self._grid, axis=1)
-        _, grid_lat, grid_lon = sph.cart2eq(*grid_dir)
+        _, grid_lat, grid_lon = transform.cart2eq(*grid_dir)
         grid_lat = coord.Angle(grid_lat * u.rad).to_value(u.deg)
         grid_lon = coord.Angle(grid_lon * u.rad).wrap_at(180 * u.deg).to_value(u.deg)
 
@@ -515,7 +515,7 @@ class SphericalImage:
         # Some projections have unmappable regions or exhibit singularities at certain points.
         # These regions are colored white in contour plots by replacing their incorrect value (1e30)
         # with NaN.
-        _, grid_lat, grid_lon = sph.cart2eq(*self._grid)
+        _, grid_lat, grid_lon = transform.cart2eq(*self._grid)
         grid_lat = coord.Angle(grid_lat * u.rad).to_value(u.deg)
         grid_lon = coord.Angle(grid_lon * u.rad).wrap_at(180 * u.deg).to_value(u.deg)
 
@@ -643,7 +643,7 @@ class SphericalImage:
         plot_style = dict(alpha=0.5, color="k", linewidth=1, linestyle="solid")
         plot_style.update(grid_kwargs)
 
-        _, grid_lat, grid_lon = sph.cart2eq(*self._grid)
+        _, grid_lat, grid_lon = transform.cart2eq(*self._grid)
         grid_lat = coord.Angle(grid_lat * u.rad).to_value(u.deg)
         grid_lon = coord.Angle(grid_lon * u.rad).wrap_at(180 * u.deg).to_value(u.deg)
 
@@ -718,7 +718,7 @@ class SphericalImage:
             Axes to plot on.
         """
         if catalog is not None:
-            _, c_lat, c_lon = sph.cart2eq(*catalog.xyz.T)
+            _, c_lat, c_lon = transform.cart2eq(*catalog.xyz.T)
             c_lat = coord.Angle(c_lat * u.rad).to_value(u.deg)
             c_lon = coord.Angle(c_lon * u.rad).wrap_at(180 * u.deg).to_value(u.deg)
 
@@ -779,7 +779,7 @@ class EqualAngleImage(SphericalImage):
         if not chk.has_shape([1, N_width])(lon):
             raise ValueError("Parameter[lon] must have shape (1, N_width).")
 
-        grid = sph.pol2cart(1, colat, lon)
+        grid = transform.pol2cart(1, colat, lon)
         super().__init__(data, grid)
 
         # Reorder grid/data for longitude/colatitude to be in increasing order.
@@ -840,7 +840,7 @@ class EqualAngleImage(SphericalImage):
         #
         # * arrays are Fortran-ordered with indices starting at 1;
         # * angles (lon/lat) must be specified in degrees.
-        _, lat, lon = sph.pol2eq(1, self._colat, self._lon)
+        _, lat, lon = transform.pol2eq(1, self._colat, self._lon)
         RA = np.rad2deg(lon).reshape(-1)
         DEC = np.rad2deg(lat).reshape(-1)
 

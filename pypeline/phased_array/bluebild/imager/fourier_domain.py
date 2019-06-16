@@ -16,7 +16,7 @@ import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as psd
 import pypeline.phased_array.bluebild.imager as bim
 import pypeline.phased_array.util.io.image as image
 import pypeline.util.array as array
-import pypeline.util.math.sphere as sph
+import imot_tools.math.sphere.transform as transform
 
 
 class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
@@ -45,7 +45,7 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        from pypeline.phased_array.util.data_gen.sky import from_tgss_catalog
        from pypeline.phased_array.util.data_gen.visibility import VisibilityGeneratorBlock
        from pypeline.phased_array.util.grid import ea_grid
-       from pypeline.util.math.sphere import pol2cart
+       from imot_tools.math.sphere.transform import pol2cart
 
        np.random.seed(0)
 
@@ -245,7 +245,9 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         lsq : :py:class:`~pypeline.phased_array.util.io.image.SphericalImage`
             (N_level, N_height, N_width) least-squares energy-levels.
         """
-        bfsf_grid = sph.pol2cart(1, self._synthesizer._grid_colat, self._synthesizer._grid_lon)
+        bfsf_grid = transform.pol2cart(
+            1, self._synthesizer._grid_colat, self._synthesizer._grid_lon
+        )
         icrs_grid = np.tensordot(self._synthesizer._R.T, bfsf_grid, axes=1)
 
         stat_std = self._statistics[0]
