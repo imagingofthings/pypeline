@@ -15,10 +15,10 @@ import urllib.request
 
 import astropy.coordinates as coord
 import astropy.units as u
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 
-import pypeline.util.argcheck as chk
 import pypeline.util.math.sphere as sph
 
 

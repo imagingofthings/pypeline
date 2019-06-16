@@ -20,6 +20,7 @@ Only simple beamformers are included here: more advanced variants can be found i
 import collections.abc as abc
 
 import astropy.coordinates as coord
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
@@ -27,7 +28,6 @@ import scipy.sparse as sparse
 import pypeline
 import pypeline.core as core
 import pypeline.phased_array.instrument as instrument
-import pypeline.util.argcheck as chk
 import pypeline.util.array as array
 
 

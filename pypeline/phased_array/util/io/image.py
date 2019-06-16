@@ -11,6 +11,7 @@ Image containers, visualization and export facilities.
 import astropy.coordinates as coord
 import astropy.io.fits as fits
 import astropy.units as u
+import imot_tools.util.argcheck as chk
 import matplotlib.axes as axes
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -21,7 +22,6 @@ import scipy.linalg as linalg
 from astropy.wcs import WCS
 
 import pypeline.phased_array.util.data_gen.sky as sky
-import pypeline.util.argcheck as chk
 import pypeline.util.math.sphere as sph
 import pypeline.util.plot as plot
 

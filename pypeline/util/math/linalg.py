@@ -8,10 +8,9 @@
 Linear algebra routines.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.linalg as linalg
-
-import pypeline.util.argcheck as chk
 
 
 @chk.check(

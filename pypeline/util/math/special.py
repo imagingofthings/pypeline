@@ -10,12 +10,11 @@ Special mathematical functions.
 
 import pathlib
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 import pkg_resources as pkg
 import scipy.special as special
-
-import pypeline.util.argcheck as chk
 
 
 @chk.check("x", chk.is_real)

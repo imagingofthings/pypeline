@@ -10,11 +10,11 @@ Spherical geometry tools.
 
 import astropy.coordinates as coord
 import astropy.units as u
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.sparse as sp
 
 import pypeline.core as core
-import pypeline.util.argcheck as chk
 import pypeline.util.math.func as func
 
 

@@ -10,10 +10,10 @@ Pixel-grid generation and utilities for spherical surfaces.
 
 import astropy.coordinates as coord
 import astropy.units as u
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.linalg as linalg
 
-import pypeline.util.argcheck as chk
 import pypeline.util.math.linalg as pylinalg
 import pypeline.util.math.sphere as sph
 

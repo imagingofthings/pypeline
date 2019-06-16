@@ -24,6 +24,7 @@ import pathlib
 
 import astropy.coordinates as coord
 import astropy.time as time
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 import pkg_resources as pkg
@@ -31,7 +32,6 @@ import plotly.graph_objs as go
 import scipy.linalg as linalg
 
 import pypeline.core as core
-import pypeline.util.argcheck as chk
 import pypeline.util.array as array
 import pypeline.util.math.linalg as pylinalg
 import pypeline.util.math.special as sp

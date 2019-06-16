@@ -8,13 +8,13 @@
 Field synthesizers that work in the spatial domain.
 """
 
+import imot_tools.util.argcheck as chk
 import numexpr as ne
 import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
-import pypeline.util.argcheck as chk
 
 
 def _have_matching_shapes(V, XYZ, W):

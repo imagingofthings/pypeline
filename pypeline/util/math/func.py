@@ -10,12 +10,12 @@
 
 import warnings
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.interpolate as interpolate
 import scipy.special as sp
 
 import pypeline.core as core
-import pypeline.util.argcheck as chk
 
 
 class Tukey(core.Block):

@@ -17,11 +17,11 @@ Subclasses of :py:class:`~pypeline.phased_array.bluebild.imager.IntegratingMulti
 Integrated images can then be directly output in viewable form by calling :py:meth:`~pypeline.phased_array.bluebild.imager.IntegratingMultiFieldSynthesizerBlock.as_image`.
 """
 
+import imot_tools.util.argcheck as chk
 import imot_tools.util.array as array
 import numpy as np
 
 import pypeline.core as core
-import pypeline.util.argcheck as chk
 
 
 class IntegratingMultiFieldSynthesizerBlock(core.Block):

@@ -19,12 +19,12 @@ Subclasses of :py:class:`~pypeline.phased_array.bluebild.parameter_estimator.Par
 specifically tailored for such tasks.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import sklearn.cluster as skcl
 
 import pypeline.phased_array.util.data_gen.visibility as vis
 import pypeline.phased_array.util.gram as gr
-import pypeline.util.argcheck as chk
 import pypeline.util.math.linalg as pylinalg
 
 

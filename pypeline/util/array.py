@@ -8,11 +8,10 @@
 Tools and utilities for manipulating arrays.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
-
-import pypeline.util.argcheck as chk
 
 
 class LabeledMatrix:

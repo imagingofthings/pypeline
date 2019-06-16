@@ -8,13 +8,13 @@
 High-level Bluebild interfaces that work in the spatial domain.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as ssd
 import pypeline.phased_array.bluebild.imager as bim
 import pypeline.phased_array.util.io.image as image
-import pypeline.util.argcheck as chk
 import pypeline.util.array as array
 
 

@@ -8,13 +8,13 @@
 Statistical functions not available in `SciPy <https://www.scipy.org/>`_.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.linalg as linalg
 import scipy.special as special
 import scipy.stats as stats
 
 import pypeline.core as core
-import pypeline.util.argcheck as chk
 import pypeline.util.math.special as sp
 
 

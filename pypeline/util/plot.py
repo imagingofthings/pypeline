@@ -10,11 +10,10 @@
 
 import pathlib
 
+import imot_tools.util.argcheck as chk
 import matplotlib.colors as col
 import pandas as pd
 import pkg_resources as pkg
-
-import pypeline.util.argcheck as chk
 
 
 @chk.check(dict(name=chk.is_instance(str), N=chk.allow_None(chk.is_integer)))

@@ -8,13 +8,13 @@
 Gram-related operations and tools.
 """
 
+import imot_tools.util.argcheck as chk
 import numpy as np
 import scipy.linalg as linalg
 
 import pypeline.core as core
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
-import pypeline.util.argcheck as chk
 import pypeline.util.array as array
 
 

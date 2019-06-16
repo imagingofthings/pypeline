@@ -8,6 +8,7 @@
 Field synthesizers that work in Fourier Series domain.
 """
 
+import imot_tools.util.argcheck as chk
 import numexpr as ne
 import numpy as np
 import pyffs
@@ -17,7 +18,6 @@ import scipy.sparse as sparse
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as fsd
-import pypeline.util.argcheck as chk
 import pypeline.util.math.func as func
 import pypeline.util.math.linalg as pylinalg
 import pypeline.util.math.sphere as sph
