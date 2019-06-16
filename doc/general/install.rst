@@ -12,7 +12,7 @@ After installing `Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda
 <https://www.anaconda.com/download/#linux>`_, run the following::
 
     $ cd <pypeline_dir>/
-    $ conda create --name=pypeline_dev   \
+    $ conda create --name=pypeline       \
                    --channel=defaults    \
                    --channel=conda-forge \
                    --file=conda_requirements.txt

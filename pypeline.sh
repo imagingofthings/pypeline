@@ -49,13 +49,13 @@ has_conda() {
 has_pypeline_env() {
     has_conda
     if [ "${?}" -eq 0 ]; then
-        conda info -e | grep -e'pypeline_dev ' > /dev/null
+        conda info -e | grep -e'pypeline ' > /dev/null
         return "${?}"
     fi
 }
 
 load_pypeline_env() {
-    source activate pypeline_dev
+    source activate pypeline
 
     # CasaCore: add <miniconda_root>/lib/ to LD_LIBRARY_PATH for libtinfow.so
     local miniconda_root="$(dirname "$(dirname "$(which conda)")")"
@@ -72,7 +72,7 @@ else
             if [ "${?}" -eq 0 ]; then
                 load_pypeline_env
             else
-                echo 'Error: pypeline_dev environment does not exist.'
+                echo 'Error: pypeline environment does not exist.'
             fi
         elif [ "${#}" -eq 0 ]; then
             has_pypeline_env
@@ -80,7 +80,7 @@ else
                 load_pypeline_env
                 ipython3 --matplotlib
             else
-                echo 'Error: pypeline_dev environment does not exist.'
+                echo 'Error: pypeline environment does not exist.'
             fi
         else
             echo 'INCORRECT INVOCATION'
