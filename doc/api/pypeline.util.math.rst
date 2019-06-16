@@ -11,6 +11,5 @@ pypeline.util.math
    ~pypeline.util.math.func
    ~pypeline.util.math.stat
    ~pypeline.util.math.linalg
-   ~pypeline.util.math.fourier
    ~pypeline.util.math.sphere
    ~pypeline.util.math.special

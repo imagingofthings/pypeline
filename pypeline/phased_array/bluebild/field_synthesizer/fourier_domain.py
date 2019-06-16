@@ -10,6 +10,7 @@ Field synthesizers that work in Fourier Series domain.
 
 import numexpr as ne
 import numpy as np
+import pyffs
 import scipy.fftpack as fftpack
 import scipy.linalg as linalg
 import scipy.sparse as sparse
@@ -17,7 +18,6 @@ import scipy.sparse as sparse
 import pypeline.phased_array.bluebild.field_synthesizer as synth
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as fsd
 import pypeline.util.argcheck as chk
-import pypeline.util.math.fourier as fourier
 import pypeline.util.math.func as func
 import pypeline.util.math.linalg as pylinalg
 import pypeline.util.math.sphere as sph
@@ -268,7 +268,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         mod_phase = -1j * 2 * np.pi * phase_shift / self._T
         E_FS *= np.exp(mod_phase) ** np.r_[-N : N + 1, np.zeros(Q)]
 
-        E_Ny = fourier.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2)
+        E_Ny = pyffs.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2)
         I_Ny = E_Ny.real ** 2 + E_Ny.imag ** 2
         return I_Ny
 
@@ -298,8 +298,8 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         if not chk.has_shape([N_level, N_height, _2N1Q])(stat):
             raise ValueError("Parameter[stat] does not match the kernel's dimensions.")
 
-        field_FS = fourier.ffs(stat, self._T, self._Tc, self._NFS, axis=2)
-        field = fourier.fs_interp(
+        field_FS = pyffs.ffs(stat, self._T, self._Tc, self._NFS, axis=2)
+        field = pyffs.fs_interp(
             field_FS[:, :, : self._NFS],
             T=self._T,
             a=self._grid_lon[0, 0],
@@ -352,7 +352,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             `XYZ` must be given in BFSF.
         """
         N_samples = fftpack.next_fast_len(self._NFS)
-        lon_smpl = fourier.ffs_sample(self._T, self._NFS, self._Tc, N_samples)
+        lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples)
         pix_smpl = sph.pol2cart(1, self._grid_colat, lon_smpl.reshape(1, -1))
 
         N_antenna = len(XYZ)
@@ -373,5 +373,5 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             casting="same_kind",
         )  # Due to limitations of NumExpr2
 
-        self._FSk = fourier.ffs(k_smpl, self._T, self._Tc, self._NFS, axis=2)
+        self._FSk = pyffs.ffs(k_smpl, self._T, self._Tc, self._NFS, axis=2)
         self._XYZk = XYZ
