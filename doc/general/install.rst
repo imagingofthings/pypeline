@@ -15,9 +15,9 @@ After installing `Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda
 
     $ cd <pypeline_dir>/
     $ conda create --name=pypeline       \
-                    --channel=defaults    \
-                    --channel=conda-forge \
-                    --file=conda_requirements.txt
+                   --channel=defaults    \
+                   --channel=conda-forge \
+                   --file=conda_requirements.txt
     $ source pypeline.sh --no_shell
 
 * Install `pyFFS <https://github.com/imagingofthings/pyFFS>`_::
@@ -32,7 +32,7 @@ After installing `Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda
 
     $ git clone git@github.com:imagingofthings/ImoT_tools.git
     $ cd <ImoT_tools_dir>/
-    $ git checkout v1.0
+    $ git checkout dev
     $ python3 setup.py develop
     # See ImoT_tools installation instructions to build documentation and/or run tests.
 
