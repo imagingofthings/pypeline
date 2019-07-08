@@ -84,7 +84,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        # Pixel grid
        >>> px_grid = spherical(field_center.transform_to('icrs').cartesian.xyz.value,
        ...                     FoV=field_of_view,
-       ...                     size=[256, 386])
+       ...                     size=[256, 386]).reshape(3, -1)
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
@@ -98,10 +98,10 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        ...
        ...     D, V, c_idx = I_dp(S, G)
        ...
-       ...     # (N_eig, N_height, N_width) energy levels (compact descriptor, not the same thing as [D, V]).
+       ...     # (N_eig, N_px) energy levels (compact descriptor, not the same thing as [D, V]).
        ...     field_stat = I_fs(V, XYZ.data, W.data)
        ...
-       ...     # (N_eig, N_height, N_width) energy levels
+       ...     # (N_eig, N_px) energy levels
        ...     # These are the actual field values. Depending on the implementation of FieldSynthesizerBlock, `field_stat` and `field` may differ.
        ...     field = I_fs.synthesize(field_stat)
 
@@ -133,7 +133,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         wl : float
             Wavelength [m] of observations.
         pix_grid : :py:class:`~numpy.ndarray`
-            (3, N_height, N_width) pixel vectors.
+            (3, N_px) pixel vectors.
         precision : int
             Numerical accuracy of floating-point operations.
 
@@ -152,8 +152,8 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self._wl = wl
 
-        if not ((pix_grid.ndim == 3) and (len(pix_grid) == 3)):
-            raise ValueError("Parameter[pix_grid] must have dimensions (3, N_height, N_width).")
+        if not ((pix_grid.ndim == 2) and (len(pix_grid) == 3)):
+            raise ValueError("Parameter[pix_grid] must have dimensions (3, N_px).")
         self._grid = pix_grid / linalg.norm(pix_grid, axis=0)
 
     @chk.check(
@@ -181,7 +181,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         Returns
         -------
         stat : :py:class:`~numpy.ndarray`
-            (N_eig, N_height, N_width) field statistics.
+            (N_eig, N_px) field statistics.
 
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
@@ -192,21 +192,18 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         W = W.astype(self._cp, copy=False)
 
         N_antenna, N_beam = W.shape
-        N_height, N_width = self._grid.shape[1:]
+        N_px = self._grid.shape[1]
 
         XYZ = XYZ - XYZ.mean(axis=0)
-        P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
+        P = np.zeros((N_antenna, N_px), dtype=self._cp)
         ne.evaluate(
             "exp(A * B)",
-            dict(A=1j * 2 * np.pi / self._wl, B=np.tensordot(XYZ, self._grid, axes=1)),
+            dict(A=1j * 2 * np.pi / self._wl, B=XYZ @ self._grid),
             out=P,
             casting="same_kind",
         )  # Due to limitations of NumExpr2
 
-        PW = W.T @ P.reshape(N_antenna, N_height * N_width)
-        PW = PW.reshape(N_beam, N_height, N_width)
-
-        E = np.tensordot(V.T, PW, axes=1)
+        E = V.T @ (W.T @ P)
         I = E.real ** 2 + E.imag ** 2
         return I
 
@@ -218,22 +215,22 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         Parameters
         ----------
         stat : :py:class:`~numpy.ndarray`
-            (N_level, N_height, N_width) field statistics.
+            (N_level, N_px) field statistics.
 
         Returns
         -------
         field : :py:class:`~numpy.ndarray`
-            (N_level, N_height, N_width) field values.
+            (N_level, N_px) field values.
         """
         stat = np.array(stat, copy=False)
 
-        if stat.ndim != 3:
+        if stat.ndim != 2:
             raise ValueError("Parameter[stat] is incorrectly shaped.")
 
         N_level = len(stat)
-        N_height, N_width = self._grid.shape[1:]
+        N_px = self._grid.shape[1]
 
-        if not chk.has_shape([N_level, N_height, N_width])(stat):
+        if not chk.has_shape([N_level, N_px])(stat):
             raise ValueError("Parameter[stat] does not match the grid's dimensions.")
 
         field = stat

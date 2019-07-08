@@ -74,7 +74,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        # Pixel grid
        >>> px_grid = spherical(field_center.transform_to('icrs').cartesian.xyz.value,
        ...                     FoV=field_of_view,
-       ...                     size=[256, 386])
+       ...                     size=[256, 386]).reshape(3, -1)
 
        >>> I_dp = IntensityFieldDataProcessorBlock(N_eig=7,  # assumed obtained from IntensityFieldParameterEstimator.infer_parameters()
        ...                                         cluster_centroids=[124.927,  65.09 ,  38.589,  23.256])
@@ -88,7 +88,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
        ...
        ...     D, V, c_idx = I_dp(S, G)
        ...
-       ...     # (2, N_level, N_height, N_width) energy levels [integrated, clustered] (compact descriptor, not the same thing as [D, V]).
+       ...     # (2, N_level, N_px) energy levels [integrated, clustered] (compact descriptor, not the same thing as [D, V]).
        ...     field_stat = I_mfs(D, V, XYZ.data, W.data, c_idx)
 
        >>> I_std, I_lsq = I_mfs.as_image()
@@ -128,7 +128,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         wl : float
             Wavelength [m] of observations.
         pix_grid : :py:class:`~numpy.ndarray`
-            (3, N_height, N_width) pixel vectors.
+            (3, N_px) pixel vectors.
         N_level : int
             Number of clustered energy-levels to output.
         precision : int
@@ -184,12 +184,12 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         Returns
         -------
         stat : :py:class:`~numpy.ndarray`
-            (2, N_level, N_height, N_width) field statistics.
+            (2, N_level, N_px) field statistics.
         """
         D = D.astype(self._fp, copy=False)
 
         stat_std = self._synthesizer(V, XYZ, W)
-        stat_lsq = stat_std * D.reshape(-1, 1, 1)
+        stat_lsq = stat_std * D.reshape(-1, 1)
 
         stat = np.stack([stat_std, stat_lsq], axis=0)
         stat = bim.cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
@@ -204,10 +204,10 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         Returns
         -------
         std : :py:class:`~imot_tools.io.s2image.Image`
-            (N_level, N_height, N_width) standardized energy-levels.
+            (N_level, N_px) standardized energy-levels.
 
         lsq : :py:class:`~imot_tools.io.s2image.Image`
-            (N_level, N_height, N_width) least-squares energy-levels.
+            (N_level, N_px) least-squares energy-levels.
         """
         grid = self._synthesizer._grid
 
