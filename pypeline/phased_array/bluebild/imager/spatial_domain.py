@@ -102,12 +102,12 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
        fig, ax = plt.subplots(ncols=2)
        I_std.draw(index=slice(None),  # Collapse all energy levels
-                  catalog=sky_model,
+                  catalog=sky_model.xyz.T,
                   data_kwargs=dict(cmap='cubehelix'),
                   catalog_kwargs=dict(s=600),
                   ax=ax[0])
        I_lsq.draw(index=slice(None),  # Collapse all energy levels
-                  catalog=sky_model,
+                  catalog=sky_model.xyz.T,
                   data_kwargs=dict(cmap='cubehelix'),
                   catalog_kwargs=dict(s=600),
                   ax=ax[1])

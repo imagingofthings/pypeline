@@ -117,7 +117,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
        I_snapshot = Image(data=field, grid=px_grid)
 
        ax = I_snapshot.draw(index=slice(None),  # Collapse all energy levels
-                            catalog=sky_model,
+                            catalog=sky_model.xyz.T,
                             data_kwargs=dict(cmap='cubehelix'),
                             catalog_kwargs=dict(s=600))
        ax.get_figure().show()
