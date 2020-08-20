@@ -10,7 +10,7 @@
 # When modifying dependencies, don't forget to update both `requirements.txt` and
 # `conda_requirements.txt`.
 
-astropy == 3.1.*
+astropy == 4.0.*
 black == 19.3b0
 healpy == 1.12.*
 imot_tools >= 1.0
