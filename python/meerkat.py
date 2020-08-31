@@ -21,3 +21,6 @@ N_station = 24
 ms_file = "/scratch/foureste/Meerkat/1524929477.ms"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station)
 gram = bb_gr.GramBlock()
+
+print(ms)
+print(gram)
