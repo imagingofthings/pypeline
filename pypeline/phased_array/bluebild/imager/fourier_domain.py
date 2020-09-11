@@ -189,6 +189,10 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             wl, grid_colat, grid_lon, N_FS, T, R, precision
         )
 
+    def set_timer(self, t):
+        self.timer = t
+        self._synthesizer.set_timer(self.timer)
+
     @chk.check(
         dict(
             D=chk.has_reals,

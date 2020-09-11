@@ -57,6 +57,9 @@ class FieldSynthesizerBlock(core.Block):
         """
         raise NotImplementedError
 
+    def set_timer(self,t):
+        self.timer = t
+
     def synthesize(self, *args, **kwargs):
         """
         Compute field values from statistics.

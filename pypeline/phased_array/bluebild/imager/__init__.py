@@ -23,7 +23,6 @@ import numpy as np
 
 import pypeline.core as core
 
-
 class IntegratingMultiFieldSynthesizerBlock(core.Block):
     """
     Top-level public interface of Bluebild multi-field synthesizers.
@@ -73,6 +72,7 @@ class IntegratingMultiFieldSynthesizerBlock(core.Block):
             (N_level, N_height, N_width) least-squares energy-levels.
         """
         raise NotImplementedError
+
 
 
 @chk.check(dict(x=chk.is_array_like, idx=chk.has_integers, N=chk.is_integer, axis=chk.is_integer))

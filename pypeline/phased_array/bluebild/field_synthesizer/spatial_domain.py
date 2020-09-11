@@ -185,6 +185,9 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
+        self.timer.start_time("Synthesizer call")
+
+        self.timer.start_time("Synthesizer numpy formatting")
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
@@ -196,18 +199,36 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         XYZ = XYZ - XYZ.mean(axis=0)
         P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
+
+        self.timer.end_time("Synthesizer numpy formatting")
+
+        self.timer.start_time("Synthesizer numpy tensordot1")
+        a = 1j * 2 * np.pi / self._wl
+        b = np.tensordot(XYZ, self._grid, axes=1)
+        print(a)
+        print(b.shape,b.size())
+        self.timer.end_time("Synthesizer numpy tensordot1")
+        self.timer.start_time("Synthesizer numexpr exponential")
         ne.evaluate(
             "exp(A * B)",
-            dict(A=1j * 2 * np.pi / self._wl, B=np.tensordot(XYZ, self._grid, axes=1)),
+            dict(A=a, B=b),
             out=P,
             casting="same_kind",
         )  # Due to limitations of NumExpr2
+        self.timer.end_time("Synthesizer numexpr exponential")
 
+        self.timer.start_time("Synthesizer numpy reshaping")
         PW = W.T @ P.reshape(N_antenna, N_height * N_width)
         PW = PW.reshape(N_beam, N_height, N_width)
+        self.timer.end_time("Synthesizer numpy reshaping")
 
+        self.timer.start_time("Synthesizer numpy tensordot")
         E = np.tensordot(V.T, PW, axes=1)
+        self.timer.end_time("Synthesizer numpy tensordot")
         I = E.real ** 2 + E.imag ** 2
+
+        self.timer.end_time("Synthesizer call")
+
         return I
 
     @chk.check("stat", chk.has_reals)
