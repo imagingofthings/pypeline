@@ -28,9 +28,9 @@ def _have_matching_shapes(V, XYZ, W):
     return False
 
 
-class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
+class SpatialFieldSynthesizerOptimizedBlock(synth.FieldSynthesizerBlock):
     """
-    Field synthesizer based on StandardSynthesis.
+    Field synthesizer based on StandardSynthesis, but with attempts at optimization
 
     Examples
     --------
@@ -163,6 +163,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
         )
     )
+
     def __call__(self, V, XYZ, W):
         """
         Compute instantaneous field statistics.
@@ -185,10 +186,11 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
-        self.timer.start_time("Standard Synthesizer call")
+        self.timer.start_time("Optimized Synthesizer call")
 
-        self.timer.start_time("Standard Synthesizer numpy formatting")
+        self.timer.start_time("Optimized Synthesizer numpy formatting")
         if not _have_matching_shapes(V, XYZ, W):
+            print(V.shape, XYZ.shape, W.shape)
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
         XYZ = XYZ.astype(self._fp, copy=False)
@@ -200,34 +202,34 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         XYZ = XYZ - XYZ.mean(axis=0)
         P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
 
-        self.timer.end_time("Standard Synthesizer numpy formatting")
+        self.timer.end_time("Optimized Synthesizer numpy formatting")
 
-        self.timer.start_time("Standard Synthesizer numpy tensordot 1")
+        self.timer.start_time("Optimized Synthesizer numpy tensordot1")
         a = 1j * 2 * np.pi / self._wl
         b = np.tensordot(XYZ, self._grid, axes=1)
         #print(a)
         #print(b.shape,b.size())
-        self.timer.end_time("Standard Synthesizer numpy tensordot 1")
-        self.timer.start_time("Standard Synthesizer numexpr exponential")
+        self.timer.end_time("Optimized Synthesizer numpy tensordot1")
+        self.timer.start_time("Optimized Synthesizer numexpr exponential")
         ne.evaluate(
             "exp(A * B)",
             dict(A=a, B=b),
             out=P,
             casting="same_kind",
         )  # Due to limitations of NumExpr2
-        self.timer.end_time("Standard Synthesizer numexpr exponential")
+        self.timer.end_time("Optimized Synthesizer numexpr exponential")
 
-        self.timer.start_time("Standard Synthesizer numpy reshaping")
+        self.timer.start_time("Optimized Synthesizer numpy reshaping")
         PW = W.T @ P.reshape(N_antenna, N_height * N_width)
         PW = PW.reshape(N_beam, N_height, N_width)
-        self.timer.end_time("Standard Synthesizer numpy reshaping")
+        self.timer.end_time("Optimized Synthesizer numpy reshaping")
 
-        self.timer.start_time("Standard Synthesizer numpy tensordot 2")
+        self.timer.start_time("Optimized Synthesizer numpy tensordot")
         E = np.tensordot(V.T, PW, axes=1)
-        self.timer.end_time("Standard Synthesizer numpy tensordot 2")
+        self.timer.end_time("Optimized Synthesizer numpy tensordot")
         I = E.real ** 2 + E.imag ** 2
 
-        self.timer.end_time("Standard Synthesizer call")
+        self.timer.end_time("Optimized Synthesizer call")
 
         return I
 

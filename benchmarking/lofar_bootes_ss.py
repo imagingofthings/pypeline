@@ -72,6 +72,7 @@ _, _, px_colat, px_lon = grid.equal_angle(
     N=dev.nyquist_rate(wl), direction=field_center.cartesian.xyz.value, FoV=FoV
 )
 px_grid = transform.pol2cart(1, px_colat, px_lon)
+
 timer.end_time("Imaging setup")
 timer.end_time("Setup")
 

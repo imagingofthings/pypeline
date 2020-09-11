@@ -18,16 +18,16 @@ class Timer():
 		for n, l in self.times.items():
 			spacer = "".join([" "]*self.depths[n])
 			if len(l) == 1:
-				print ("{0}{1}:{2:.2f}s".format(spacer, n, sum(l)))
+				print ("{0}{1}: {2:.2f}s".format(spacer, n, sum(l)))
 			else:
-				print ("{0}{1}:{2:.2f}s, averaging {3:.2f} per iteration".format(spacer, n, sum(l), sum(l)/len(l)))
+				print ("{0}{1}: {2:.2f}s, averaging {3:.2f} per iteration for {4} iterations".format(spacer, n, sum(l), sum(l)/len(l),len(l)))
 	def summary(self):
 		sum_str = ""
 		for n, l in self.times.items():
 			spacer = "".join([" "]*self.depths[n])
 			if len(l) == 1:
-				line = "{0}{1}:{2:.2f}s\n".format(spacer, n, sum(l))
+				line = "{0}{1}: {2:.2f}s\n".format(spacer, n, sum(l))
 			else:
-				line = "{0}{1}:{2:.2f}s, averaging {3:.2f} per iteration\n".format(spacer, n, sum(l), sum(l)/len(l))
+				line = "{0}{1}: {2:.2f}s, averaging {3:.2f} per iteration for {4} iterations\n".format(spacer, n, sum(l), sum(l)/len(l),len(l))
 			sum_str += line
 		return sum_str
