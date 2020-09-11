@@ -1,5 +1,6 @@
 
 import numpy as np
+import sys
 import scipy.constants as constants
 import imot_tools.math.sphere.grid as grid
 import imot_tools.math.sphere.transform as transform
@@ -94,32 +95,37 @@ class SimulatedDataGen():
         return (V,XYZ.data, W.data)
 
 
-# timer
-timer = timing.Timer()
+if __name__ == "__main__":
+
+	# timer
+	timer = timing.Timer()
 
 
-###### make simulated dataset ###### 
-# parameters
-frequency = 145e6
-wl = constants.speed_of_light / frequency
-precision = 32 # 32 or 64
+	###### make simulated dataset ###### 
+	# parameters
+	frequency = 145e6
+	wl = constants.speed_of_light / frequency
+	precision = 32 # 32 or 64
 
-data = SimulatedDataGen(wl)
+	data = SimulatedDataGen(wl)
+	#data = RandomDataGen()
 
-synthesizer      = synth.SpatialFieldSynthesizerBlock(wl, data.getPixGrid(), precision)
-synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, data.getPixGrid(), precision)
-synthesizer.set_timer(timer)
-synthesizer_test.set_timer(timer)
+	synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, data.getPixGrid(), precision)
+	synthesizer      = synth.SpatialFieldSynthesizerBlock(wl, data.getPixGrid(), precision)
+	synthesizer_test.set_timer(timer, "Optimized ")
+	synthesizer.set_timer(timer,)
 
-# strangely, whichever synthesizer is called first takes slightly more time
+	# strangely, whichever synthesizer is called first takes slightly more time
 
-for i in range(1,5):
-	(V, XYZ, W) = data.getVXYZW(i)
-	timer.start_time("Run SS")
-	stat_std = synthesizer(     np.copy(V),XYZ,W)
-	timer.end_time("Run SS")	
-	timer.start_time("Run OSS")
-	stat_opt = synthesizer_test(np.copy(V),XYZ,W)
-	timer.end_time("Run SS")
-	print("Difference in results between standard & optimized synthesizers:", np.average( stat_std - stat_opt))
-print(timer.summary())
+	for i in range(1,5):
+		(V, XYZ, W) = data.getVXYZW(i)
+		#V1 = np.copy(V) # V gets modified by the synthesizer
+		#timer.start_time("Run First Synthesizer")
+		#stat_std = synthesizer(V1,XYZ,W)
+		#timer.end_time("Run First Synthesizer")	
+		timer.start_time("Run Second Synthesizer")
+		stat_opt = synthesizer_test(V,XYZ,W)
+		timer.end_time("Run Second Synthesizer")
+
+		#print("Difference in results between standard & optimized synthesizers:", np.average( stat_std - stat_opt))
+	print(timer.summary())

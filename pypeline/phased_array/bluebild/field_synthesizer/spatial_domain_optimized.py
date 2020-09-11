@@ -186,9 +186,9 @@ class SpatialFieldSynthesizerOptimizedBlock(synth.FieldSynthesizerBlock):
 
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
-        self.timer.start_time("Optimized Synthesizer call")
+        self.timer.start_time(self.timer_tag + "Synthesizer call")
 
-        self.timer.start_time("Optimized Synthesizer numpy formatting")
+        self.timer.start_time(self.timer_tag + "Synthesizer numpy formatting")
         if not _have_matching_shapes(V, XYZ, W):
             print(V.shape, XYZ.shape, W.shape)
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
@@ -202,34 +202,51 @@ class SpatialFieldSynthesizerOptimizedBlock(synth.FieldSynthesizerBlock):
         XYZ = XYZ - XYZ.mean(axis=0)
         P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
 
-        self.timer.end_time("Optimized Synthesizer numpy formatting")
+        self.timer.end_time(self.timer_tag + "Synthesizer numpy formatting")
 
-        self.timer.start_time("Optimized Synthesizer numpy tensordot1")
+        self.timer.start_time(self.timer_tag + "Synthesizer numpy tensordot 1")
         a = 1j * 2 * np.pi / self._wl
+        # tensordot with axes = 1 is equivalent to XYZ dot self_grid
+        # A = (550, 3) , B = (3, 248, 124) , out = (550, 248, 124)
+        # general case for 2D matrices: A = m x n, B = n x p, out = m x p with Nops = m*n*p
+        # more generally, each axis must be looped over to calculate the new entry in the output matrix
+        # https://numpy.org/doc/stable/reference/generated/numpy.tensordot.html
         b = np.tensordot(XYZ, self._grid, axes=1)
-        #print(a)
-        #print(b.shape,b.size())
-        self.timer.end_time("Optimized Synthesizer numpy tensordot1")
-        self.timer.start_time("Optimized Synthesizer numexpr exponential")
+        self.timer.end_time(self.timer_tag + "Synthesizer numpy tensordot 1")
+        print("A =", XYZ.shape, ", B =", self._grid.shape, ", out =", b.shape)
+        nops =  XYZ.shape[0]*self._grid.shape[0]*self._grid.shape[1]*self._grid.shape[2]
+        #nops =  XYZ.shape[0]*self._grid.shape[0]*self._grid.shape[1]
+        self.timer.set_Nops(self.timer_tag + "Synthesizer numpy tensordot 1", nops)
+
+        self.timer.start_time(self.timer_tag + "Synthesizer numexpr exponential")
+        print(a,b.shape)
         ne.evaluate(
             "exp(A * B)",
             dict(A=a, B=b),
             out=P,
             casting="same_kind",
         )  # Due to limitations of NumExpr2
-        self.timer.end_time("Optimized Synthesizer numexpr exponential")
+        self.timer.end_time(self.timer_tag + "Synthesizer numexpr exponential")
+        nops =  b.shape[0]*b.shape[1]
+        self.timer.set_Nops(self.timer_tag + "Synthesizer numpy tensordot1", nops)
 
-        self.timer.start_time("Optimized Synthesizer numpy reshaping")
+        self.timer.start_time(self.timer_tag + "Synthesizer numpy reshaping")
         PW = W.T @ P.reshape(N_antenna, N_height * N_width)
         PW = PW.reshape(N_beam, N_height, N_width)
-        self.timer.end_time("Optimized Synthesizer numpy reshaping")
+        self.timer.end_time(self.timer_tag + "Synthesizer numpy reshaping")
 
-        self.timer.start_time("Optimized Synthesizer numpy tensordot")
+        self.timer.start_time(self.timer_tag + "Synthesizer numpy tensordot 2")
+        # tensordot with axes = 1 is equivalent to V.T dot PW
+        # A = (12, 24) , B = (24, 248, 124) , out = (12, 248, 124)
         E = np.tensordot(V.T, PW, axes=1)
-        self.timer.end_time("Optimized Synthesizer numpy tensordot")
+        self.timer.end_time(self.timer_tag + "Synthesizer numpy tensordot 2")
+        nops = (V.T).shape[0]*PW.shape[0]*PW.shape[1]*PW.shape[2]
+        print("A =", (V.T).shape, ", B =", PW.shape, ", out =", E.shape)
+        #nops = (V.T).shape[0]*PW.shape[0]*PW.shape[1]
+        self.timer.set_Nops(self.timer_tag + "Synthesizer numpy tensordot 2", nops)
         I = E.real ** 2 + E.imag ** 2
 
-        self.timer.end_time("Optimized Synthesizer call")
+        self.timer.end_time(self.timer_tag + "Synthesizer call")
 
         return I
 

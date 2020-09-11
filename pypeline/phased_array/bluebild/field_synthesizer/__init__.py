@@ -57,8 +57,9 @@ class FieldSynthesizerBlock(core.Block):
         """
         raise NotImplementedError
 
-    def set_timer(self,t):
+    def set_timer(self,t,tname = ""):
         self.timer = t
+        self.timer_tag = tname
 
     def synthesize(self, *args, **kwargs):
         """
