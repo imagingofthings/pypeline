@@ -59,32 +59,34 @@ def doMMtest(timer, N_iter, N_antenna = 550, N_height = 248, N_width = 124, y= 3
     for i in range(N_iter):
         A = np.random.rand(N_antenna,3).astype(np.float32)
         B = np.random.rand(3, N_height, N_width).astype(np.float32)
-        timer.start_time("Tensordot")
+        timer.start_time("numpy tensordot")
         C1 = np.tensordot(A, B, axes=1)
-        timer.end_time("Tensordot")
-        timer.set_Nops("Tensordot",N_antenna *N_height *N_width * 3)
+        timer.end_time("numpy tensordot")
+        timer.set_Nops("numpy tensordot",N_antenna *N_height *N_width * 3)
 
     for i in range(N_iter):
         A = np.random.rand(N_antenna,3).astype(np.float32)
         B = np.random.rand(3, N_height, N_width).astype(np.float32)
-        timer.start_time("Matmul")
+        timer.start_time("numpy matmul")
         C2 = np.zeros( (N_antenna, N_height, N_width),dtype =np.float32)
         for i in range(N_width):
             C2[:,:,i] = matmul(A, B[:,:,i])
-        timer.end_time("Matmul")
-        timer.set_Nops("Matmul",N_antenna *N_height *N_width * 3)
+        timer.end_time("numpy matmul")
+        timer.set_Nops("numpy matmul",N_antenna *N_height *N_width * 3)
 
     for i in range(N_iter):
         A = np.random.rand(N_antenna,3)
         B = np.random.rand(3, N_height, N_width)
-        timer.start_time("Dgemm")
+        timer.start_time("LAPACK DGEMM")
         C3 = np.zeros( (N_antenna, N_height, N_width))
         for i in range(N_width):
             C3[:,:,i] = dgemm(1., A, B[:,:,i])
-        timer.end_time("Dgemm")
-        timer.set_Nops("Dgemm",N_antenna *N_height *N_width * 3)
+        timer.end_time("LAPACK DGEMM")
+        timer.set_Nops("LAPACK DGEMM",N_antenna *N_height *N_width * 3)
 
-    print ("End matrix dimensions: ",550, 248, 124)
+
+
+    print ("End matrix dimensions: ",N_antenna, N_height, N_width)
     print(timer.summary())
 
 
@@ -97,27 +99,28 @@ if __name__ == "__main__":
     N_iter = 1
     times = [[], [], []]
     flops = [[], [], []]
-    sizes = [1,2,3,5]#,10,50,124]
+    names = [[], [], []]
+    sizes = [1,2,3,5, 10]#,10,50,124]
     for s in sizes:
         doMMtest(timer, 10, 550, 248, s)
         for i, t in enumerate( timer.get_times()):
             times[i].append(t)
         for i, f in enumerate( timer.get_Gflops()):
             flops[i].append(f)
+        for i, n in enumerate(timer.get_names()):
+            names[i] = n
 
     fig, ax = plt.subplots(ncols=2)
-    ax[0].plot(sizes, times[0], 'r--', label="numpy tensordot")
-    ax[0].plot(sizes, times[1], 'bs', label="numpy matmul")
-    ax[0].plot(sizes, times[2], 'g^', label="LAPACK DGEMM")
+    for i, n in enumerate(names):
+        ax[0].plot(sizes, times[i], label=n)
+        ax[1].plot(sizes, flops[i], label=n)
     ax[0].legend()
     ax[0].set_xlabel('Size (loop dimension)')
-    ax[0].set_ylabel('time (s)')
-    ax[1].plot(sizes, flops[0], 'r--', label="numpy tensordot")
-    ax[1].plot(sizes, flops[1], 'bs', label="numpy matmul")
-    ax[1].plot(sizes, flops[2], 'g^', label="LAPACK DGEMM")
+    ax[0].set_ylabel('time [s]')
     ax[1].legend()
     ax[1].set_xlabel('Size (loop dimension)')
     ax[1].set_ylabel('Gflops / s')
+    plt.subplots_adjust(top=0.9, bottom=0.1, left=0.10, right=0.9, hspace=0.25, wspace=0.35)
 
     fig.show()
     input("Press enter....")
