@@ -59,32 +59,33 @@ def doMMtest(timer, N_iter, N_antenna = 550, N_height = 248, N_width = 124, y= 3
     for i in range(N_iter):
         A = np.random.rand(N_antenna,3).astype(np.float32)
         B = np.random.rand(3, N_height, N_width).astype(np.float32)
+
+        timer.start_time("numpy dot")
+        C0 = np.zeros( (N_antenna, N_height, N_width),dtype =np.float32)
+        for i in range(N_width):
+            C0[:,:,i] = np.dot(A, B[:,:,i])
+        timer.end_time("numpy dot")
+        timer.set_Nops("numpy dot",N_antenna *N_height *N_width * y)
+
         timer.start_time("numpy tensordot")
         C1 = np.tensordot(A, B, axes=1)
         timer.end_time("numpy tensordot")
-        timer.set_Nops("numpy tensordot",N_antenna *N_height *N_width * 3)
+        timer.set_Nops("numpy tensordot",N_antenna *N_height *N_width * y)
 
-    for i in range(N_iter):
-        A = np.random.rand(N_antenna,3).astype(np.float32)
-        B = np.random.rand(3, N_height, N_width).astype(np.float32)
         timer.start_time("numpy matmul")
         C2 = np.zeros( (N_antenna, N_height, N_width),dtype =np.float32)
         for i in range(N_width):
             C2[:,:,i] = matmul(A, B[:,:,i])
         timer.end_time("numpy matmul")
-        timer.set_Nops("numpy matmul",N_antenna *N_height *N_width * 3)
+        timer.set_Nops("numpy matmul",N_antenna *N_height *N_width * y)
 
-    for i in range(N_iter):
-        A = np.random.rand(N_antenna,3)
-        B = np.random.rand(3, N_height, N_width)
         timer.start_time("LAPACK DGEMM")
         C3 = np.zeros( (N_antenna, N_height, N_width))
         for i in range(N_width):
             C3[:,:,i] = dgemm(1., A, B[:,:,i])
         timer.end_time("LAPACK DGEMM")
-        timer.set_Nops("LAPACK DGEMM",N_antenna *N_height *N_width * 3)
-
-
+        timer.set_Nops("LAPACK DGEMM",N_antenna *N_height *N_width * y)
+        print("avg diff wrt tensordot:", getDiff(C1,C0), getDiff(C1,C1), getDiff(C1,C2), getDiff(C1,C3))
 
     print ("End matrix dimensions: ",N_antenna, N_height, N_width)
     print(timer.summary())
@@ -97,9 +98,9 @@ if __name__ == "__main__":
 
     (N_antenna, N_height, N_width) = (550, 248, 124)
     N_iter = 1
-    times = [[], [], []]
-    flops = [[], [], []]
-    names = [[], [], []]
+    times = [[], [], [], []]
+    flops = [[], [], [], []]
+    names = [[], [], [], []]
     sizes = [1,2,3,5, 10]#,10,50,124]
     for s in sizes:
         doMMtest(timer, 10, 550, 248, s)
@@ -116,7 +117,7 @@ if __name__ == "__main__":
         ax[1].plot(sizes, flops[i], label=n)
     ax[0].legend()
     ax[0].set_xlabel('Size (loop dimension)')
-    ax[0].set_ylabel('time [s]')
+    ax[0].set_ylabel('Runtime [s]')
     ax[1].legend()
     ax[1].set_xlabel('Size (loop dimension)')
     ax[1].set_ylabel('Gflops / s')
