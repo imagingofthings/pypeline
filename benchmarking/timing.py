@@ -2,6 +2,9 @@ import time as time
 
 class Timer():
 	def __init__(self):
+		self.reset()
+
+	def reset(self):
 		self.times = {}
 		self.depth = 0
 		self.depths = {}
@@ -9,6 +12,8 @@ class Timer():
 
 	def set_Nops(self,name,n):
 		self.ops[name] = n
+
+
 
 	def start_time(self,name):
 		try: self.times[name].append(time.process_time())
@@ -41,3 +46,10 @@ class Timer():
 					line += "{0}{1} operations per iteration for {2:.2f} ops/s\n".format("".join([" "]*len(line_title)),self.ops[n],len(l)*self.ops[n]/sum(l))
 			sum_str += line
 		return sum_str
+	def get_names(self):
+		return [n for n, l in self.times.items()]
+	def get_times(self):
+		return [sum(l) for n, l in self.times.items()]
+	def get_Gflops(self):
+		return [len(l)*self.ops[n]/sum(l)*2/1e9 for n, l in self.times.items()]
+
