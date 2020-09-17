@@ -73,7 +73,7 @@ def synthesize(pixGrid, V, XYZ, W, wl):
     I = E.real ** 2 + E.imag ** 2
     print(I.shape)
     return I
-
+'''
 def synthesize_stack(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
     N_height, N_width = pixGrid[1:]  
@@ -98,7 +98,7 @@ def synthesize_stack(pixGrid, V, XYZ, W, wl):
     I = E.real ** 2 + E.imag ** 2
     print(I.shape)
     return I
-
+'''
 
 #################################################################################
 if __name__ == "__main__":
