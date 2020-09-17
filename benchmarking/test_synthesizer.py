@@ -17,25 +17,34 @@ import pypeline.phased_array.data_gen.statistics as statistics
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain_optimized as synth_test
 import timing
+from dummy_synthesis import RandomDataGen, synthesize
 
-
+'''
 class RandomDataGen():
     def __init__(self):
-        self.d1 = 3
-        self.d2 = 248
-        self.d3 = 124
-        self.d4 = 24
-        self.d5 = 12
-        self.d6 = 550
-        pass
+        self.N_height  = 248
+        self.N_width   = 124
+        self.N_antenna = 550
+        self.N_beam = 24
+        self.N_eig  = 12
+ 
     def getPixGrid(self):
-        return np.random.rand(self.d1,self.d2,self.d3)
+        return np.random.rand(3, self.N_height, self.N_width)*2-1
+
+    def getV(self, i):
+        V   = np.random.rand(self.N_beam, self.N_eig)-0.5 + 1j*np.random.rand(self.N_beam, self.N_eig)-0.5j
+        return V
+
+    def getXYZ(self, i):
+        XYZ = np.random.rand(self.N_antenna,3)
+        return XYZ
+
+    def getW(self, i):
+        W   = np.random.rand(self.N_antenna, self.N_beam)-0.5 + 1j*np.random.rand(self.N_antenna, self.N_beam)-0.5j
+        return W
 
     def getVXYZW(self, i):
-        V = np.random.rand(self.d4,self.d5)
-        XYZ = np.random.rand(self.d6, self.d1)
-        W = np.random.rand(self.d6, self.d4)
-        return (W,XYZ,W)
+        return (self.getV(i),self.getXYZ(i),self.getW(i))'''
 
 
 class SimulatedDataGen():
@@ -97,35 +106,43 @@ class SimulatedDataGen():
 
 if __name__ == "__main__":
 
-	# timer
-	timer = timing.Timer()
+    # timer
+    timer = timing.Timer()
 
 
-	###### make simulated dataset ###### 
-	# parameters
-	frequency = 145e6
-	wl = constants.speed_of_light / frequency
-	precision = 32 # 32 or 64
+    ###### make simulated dataset ###### 
+    # parameters
+    frequency = 145e6
+    wl = constants.speed_of_light / frequency
+    precision = 32 # 32 or 64
 
-	data = SimulatedDataGen(wl)
-	#data = RandomDataGen()
+    #data = SimulatedDataGen(wl)
+    data = RandomDataGen()
+    pix = data.getPixGrid()
 
-	synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, data.getPixGrid(), precision)
-	synthesizer      = synth.SpatialFieldSynthesizerBlock(wl, data.getPixGrid(), precision)
-	synthesizer_test.set_timer(timer, "Optimized ")
-	synthesizer.set_timer(timer,)
 
-	# strangely, whichever synthesizer is called first takes slightly more time
+    synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, pix, precision)
+    synthesizer      = synth.SpatialFieldSynthesizerBlock(wl, pix, precision)
+    synthesizer_test.set_timer(timer, "Optimized ")
+    synthesizer.set_timer(timer,)
 
-	for i in range(1,5):
-		(V, XYZ, W) = data.getVXYZW(i)
-		#V1 = np.copy(V) # V gets modified by the synthesizer
-		#timer.start_time("Run First Synthesizer")
-		#stat_std = synthesizer(V1,XYZ,W)
-		#timer.end_time("Run First Synthesizer")	
-		timer.start_time("Run Second Synthesizer")
-		stat_opt = synthesizer_test(V,XYZ,W)
-		timer.end_time("Run Second Synthesizer")
+    # strangely, whichever synthesizer is called first takes slightly more time
 
-		#print("Difference in results between standard & optimized synthesizers:", np.average( stat_std - stat_opt))
-	print(timer.summary())
+    for i in range(1,2):
+        (V, XYZ, W) = data.getVXYZW(i)
+
+
+        V1 = np.copy(V) # V gets modified by the synthesizer
+        XYZ1 = np.copy(XYZ) # V gets modified by the synthesizer
+        #timer.start_time("Run First Synthesizer")
+        #stat_std = synthesizer(V1,XYZ,W)
+        #timer.end_time("Run First Synthesizer")    
+        timer.start_time("Run Test Synthesizer")
+        stat_opt = synthesizer_test(V,XYZ,W)
+        timer.end_time("Run Test Synthesizer")
+        timer.start_time("Run Dummy Synthesizer")
+        stat_dum = synthesize(pix,V1,XYZ1,W)
+        timer.end_time("Run Dummy Synthesizer")
+
+        print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_opt))
+    print(timer.summary())
