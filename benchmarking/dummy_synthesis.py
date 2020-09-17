@@ -1,5 +1,6 @@
 import numpy as np
 import numexpr as ne
+from numpy import matmul
 import time
 import scipy.constants as constants
 import scipy.linalg as linalg
@@ -30,12 +31,12 @@ class RandomDataGen():
 
     # pixel grid must have dimensions (3, N_height, N_width).
     def getPixGrid(self):
-        pixGrid =  np.random.rand(3, self.N_height, self.N_width)*2-1
+        pixGrid = np.random.rand(3, self.N_height, self.N_width)*2-1
         return pixGrid.astype(self.ftype)
 
     # visibilities matrix, (N_beam, N_eig) complex-valued eigenvectors.
     def getV(self, i):
-        V   = np.random.rand(self.N_beam, self.N_eig)-0.5 + 1j*np.random.rand(self.N_beam, self.N_eig)-0.5j
+        V = np.random.rand(self.N_beam, self.N_eig)-0.5 + 1j*np.random.rand(self.N_beam, self.N_eig)-0.5j
         return V.astype(self.ctype)
 
     #  (N_antenna, 3) Cartesian instrument geometry.
@@ -45,7 +46,7 @@ class RandomDataGen():
 
     # beamforming weights (N_antenna, N_beam) synthesis beamweights.
     def getW(self, i):
-        W   = np.random.rand(self.N_antenna, self.N_beam)-0.5 + 1j*np.random.rand(self.N_antenna, self.N_beam)-0.5j
+        W = np.random.rand(self.N_antenna, self.N_beam)-0.5 + 1j*np.random.rand(self.N_antenna, self.N_beam)-0.5j
         return W.astype(self.ctype)
 
     def getVXYZW(self, i):
@@ -54,41 +55,48 @@ class RandomDataGen():
 #################################################################################
 # Synthesis kernel
 #################################################################################
-def synthesize(pixGrid, V, XYZ, W):    
-    frequency = 145e6
-    wl = constants.speed_of_light / frequency
-    N_height  = 248
-    N_width   = 124
-    N_antenna = 550
-    N_beam = 24
-    N_eig  = 12
+def synthesize(pixGrid, V, XYZ, W, wl):    
 
     pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
     XYZ = XYZ - XYZ.mean(axis=0)
 
     a = 1j * 2 * np.pi / wl
     B = np.tensordot(XYZ, pixGrid, axes=1)
-    P = np.zeros((W.shape[0], pixGrid.shape[1],pixGrid.shape[2]),dtype=np.complex64)
+    P = np.zeros(B.shape,dtype=np.complex64)
     ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
     # P has shape (N_antenna,  N_height, N_width)
-    print("P",P[0,0,0])
 
-    #### PW and PW2 are the same
-    #t0 = time.process_time()
-    PW = W.T @ P.reshape(N_antenna, N_height * N_width)
-    PW = PW.reshape(N_beam, N_height, N_width)
-    #print(time.process_time() - t0)
-
-    #t0 = time.process_time()
-    PW2 = np.tensordot(W.T, P, axes=1)
-    #print(time.process_time() - t0)
-    #print (np.average(PW-PW2))
-    #### PW and PW2 are the same
+    PW = np.tensordot(W.T, P, axes=1)
     # PW has shape (N_beam, N_height, N_width)
-    print(PW.shape)
 
     E = np.tensordot(V.T, PW, axes=1)
     I = E.real ** 2 + E.imag ** 2
+    print(I.shape)
+    return I
+
+def synthesize_stack(pixGrid, V, XYZ, W, wl):  
+    N_antenna, N_beam = W.shape
+    N_height, N_width = pixGrid[1:]  
+
+    pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
+    XYZ = XYZ - XYZ.mean(axis=0)
+
+    a = 1j * 2 * np.pi / wl
+    #B = np.zeros((N_antenna, N_height,N_width),dtype=np.complex64)
+    B = np.tensordot(XYZ, pixGrid, axes=1)
+    P = np.zeros(B.shape,dtype=np.complex64)
+    for i in range(N_width): #iterate over N_width
+    	#B[:,:,i] = matmul(XYZ, pixGrid[:,:,i])
+    	P[:,:,i] = np.exp(a*B[:,:,i])
+    #ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
+    # P has shape (N_antenna,  N_height, N_width)
+
+    PW = np.tensordot(W.T, P, axes=1)
+    # PW has shape (N_beam, N_height, N_width)
+
+    E = np.tensordot(V.T, PW, axes=1)
+    I = E.real ** 2 + E.imag ** 2
+    print(I.shape)
     return I
 
 
@@ -96,4 +104,4 @@ def synthesize(pixGrid, V, XYZ, W):
 if __name__ == "__main__":
 
     data = RandomDataGen()
-    synthesize(data.getPixGrid(), *data.getVXYZW(0))
+    synthesize(data.getPixGrid(), *data.getVXYZW(0), data.wl)

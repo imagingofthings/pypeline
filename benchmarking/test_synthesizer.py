@@ -17,7 +17,7 @@ import pypeline.phased_array.data_gen.statistics as statistics
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain_optimized as synth_test
 import timing
-from dummy_synthesis import RandomDataGen, synthesize
+from dummy_synthesis import RandomDataGen, synthesize, synthesize_stack
 
 '''
 class RandomDataGen():
@@ -141,8 +141,13 @@ if __name__ == "__main__":
         stat_opt = synthesizer_test(V,XYZ,W)
         timer.end_time("Run Test Synthesizer")
         timer.start_time("Run Dummy Synthesizer")
-        stat_dum = synthesize(pix,V1,XYZ1,W)
+        stat_dum = synthesize(pix,V1,XYZ1,W, wl)
         timer.end_time("Run Dummy Synthesizer")
 
+        timer.start_time("Run Dummy Stack Synthesizer")
+        stat_sdum = synthesize_stack(pix,V1,XYZ1,W, wl)
+        timer.end_time("Run Dummy Stack Synthesizer")
+
         print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_opt))
+        print("Difference in results between dummy & dummy stack synthesizers:", np.average( stat_dum - stat_sdum))
     print(timer.summary())
