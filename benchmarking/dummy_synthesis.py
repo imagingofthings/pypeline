@@ -71,34 +71,36 @@ def synthesize(pixGrid, V, XYZ, W, wl):
 
     E = np.tensordot(V.T, PW, axes=1)
     I = E.real ** 2 + E.imag ** 2
-    print(I.shape)
+    # I has shape (N_eig, Nheight, N_width)
+
     return I
-'''
+
+# does the same calculations as synthesize but iterating throught
+# the matrix stack instead of uisng tensordot. 
+# difference between the results is ~1e-7
 def synthesize_stack(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
-    N_height, N_width = pixGrid[1:]  
+    N_height, N_width = pixGrid.shape[1:] 
+    N_eig = V.shape[1]
 
     pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
     XYZ = XYZ - XYZ.mean(axis=0)
 
     a = 1j * 2 * np.pi / wl
-    #B = np.zeros((N_antenna, N_height,N_width),dtype=np.complex64)
-    B = np.tensordot(XYZ, pixGrid, axes=1)
-    P = np.zeros(B.shape,dtype=np.complex64)
+    B  = np.zeros((N_antenna, N_height,N_width),dtype=np.float32)
+    P  = np.zeros(B.shape,                      dtype=np.complex64)
+    PW = np.zeros((N_beam, N_height, N_width),  dtype=np.complex64)
+    E  = np.zeros((N_eig, N_height, N_width),   dtype=np.complex64)
+    I  = np.zeros(E.shape,                      dtype=np.float32)
     for i in range(N_width): #iterate over N_width
-    	#B[:,:,i] = matmul(XYZ, pixGrid[:,:,i])
-    	P[:,:,i] = np.exp(a*B[:,:,i])
-    #ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
-    # P has shape (N_antenna,  N_height, N_width)
+        B[:,:,i]  = matmul(XYZ, pixGrid[:,:,i])
+        P[:,:,i]  = np.exp(a*B[:,:,i])
+        PW[:,:,i] = matmul(W.T,P[:,:,i])
+        E[:,:,i]  = matmul(V.T, PW[:,:,i])
+        I[:,:,i] = E[:,:,i].real ** 2 + E[:,:,i].imag ** 2
 
-    PW = np.tensordot(W.T, P, axes=1)
-    # PW has shape (N_beam, N_height, N_width)
-
-    E = np.tensordot(V.T, PW, axes=1)
-    I = E.real ** 2 + E.imag ** 2
-    print(I.shape)
     return I
-'''
+
 
 #################################################################################
 if __name__ == "__main__":

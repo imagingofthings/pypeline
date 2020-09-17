@@ -134,6 +134,8 @@ if __name__ == "__main__":
 
         V1 = np.copy(V) # V gets modified by the synthesizer
         XYZ1 = np.copy(XYZ) # V gets modified by the synthesizer
+        V2 = np.copy(V) # V gets modified by the synthesizer
+        XYZ2 = np.copy(XYZ) 
         #timer.start_time("Run First Synthesizer")
         #stat_std = synthesizer(V1,XYZ,W)
         #timer.end_time("Run First Synthesizer")    
@@ -145,9 +147,11 @@ if __name__ == "__main__":
         timer.end_time("Run Dummy Synthesizer")
 
         timer.start_time("Run Dummy Stack Synthesizer")
-        stat_sdum = synthesize_stack(pix,V1,XYZ1,W, wl)
+        stat_sdum = synthesize_stack(pix,V2,XYZ2,W, wl)
         timer.end_time("Run Dummy Stack Synthesizer")
 
         print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_opt))
-        print("Difference in results between dummy & dummy stack synthesizers:", np.average( stat_dum - stat_sdum))
+        print("Avg diff between dummy & dummy stack synthesizers:", np.average( stat_dum - stat_sdum))
+        print("Max diff between dummy & dummy stack synthesizers:", np.max( np.abs(stat_dum - stat_sdum)))
+        print("Selected diff  between dummy & dummy stack synthesizers:", (stat_dum - stat_sdum)[:10,0,0])
     print(timer.summary())
