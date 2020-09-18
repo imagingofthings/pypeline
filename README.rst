@@ -18,10 +18,10 @@ Installation
 ------------
 For general installation, see ``doc/general/install.rst``
 
-For installation on EPFL cluster, first you must install condo. You can run 
+For installation on EPFL cluster, first you must install conda. You can run 
 
 ```
-bash Miniconda3-latest-Linux-x86_64.sh 
+bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
 And respond to the interactive instructions. Be sure to install conda into your home directory. 
@@ -42,7 +42,7 @@ source install.sh
 For any future setup, run:
 
 ```
-export PATH=$HOME/miniconda3/bin/:$PATH
+export PATH=$HOME/miniconda3/bin/:$PATH 
 cd pypeline/
 source pypeline.sh --no_shell
 ```
