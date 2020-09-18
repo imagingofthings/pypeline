@@ -10,7 +10,7 @@ conda update -n base -c defaults conda
 
 #### Install bluebild
 
-git clone https://github.com/etolley/pypeline.git
+#git clone https://github.com/etolley/pypeline.git
 cd pypeline/
 
 
