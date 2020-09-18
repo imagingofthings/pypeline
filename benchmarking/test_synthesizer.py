@@ -17,35 +17,8 @@ import pypeline.phased_array.data_gen.statistics as statistics
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain_optimized as synth_test
 import timing
+import dummy_synthesis 
 from dummy_synthesis import RandomDataGen, synthesize, synthesize_stack
-
-'''
-class RandomDataGen():
-    def __init__(self):
-        self.N_height  = 248
-        self.N_width   = 124
-        self.N_antenna = 550
-        self.N_beam = 24
-        self.N_eig  = 12
- 
-    def getPixGrid(self):
-        return np.random.rand(3, self.N_height, self.N_width)*2-1
-
-    def getV(self, i):
-        V   = np.random.rand(self.N_beam, self.N_eig)-0.5 + 1j*np.random.rand(self.N_beam, self.N_eig)-0.5j
-        return V
-
-    def getXYZ(self, i):
-        XYZ = np.random.rand(self.N_antenna,3)
-        return XYZ
-
-    def getW(self, i):
-        W   = np.random.rand(self.N_antenna, self.N_beam)-0.5 + 1j*np.random.rand(self.N_antenna, self.N_beam)-0.5j
-        return W
-
-    def getVXYZW(self, i):
-        return (self.getV(i),self.getXYZ(i),self.getW(i))'''
-
 
 class SimulatedDataGen():
     def __init__(self, wl):
@@ -106,51 +79,56 @@ class SimulatedDataGen():
 
 if __name__ == "__main__":
 
-    # timer
-    timer = timing.Timer()
-
-
     ###### make simulated dataset ###### 
     # parameters
     frequency = 145e6
     wl = constants.speed_of_light / frequency
     precision = 32 # 32 or 64
 
+    # random or simulated dataset
     #data = SimulatedDataGen(wl)
-    data = RandomDataGen()
+    data = dummy_synthesis.RandomDataGen()
+
+
+    ################################### 
+
+    # timer
+    timer = timing.Timer()
+    # function to turn timing on or off
+    timer.off() 
+
     pix = data.getPixGrid()
 
-
-    synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, pix, precision)
+    # The Standard Synthesis Kernel
     synthesizer      = synth.SpatialFieldSynthesizerBlock(wl, pix, precision)
-    synthesizer_test.set_timer(timer, "Optimized ")
     synthesizer.set_timer(timer,)
 
-    # strangely, whichever synthesizer is called first takes slightly more time
+    # a copy of the Standard Synthesis Kernel that will be used for testing
+    synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, pix, precision)
+    synthesizer_test.set_timer(timer, "Test ")
 
-    for i in range(1,2):
-        (V, XYZ, W) = data.getVXYZW(i)
+    # iterate though timesteps
+    # increase the range to run through more calls
+    for t in range(1,2):
+        (V, XYZ, W) = data.getVXYZW(t)
 
 
-        V1 = np.copy(V) # V gets modified by the synthesizer
-        XYZ1 = np.copy(XYZ) # V gets modified by the synthesizer
-        V2 = np.copy(V) # V gets modified by the synthesizer
+        #do some copying for inputs which get modified by the synthesizer
+        V1 = np.copy(V) 
+        XYZ1 = np.copy(XYZ) 
+        V2 = np.copy(V)
         XYZ2 = np.copy(XYZ) 
-        #timer.start_time("Run First Synthesizer")
-        #stat_std = synthesizer(V1,XYZ,W)
-        #timer.end_time("Run First Synthesizer")    
-        timer.start_time("Run Test Synthesizer")
-        stat_opt = synthesizer_test(V,XYZ,W)
-        timer.end_time("Run Test Synthesizer")
-        timer.start_time("Run Dummy Synthesizer")
-        stat_dum = synthesize(pix,V1,XYZ1,W, wl)
-        timer.end_time("Run Dummy Synthesizer")
+        
+        # call the Bluebild Standard Synthesis Kernel
+        stat_bbss = synthesizer(V,XYZ,W)
 
-        timer.start_time("Run Dummy Stack Synthesizer")
-        stat_sdum = synthesize_stack(pix,V2,XYZ2,W, wl)
-        timer.end_time("Run Dummy Stack Synthesizer")
+        # call the dummy synthesis kernal
+        stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
 
-        print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_opt))
+        # call an alternate dummy synthesis kernel, which may or may not work
+        stat_sdum = dummy_synthesis.synthesize_stack(pix,V2,XYZ2,W, wl)
+
+        print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
         print("Avg diff between dummy & dummy stack synthesizers:", np.average( stat_dum - stat_sdum))
         print("Max diff between dummy & dummy stack synthesizers:", np.max( np.abs(stat_dum - stat_sdum)))
         print("Selected diff  between dummy & dummy stack synthesizers:", (stat_dum - stat_sdum)[:10,0,0])
