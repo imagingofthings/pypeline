@@ -126,10 +126,10 @@ if __name__ == "__main__":
         stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
 
         # call an alternate dummy synthesis kernel, which may or may not work
-        stat_sdum = dummy_synthesis.synthesize_stack(pix,V2,XYZ2,W, wl)
+        stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
 
         print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
-        print("Avg diff between dummy & dummy stack synthesizers:", np.average( stat_dum - stat_sdum))
-        print("Max diff between dummy & dummy stack synthesizers:", np.max( np.abs(stat_dum - stat_sdum)))
-        print("Selected diff  between dummy & dummy stack synthesizers:", (stat_dum - stat_sdum)[:10,0,0])
+        print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
+        print("Max diff between dummy & dummy reshape synthesizers:", np.max( np.abs(stat_dum - stat_sdum)))
+        print("Selected diff  between dummy & dummy reshape synthesizers:", (stat_dum - stat_sdum)[:10,0,0])
     print(timer.summary())

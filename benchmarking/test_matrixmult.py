@@ -34,10 +34,11 @@ def numexprCheck():
     ####################################################################
     # testing numexpr
     # numexpr does pointwise calculations
-    P = np.zeros( (N_antenna, N_height, N_width))
+    P = np.zeros( (100, 200))
+    B = np.random.rand(100,200)
     ne.evaluate(
                 "exp(A * B)",
-                dict(A=2, B=C),
+                dict(A=2, B=A),
                 out=P,
                 casting="same_kind",
             )  # Due to limitations of NumExpr2

@@ -1,6 +1,7 @@
 import numpy as np
 import numexpr as ne
 from numpy import matmul
+from scipy.linalg import expm
 import time
 import scipy.constants as constants
 import scipy.linalg as linalg
@@ -77,7 +78,7 @@ def synthesize(pixGrid, V, XYZ, W, wl):
 
 # does the same calculations as synthesize but iterating throught
 # the matrix stack instead of uisng tensordot. 
-# difference between the results is ~1e-7
+# difference between the results is quite large, ~1e-7
 def synthesize_stack(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
     N_height, N_width = pixGrid.shape[1:] 
@@ -94,13 +95,39 @@ def synthesize_stack(pixGrid, V, XYZ, W, wl):
     I  = np.zeros(E.shape,                      dtype=np.float32)
     for i in range(N_width): #iterate over N_width
         B[:,:,i]  = matmul(XYZ, pixGrid[:,:,i])
-        P[:,:,i]  = np.exp(a*B[:,:,i])
+        #P[:,:,i]  = np.exp(a*B[:,:,i])
+        ne.evaluate( "exp(A * B)",dict(A=a, B=B[:,:,i]),out=P[:,:,i],casting="same_kind",) 
         PW[:,:,i] = matmul(W.T,P[:,:,i])
         E[:,:,i]  = matmul(V.T, PW[:,:,i])
         I[:,:,i] = E[:,:,i].real ** 2 + E[:,:,i].imag ** 2
 
     return I
 
+# does the same calculations as synthesize but reshaping
+# the matrix stack instead of uisng tensordot. 
+def synthesize_reshape(pixGrid, V, XYZ, W, wl):  
+    N_antenna, N_beam = W.shape
+    N_height, N_width = pixGrid.shape[1:] 
+    N_eig = V.shape[1]
+
+    pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
+    XYZ = XYZ - XYZ.mean(axis=0)
+
+    a = 1j * 2 * np.pi / wl
+
+    #flatten the height and width
+    pixGrid = pixGrid.reshape(pixGrid.shape[0], N_height * N_width)
+    B = XYZ @ pixGrid
+
+    P = np.zeros(B.shape,dtype=np.complex64)
+    ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
+    #P = np.exp(a*B) # introduces some differences at fp level
+    PW = W.T @ P
+    E  = V.T @ PW
+    I  = E.real ** 2 + E.imag ** 2
+    I  = I.reshape(I.shape[0],N_height, N_width)
+
+    return I
 
 #################################################################################
 if __name__ == "__main__":
