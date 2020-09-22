@@ -6,6 +6,20 @@ from math import exp
 from numpy import matmul
 from scipy.linalg.blas import dgemm
 import matplotlib.pyplot as plt
+import sys
+from numpy.ctypeslib import ndpointer
+from ctypes import *
+
+
+class PointerWrapper(object):
+    """Just like ndpointer, but accept None!"""
+    def __init__(self,pointer):
+        self.pointer=pointer
+    def from_param(self,param):
+        if param!=None:
+            return self.pointer.from_param(param)
+        else:
+            return POINTER(c_double).from_param(None)
 
 def getDiff(A,B):
     return  np.average( A - B)
@@ -55,6 +69,8 @@ def numexprCheck():
     print("(A*B)00 = ",out[0,0])
     print("A00 * B00 = ",test1[0,0] * test2[0,0])
 
+
+
 def doMMtest(timer, N_iter, N_antenna = 550, N_height = 248, N_width = 124, y= 3):
     timer.reset()
     for i in range(N_iter):
@@ -80,6 +96,15 @@ def doMMtest(timer, N_iter, N_antenna = 550, N_height = 248, N_width = 124, y= 3
         timer.end_time("numpy matmul")
         timer.set_Nops("numpy matmul",N_antenna *N_height *N_width * y)
 
+        from ctypes import CDLL
+        so_file = "/home/etolley/bluebild/pypeline/custom_matmul/zgemm-splat.so"
+        custom_functions = CDLL(so_file)
+        timer.start_time("custom matmul")
+        C3 = custom_functions.zgemm()
+
+        timer.end_time("custom matmul")
+
+
         '''timer.start_time("LAPACK DGEMM")
         C3 = np.zeros( (N_antenna, N_height, N_width))
         for i in range(N_width):
@@ -91,8 +116,36 @@ def doMMtest(timer, N_iter, N_antenna = 550, N_height = 248, N_width = 124, y= 3
     print ("End matrix dimensions: ",N_antenna, N_height, N_width)
     print(timer.summary())
 
+def testCustomFunc():
+
+    so_file = "/home/etolley/bluebild/pypeline/custom_matmul/zgemm-splat.so"
+    custom_functions = CDLL(so_file)
+    c_complexdouble = c_double*2
+    custom_functions.zgemm.argtypes=[c_int, c_int, c_int, c_complexdouble,
+                                    PointerWrapper(ndpointer(dtype=np.complex128,ndim=2,flags='C')), c_int,
+                                    PointerWrapper(ndpointer(dtype=np.complex128,ndim=2,flags='C')), c_int,
+                                    c_complexdouble,
+                                    PointerWrapper(ndpointer(dtype=np.complex128,ndim=2,flags='C')), c_int]
+    custom_functions.zgemm.restype=None
+    
+    M = 100
+    N = 100
+    K = 3
+    A = np.random.rand(M,K).astype(np.complex128)
+    ldA = M
+    B = np.random.rand(K,N).astype(np.complex128)
+    ldB = K
+    C = np.zeros( (M,N),dtype =np.complex128)
+    ldC = M
+    beta =  c_complexdouble(1,0)
+    alpha = c_complexdouble(1,0)
+
+    custom_functions.zgemm(M, N, K, alpha, A, ldA, B, ldB , beta, C, ldC)
+    print(C)
 
 if __name__ == "__main__":
+    testCustomFunc()
+    sys.exit()
 
     # timer
     timer = timing.Timer()
