@@ -1,21 +1,24 @@
 CC = icc
+
 #LIBS = -L/home/foureste/Projects/OpenBLAS-0.2.14/ -lopenblas 
 LIBS = -mkl
 INCLUDES =
-CFLAGS = -Ofast -qopt-report=2 -shared -qopt-report-phase=vec -xCORE-AVX512 -qopt-zmm-usage=high -qopenmp -g -I./
+CFLAGS = -Ofast -qopt-report=2 -qopt-report-phase=vec -xCORE-AVX512 -qopt-zmm-usage=high -qopenmp -g -I./
 
-all:	dgemm-splat zgemm-splat 
-
+all:    dgemm-splat zgemm-splat
 
 dgemm-splat: dgemm.o dgemm-splat.o
 	$(CC) -o $@ dgemm.o dgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
-zgemm-splat: zgemm.o zgemm-splat.o
+zgemm-splat: zgemm.o zgemm-splat.o zgemm-splat.so
 	$(CC) -o $@ zgemm.o zgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDES) $<
 
+%.so: %.c
+	$(CC) -shared -fPIC $< -o $@
+
 clean:
-	rm dgemm-splat zgemm-splat *.o 
+	rm dgemm-splat zgemm-splat *.o *.so
 
