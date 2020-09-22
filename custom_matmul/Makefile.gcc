@@ -1,0 +1,17 @@
+CC = gcc
+LIBS = -L/home/foureste/Projects/OpenBLAS-0.2.14/ -lopenblas 
+INCLUDES =
+CFLAGS = -lm -Ofast -march=skylake -fopenmp -g -I./
+
+all:	dgemm-splat 
+
+
+dgemm-splat: dgemm.o dgemm-splat.o
+	$(CC) -o $@ dgemm.o dgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
+
+%.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDES) $<
+
+clean:
+	rm dgemm-avx2 dgemm-avx dgemm-splat dgemm-naive dgemm-transpose dgemm-block dgemm-copyblock dgemm-unroll *.o 
+
