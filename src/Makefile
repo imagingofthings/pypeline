@@ -13,8 +13,8 @@ dgemm-splat: dgemm.o dgemm-splat.o
 zgemm-splat: zgemm.o zgemm-splat.o zgemm-splat.so
 	$(CC) -o $@ zgemm.o zgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
-python-tester: python-tester.o python-tester.so
-	$(CC) -o $@ python-tester.o $(CFLAGS) $(LIBS) $(INCLUDES)
+python-tester: python-tester.o python-tester.o python-tester.so
+	$(CC) -o $@ zgemm.o zgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDES) $<
