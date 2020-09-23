@@ -18,10 +18,12 @@ class PointerWrapper(object):
             return POINTER(c_double).from_param(None)
 
 
-c_complexdouble = c_double*2
+def make_complexdouble_array(c):
+    return np.array([c]).astype(np.complex128)
 
 ################################
 
+'''
 # setting up C function
 so_file = "/home/etolley/bluebild/pypeline/src/python-tester.so"
 tester_functions = CDLL(so_file)
@@ -39,35 +41,40 @@ tester_functions.test_c_complex_pointer(C)
 sys.exit()
 
 '''
-# setting up C function
-so_file = "/home/etolley/bluebild/pypeline/src/zgemm-splat.so"
-custom_functions = CDLL(so_file)
 
+def call_zgemm(M,N,K,A,B):
+    # setting up C function
+    so_file = "/home/etolley/bluebild/pypeline/src/zgemm-splat.so"
+    custom_functions = CDLL(so_file)
+    custom_functions.zgemm_pycall.argtypes=[c_int, c_int, c_int,
+                                    ndpointer(dtype=np.complex128,ndim=1,flags='C'),
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='C'), c_int,
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='C'), c_int,
+                                    ndpointer(dtype=np.complex128,ndim=1,flags='C'),
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='C'), c_int]
+    
+    ldA = M
+    ldB = K
+    C = np.zeros( (M,N),dtype =np.complex128)
+    ldC = M
+    beta =  make_complexdouble_array(1.)
+    alpha = make_complexdouble_array(1.)
 
+    # function call
+    custom_functions.zgemm_pycall(M, N, K, alpha, A, ldA, B, ldB , beta, C, ldC)
 
-custom_functions.zgemm.argtypes=[c_int, c_int, c_int, c_complexdouble,
-                                PointerWrapper(ndpointer(dtype=np.complex128,ndim=2,flags='C')), c_int,
-                                PointerWrapper(ndpointer(dtype=np.complex128,ndim=2,flags='C')), c_int,
-                                c_complexdouble,
-                                PointerWrapper(ndpointer(dtype=np.complex128,ndim=2,flags='C')), c_int]
-
-custom_functions.zgemm.restype=None
+    return C
 
 # setting up inputs
-M = 100
-N = 100
+M = 15
+N = 15
 K = 3
 A = np.random.rand(M,K).astype(np.complex128)
-ldA = M
 B = np.random.rand(K,N).astype(np.complex128)
-ldB = K
-C = np.zeros( (M,N),dtype =np.complex128)
-ldC = M
-beta =  c_complexdouble(1,0)
-alpha = c_complexdouble(1,0)
 
-# function call
-custom_functions.zgemm(M, N, K, alpha, A, ldA, B, ldB , beta, C, ldC)
-
-print(C)
-'''
+result_zgemm = call_zgemm(M,N,K,A,B)
+result_matmul = np.matmul(A,B)
+print("First row from custom zgemm (M = {0}, N = {1}, K = {2}):".format(M,N,K))
+print(result_zgemm[0])
+print("First row from numpy matmul(M = {0}, N = {1}, K = {2}):".format(M,N,K))
+print(result_matmul[0])
