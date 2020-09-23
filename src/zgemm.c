@@ -69,7 +69,7 @@ matrix_init (double complex *A, const int M, const int N, double complex val)
 
 	for (i = 0; i < M*N; ++i) 
 	{
-		A[i] = creal(val)*drand48() + cimag(val)*I*drand48();
+		A[i] = creal(val)*drand48() + 0*cimag(val)*I*drand48();
 		//A[i] = val;
 		//A[i] = 1.;
 	}
