@@ -1,7 +1,7 @@
 CC = gcc
 LIBS = -L/home/foureste/Projects/OpenBLAS-0.2.14/ -lopenblas 
 INCLUDES =
-CFLAGS = -lm -Ofast -march=skylake -fopenmp -shared -g -I./
+CFLAGS = -lm -Ofast -march=skylake -fopenmp -g -I./
 
 all:	dgemm-splat 
 
