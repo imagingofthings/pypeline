@@ -73,8 +73,22 @@ void printc(double complex c)
 	printf("z = %f %f\n", creal(c), cimag(c));
 }
 
+void zgemm_pycall2( const int M, const int N, const int K, const double complex *A, const int lda, const double complex *B, const int ldb,  double complex* __restrict__ C, const int ldc){
+	double alpha = 1.0 + 0.0*I;
+	double beta  = 1.0 + 0.0*I;
+	zgemm(M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+
+void zgemm_pycall( const int M, const int N, const int K, const double complex * alpha, const double complex *A, const int lda, const double complex *B, const int ldb, const double complex * beta, double complex* __restrict__ C, const int ldc){
+	zgemm(M, N, K, alpha[0], A, lda, B, ldb, beta[0], C, ldc);
+}
+
 void zgemm( const int M, const int N, const int K, const double complex alpha, const double complex *A, const int lda, const double complex *B, const int ldb, const double complex beta, double complex* __restrict__ C, const int ldc)
 {
+	printf("Calling zgemm()...\n");
+	printf("M = %d, M = %d, K = %d\n", M, N, K);
+	printf("alpha = %f %f\n", creal(alpha), cimag(alpha));
+	printf("beta = %f %f\n", creal(beta), cimag(beta));
 	int ib, jb, kb;
 	int i, j, k;
 	//
@@ -100,7 +114,7 @@ void zgemm( const int M, const int N, const int K, const double complex alpha, c
 	__m128d x08, x09, x10, x11;
 	__m128d x12, x13, x14, x15;
 	//
-	double complex c00, c01, c02, c03, c04, c05, c06, c07;
+	//double complex c00, c01, c02, c03, c04, c05, c06, c07;
 	double complex a00, a01, a02, a03, a04, a05, a06, a07;
 	for( int kb = 0; kb < K; kb += K_BLOCK_SIZE ){ int Kb = min( K_BLOCK_SIZE, K - kb );
 		for( int ib = 0; ib < M; ib += M_BLOCK_SIZE ){ int Mb = min( M_BLOCK_SIZE, M - ib );
@@ -111,7 +125,7 @@ void zgemm( const int M, const int N, const int K, const double complex alpha, c
 				double complex* pB = &B [0];
 				//
 				for (int i = 0; i < Mb - Mb%8; i = i + 8){
-#pragma simd lastprivate(c00, c01, c02, c03, c04, c05, c06, c07)
+//#pragma simd lastprivate(c00, c01, c02, c03, c04, c05, c06, c07)
 					for (int j = 0; j < Nb - Nb%1; j = j + 1){
 						//
 						double complex* pB = &B[j*Kb + 0];
@@ -119,14 +133,14 @@ void zgemm( const int M, const int N, const int K, const double complex alpha, c
 						PREFETCH2((void*) pB + 0);
 						PREFETCH0((void*) &C[(j + jb + 0)*ldc + i + ib + 4]);
 						//
-						c00 = C[(j + jb + 0)*ldc + i + ib + 0];
+						/*c00 = C[(j + jb + 0)*ldc + i + ib + 0];
 						c01 = C[(j + jb + 0)*ldc + i + ib + 1];
 						c02 = C[(j + jb + 0)*ldc + i + ib + 2];
 						c03 = C[(j + jb + 0)*ldc + i + ib + 3];
 						c04 = C[(j + jb + 0)*ldc + i + ib + 4];
 						c05 = C[(j + jb + 0)*ldc + i + ib + 5];
 						c06 = C[(j + jb + 0)*ldc + i + ib + 6];
-						c07 = C[(j + jb + 0)*ldc + i + ib + 7];
+						c07 = C[(j + jb + 0)*ldc + i + ib + 7];*/
 						//
 						a00 = 0.;
 						a01 = 0.;
@@ -165,14 +179,14 @@ void zgemm( const int M, const int N, const int K, const double complex alpha, c
 							pA += 8;
 							pB += 1;
 						}
-						C[(j + jb + 0)*ldc + i + ib + 0] = alpha*a00 + beta*c00;
-						C[(j + jb + 0)*ldc + i + ib + 1] = alpha*a01 + beta*c01;
-						C[(j + jb + 0)*ldc + i + ib + 2] = alpha*a02 + beta*c02;
-						C[(j + jb + 0)*ldc + i + ib + 3] = alpha*a03 + beta*c03;
-						C[(j + jb + 0)*ldc + i + ib + 4] = alpha*a04 + beta*c04;
-						C[(j + jb + 0)*ldc + i + ib + 5] = alpha*a05 + beta*c05;
-						C[(j + jb + 0)*ldc + i + ib + 6] = alpha*a06 + beta*c05;
-						C[(j + jb + 0)*ldc + i + ib + 7] = alpha*a07 + beta*c07;
+						C[(j + jb + 0)*ldc + i + ib + 0] = alpha*a00; //+ beta*c00;
+						C[(j + jb + 0)*ldc + i + ib + 1] = alpha*a01; //+ beta*c01;
+						C[(j + jb + 0)*ldc + i + ib + 2] = alpha*a02; //+ beta*c02;
+						C[(j + jb + 0)*ldc + i + ib + 3] = alpha*a02; //+ beta*c03;
+						C[(j + jb + 0)*ldc + i + ib + 4] = alpha*a04; //+ beta*c04;
+						C[(j + jb + 0)*ldc + i + ib + 5] = alpha*a05; //+ beta*c05;
+						C[(j + jb + 0)*ldc + i + ib + 6] = alpha*a06; //+ beta*c05;
+						C[(j + jb + 0)*ldc + i + ib + 7] = alpha*a07; //+ beta*c07;
 					}
 				}
 				//computetime += myseconds();
