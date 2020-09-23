@@ -5,13 +5,16 @@ LIBS = -mkl
 INCLUDES =
 CFLAGS = -Ofast -qopt-report=2 -qopt-report-phase=vec -xCORE-AVX512 -qopt-zmm-usage=high -qopenmp -g -I./
 
-all:    dgemm-splat zgemm-splat
+all:    dgemm-splat zgemm-splat python-tester
 
 dgemm-splat: dgemm.o dgemm-splat.o
 	$(CC) -o $@ dgemm.o dgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 zgemm-splat: zgemm.o zgemm-splat.o zgemm-splat.so
 	$(CC) -o $@ zgemm.o zgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
+
+python-tester: python-tester.o python-tester.so
+	$(CC) -o $@ python-tester.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDES) $<
@@ -20,5 +23,5 @@ zgemm-splat: zgemm.o zgemm-splat.o zgemm-splat.so
 	$(CC) -shared -fPIC $< -o $@
 
 clean:
-	rm dgemm-splat zgemm-splat *.o *.so
+	rm dgemm-splat zgemm-splat python-tester *.o *.so
 
