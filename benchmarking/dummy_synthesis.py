@@ -6,8 +6,14 @@ import time
 import scipy.constants as constants
 import scipy.linalg as linalg
 
+from numpy.ctypeslib import ndpointer
+from ctypes import *
+
 #local imports
 import timing
+
+def make_complexdouble_array(c):
+    return np.array([c]).astype(np.complex128)
 
 #################################################################################
 # Data Generator
@@ -36,7 +42,8 @@ class RandomDataGen():
     # pixel grid must have dimensions (3, N_height, N_width).
     def getPixGrid(self):
         pixGrid = np.random.rand(3, self.N_height, self.N_width)*2-1
-        return pixGrid.astype(self.ftype)
+        #return pixGrid.astype(self.ftype)
+        return pixGrid.astype(self.ctype)
 
     # visibilities matrix, (N_beam, N_eig) complex-valued eigenvectors.
     def getV(self, i):
@@ -46,7 +53,8 @@ class RandomDataGen():
     #  (N_antenna, 3) Cartesian instrument geometry.
     def getXYZ(self, i):
         XYZ = np.random.rand(self.N_antenna,3)
-        return XYZ.astype(self.ftype)
+        #return XYZ.astype(self.ftype)
+        return XYZ.astype(self.ctype)
 
     # beamforming weights (N_antenna, N_beam) synthesis beamweights.
     def getW(self, i):
@@ -83,11 +91,10 @@ def zgemm(A,B, a = 1, b = 0):
 
 
     # function call
-    faulthandler.enable()
     custom_functions.zgemm(M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC)
 
     return C
-'''
+
 def zgemmexp(A,B, a , b = 0):
     # setting up C function
     so_file = "/home/etolley/bluebild/pypeline/src/zgemm-splat.so"
@@ -110,11 +117,10 @@ def zgemmexp(A,B, a , b = 0):
 
 
     # function call
-    faulthandler.enable()
     custom_functions.zgemmexp(M, N, K, alpha, A, ldA, B, ldB, C, ldC)
 
     return C
-'''
+
 #################################################################################
 # Synthesis kernel
 #################################################################################
@@ -214,7 +220,7 @@ def custom_synthesize_reshape(pixGrid, V, XYZ, W, wl):
     I  = I.reshape(I.shape[0],N_height, N_width)
 
     return I
-'''
+
 def customexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
     N_height, N_width = pixGrid.shape[1:] 
@@ -235,7 +241,7 @@ def customexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):
     I  = I.reshape(I.shape[0],N_height, N_width)
 
     return I
-'''
+
 #################################################################################
 if __name__ == "__main__":
 
@@ -243,29 +249,38 @@ if __name__ == "__main__":
     frequency = 145e6
     wl = constants.speed_of_light / frequency
 
-    data = RandomDataGen()
+    data = RandomDataGen(64)
     pix = data.getPixGrid()
     timer = timing.Timer()
 
     for t in range(1,20):
         (V, XYZ, W) = data.getVXYZW(t)
 
-        # call the dummy synthesis kernal
-        timer.start_time("Dummy synthesis")
-        stat_dum  = synthesize(pix,V,XYZ,W, wl)
-        timer.end_time("Dummy synthesis")
+
 
         # call an alternate dummy synthesis kernel which reshapes the matrices
         timer.start_time("Reshaped dummy synthesis")
         stat_sdum = synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("Reshaped dummy synthesis")
 
+        # call the dummy synthesis kernal
+        timer.start_time("Dummy synthesis")
+        stat_dum  = synthesize(pix,V,XYZ,W, wl)
+        timer.end_time("Dummy synthesis")
+
         # call an alternate dummy synthesis kernel which uses a special ZGEMM
         timer.start_time("ZGEMM dummy synthesis")
-        stat_zdum = synthesize_reshape(pix,V,XYZ,W, wl)
+        stat_zdum = custom_synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("ZGEMM dummy synthesis")
+
+        # call an alternate dummy synthesis kernel which uses an extra special ZGEMM
+        timer.start_time("ZGEMMexp dummy synthesis")
+        stat_zexpdum =  customexp_synthesize_reshape(pix,V,XYZ,W, wl)
+        timer.end_time("ZGEMMexp dummy synthesis")
         print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
         print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
+        print("Avg diff between dummy & ZGEMMexp synthesizers:", np.max( np.abs(stat_dum - stat_zexpdum)))
+        print("Avg diff between ZGEMM & ZGEMMexp synthesizers:", np.max( np.abs(stat_zdum - stat_zexpdum)))
 
     print(timer.summary())
     #synthesize(data.getPixGrid(), *data.getVXYZW(0), data.wl)

@@ -248,7 +248,7 @@ void zgemm( const int M, const int N, const int K, const double complex * alpha_
     }  
 }
 
-/*
+
 void zgemmexp( const int M, const int N, const int K, const double complex * alpha_, const double complex *A, const int lda, const double complex *B, const int ldb, double complex* __restrict__ C, const int ldc){
     double complex alpha = alpha_[0];
     int ib, jb, kb;
@@ -312,14 +312,14 @@ void zgemmexp( const int M, const int N, const int K, const double complex * alp
                             pA += 8;
                             pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = alpha*a00;// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 1] = alpha*a01;// + beta*c01;
-                        C[(j + jb + 0)*ldc + i + ib + 2] = alpha*a02;// + beta*c02;
-                        C[(j + jb + 0)*ldc + i + ib + 3] = alpha*a03;// + beta*c03;
-                        C[(j + jb + 0)*ldc + i + ib + 4] = alpha*a04;// + beta*c04;
-                        C[(j + jb + 0)*ldc + i + ib + 5] = alpha*a05;// + beta*c05;
-                        C[(j + jb + 0)*ldc + i + ib + 6] = alpha*a06;// + beta*c05;
-                        C[(j + jb + 0)*ldc + i + ib + 7] = alpha*a07;// + beta*c07;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(alpha*a01);// + beta*c01;
+                        C[(j + jb + 0)*ldc + i + ib + 2] = cexp(alpha*a02);// + beta*c02;
+                        C[(j + jb + 0)*ldc + i + ib + 3] = cexp(alpha*a03);// + beta*c03;
+                        C[(j + jb + 0)*ldc + i + ib + 4] = cexp(alpha*a04);// + beta*c04;
+                        C[(j + jb + 0)*ldc + i + ib + 5] = cexp(alpha*a05);// + beta*c05;
+                        C[(j + jb + 0)*ldc + i + ib + 6] = cexp(alpha*a06);// + beta*c05;
+                        C[(j + jb + 0)*ldc + i + ib + 7] = cexp(alpha*a07);// + beta*c07;
                     }
                 }
                 //
@@ -354,10 +354,10 @@ void zgemmexp( const int M, const int N, const int K, const double complex * alp
                                 pA += 4;
                                 pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = alpha*a00;// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 1] = alpha*a01;// + beta*c01;
-                        C[(j + jb + 0)*ldc + i + ib + 2] = alpha*a02;// + beta*c02;
-                        C[(j + jb + 0)*ldc + i + ib + 3] = alpha*a03;// + beta*c03;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(alpha*a01);// + beta*c01;
+                        C[(j + jb + 0)*ldc + i + ib + 2] = cexp(alpha*a02);// + beta*c02;
+                        C[(j + jb + 0)*ldc + i + ib + 3] = cexp(alpha*a03);// + beta*c03;
                     }
                 }
                 //
@@ -387,8 +387,8 @@ void zgemmexp( const int M, const int N, const int K, const double complex * alp
                                 pA += 2;
                                 pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = alpha*a00;// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 1] = alpha*a01;// + beta*c01;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(alpha*a01);// + beta*c01;
                     }
                 }
                 //
@@ -414,10 +414,10 @@ void zgemmexp( const int M, const int N, const int K, const double complex * alp
                                 pA += 1;
                                 pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = alpha*a00;// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
                     }
                 }
             }
         } 
     }  
-}*/
+}
