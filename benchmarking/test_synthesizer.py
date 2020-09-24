@@ -125,11 +125,13 @@ if __name__ == "__main__":
         # call the dummy synthesis kernal
         stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
 
-        # call an alternate dummy synthesis kernel, which may or may not work
+        # call an alternate dummy synthesis kernel which reshapes the matrices
         stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
+
+        # call an alternate dummy synthesis kernel which uses a special ZGEMM
+        stat_zdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
 
         print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
         print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
-        print("Max diff between dummy & dummy reshape synthesizers:", np.max( np.abs(stat_dum - stat_sdum)))
-        print("Selected diff  between dummy & dummy reshape synthesizers:", (stat_dum - stat_sdum)[:10,0,0])
+        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
     print(timer.summary())

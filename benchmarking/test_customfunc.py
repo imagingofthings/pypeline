@@ -47,16 +47,17 @@ def call_zgemm(M,N,K,A,B, a = 1, b = 0):
     # setting up C function
     so_file = "/home/etolley/bluebild/pypeline/src/zgemm-splat.so"
     custom_functions = CDLL(so_file)
-    custom_functions.zgemm_pycall.argtypes=[c_int, c_int, c_int,
+    custom_functions.zgemm.argtypes=[c_int, c_int, c_int,
                                     ndpointer(dtype=np.complex128,ndim=1,flags='C'), #alpha
-                                    ndpointer(dtype=np.complex128,ndim=2,flags='C'), c_int,
-                                    ndpointer(dtype=np.complex128,ndim=2,flags='C'), c_int,
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='F'), c_int,
                                     ndpointer(dtype=np.complex128,ndim=1,flags='C'), # beta
-                                    ndpointer(dtype=np.complex128,ndim=2,flags='C'), c_int]
-    
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='F'), c_int]
+    A = np.asfortranarray(A)
+    B = np.asfortranarray(B)
     ldA = M
     ldB = K
-    C = np.zeros( (M,N),dtype =np.complex128)
+    C = np.zeros( (M,N),dtype =np.complex128, order='F')
     ldC = M
     alpha = make_complexdouble_array(a)
     beta =  make_complexdouble_array(b)
@@ -64,23 +65,32 @@ def call_zgemm(M,N,K,A,B, a = 1, b = 0):
 
     # function call
     faulthandler.enable()
-    custom_functions.zgemm_pycall(M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC)
+    custom_functions.zgemm(M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC)
 
     return C
 
 # setting up inputs
-M = 8
-N = 8
+M = 10
+N = 10
 K = 3
-A = np.random.rand(M,K).astype(np.complex128)
-B = np.random.rand(K,N).astype(np.complex128)
+A = np.random.rand(M,K).astype(np.complex128) + (1j*np.random.rand(M,K)).astype(np.complex128)
+B = np.random.rand(K,N).astype(np.complex128) + (1j*np.random.rand(K,N)).astype(np.complex128)
+
+
+#A = np.array([[1,2,3],[4,5,6]],order='F').astype(np.complex128)
+#B = np.array([[1,1],[1,1],[1,1]],order='F').astype(np.complex128)
+
+print (np.real(A))
+print(np.real(B))
 
 result_zgemm10 = call_zgemm(M,N,K,A,B, 1,0)
-result_zgemm11 = call_zgemm(M,N,K,A,B,1,1)
+#result_zgemm11 = call_zgemm(M,N,K,A,B,1,1)
 result_matmul = np.matmul(A,B)
-print("First row from custom zgemm (M = {0}, N = {1}, K = {2}, alpha = 1, beta = 0):".format(M,N,K))
-print(result_zgemm10[0])
-print("First row from custom zgemm (M = {0}, N = {1}, K = {2}, alpha = 1, beta = 1):".format(M,N,K))
-print(result_zgemm11[0])
-print("First row from numpy matmul(M = {0}, N = {1}, K = {2}):".format(M,N,K))
-print(result_matmul[0])
+print("Custom zgemm (M = {0}, N = {1}, K = {2}, alpha = 1, beta = 0):".format(M,N,K))
+print(result_zgemm10)
+#print("First row from custom zgemm (M = {0}, N = {1}, K = {2}, alpha = 1, beta = 1):".format(M,N,K))
+#print(result_zgemm11[0])
+print("Numpy matmul(M = {0}, N = {1}, K = {2}):".format(M,N,K))
+print(result_matmul)
+print( np.mean(result_matmul-result_zgemm10))
+#print(A@B)
