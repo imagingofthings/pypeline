@@ -42,8 +42,8 @@ tester_functions.test_c_complex_fromPython(B)
 tester_functions.test_c_complex_pointer(C)
 
 sys.exit()
-
 '''
+
 def call_dgemm(M,N,K,A,B, a = 1, b = 0):
     # setting up C function
     so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
@@ -86,7 +86,6 @@ def call_zgemm(M,N,K,A,B, a = 1, b = 0):
     alpha = make_complexdouble_array(a)
     beta =  make_complexdouble_array(b)
 
-
     # function call
     faulthandler.enable()
     custom_functions.zgemm(M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC)
@@ -105,21 +104,16 @@ t0 = time.process_time()
 result_dgemm1 = call_dgemm(M,N,K,A,B, 1,0)
 print("DGEMM 1st time:", time.process_time() - t0)
 
-t0 = time.process_time()
-result_dgemm2 = call_dgemm(M,N,K,A,B, 1,0)
-print("DGEMM 2nd time:", time.process_time() - t0)
-
 t1 = time.process_time()
 result_matmul = np.matmul(A,B)
 print("numpy matmul time:", time.process_time() - t1)
 
-t0 = time.process_time()
-result_dgemm3 = call_dgemm(M,N,K,A,B, 1,0)
-print("DGEMM 3rd time:", time.process_time() - t0)
+A = np.random.rand(M,K).astype(np.complex128) 
+B = np.random.rand(K,N).astype(np.complex128)
 
 t0 = time.process_time()
-result_dgemm4 = call_dgemm(M,N,K,A,B, 1,0)
-print("DGEMM 4th time:", time.process_time() - t0)
+result_zgemm = call_zgemm(M,N,K,A,B, 1,0)
+print("ZGEMM  time:", time.process_time() - t0)
 
 
 print( "Agreement between matmul and dgemm:", np.mean(result_matmul-result_dgemm1))

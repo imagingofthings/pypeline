@@ -11,13 +11,13 @@
 
 #if !defined(BLOCK_SIZE)
 #ifndef M_BLOCK_SIZE
-#define M_BLOCK_SIZE 200
+#define M_BLOCK_SIZE 100000
 #endif
 #ifndef N_BLOCK_SIZE
-#define N_BLOCK_SIZE 3000
+#define N_BLOCK_SIZE 1000000
 #endif
 #ifndef K_BLOCK_SIZE
-#define K_BLOCK_SIZE 200
+#define K_BLOCK_SIZE 100000
 #endif
 #else
 #define N_BLOCK_SIZE BLOCK_SIZE

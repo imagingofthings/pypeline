@@ -15,7 +15,7 @@
 #define M_BLOCK_SIZE 200
 #endif
 #ifndef N_BLOCK_SIZE
-#define N_BLOCK_SIZE 30000
+#define N_BLOCK_SIZE 300000
 #endif
 #ifndef K_BLOCK_SIZE
 #define K_BLOCK_SIZE 200
@@ -252,8 +252,7 @@ void dgemm( const int M, const int N, const int K, const double alpha_, const do
 }
 
 
-void dgemmexp( const int M, const int N, const int K, const double * alpha_, const double * __restrict__ A, const int lda, const double * __restrict__ B, const int ldb, double complex* __restrict__ C, const int ldc){
-    double alpha = alpha_[0];
+void dgemmexp( const int M, const int N, const int K, const double alpha, const double * __restrict__ A, const int lda, const double * __restrict__ B, const int ldb, double complex* __restrict__ C, const int ldc){
     int ib, jb, kb;
     int i, j, k;
 
@@ -318,14 +317,14 @@ void dgemmexp( const int M, const int N, const int K, const double * alpha_, con
                             pA += 8;
                             pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(alpha*a01);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 2] = cexp(alpha*a02);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 3] = cexp(alpha*a03);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 4] = cexp(alpha*a04);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 5] = cexp(alpha*a05);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 6] = cexp(alpha*a06);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 7] = cexp(alpha*a07);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(I*alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(I*alpha*a01);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 2] = cexp(I*alpha*a02);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 3] = cexp(I*alpha*a03);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 4] = cexp(I*alpha*a04);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 5] = cexp(I*alpha*a05);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 6] = cexp(I*alpha*a06);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 7] = cexp(I*alpha*a07);// + beta*c00;
 
                     }
                 }
@@ -361,10 +360,10 @@ void dgemmexp( const int M, const int N, const int K, const double * alpha_, con
                                 pA += 4;
                                 pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(alpha*a01);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 2] = cexp(alpha*a02);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 3] = cexp(alpha*a03);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(I*alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(I*alpha*a01);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 2] = cexp(I*alpha*a02);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 3] = cexp(I*alpha*a03);// + beta*c00;
                     }
                 }
                 //
@@ -394,8 +393,8 @@ void dgemmexp( const int M, const int N, const int K, const double * alpha_, con
                                 pA += 2;
                                 pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
-                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(alpha*a01);// + beta*c01;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(I*alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 1] = cexp(I*alpha*a01);// + beta*c01;
                     }
                 }
 #endif
@@ -422,7 +421,7 @@ void dgemmexp( const int M, const int N, const int K, const double * alpha_, con
                                 pA += 1;
                                 pB += 1;
                         }
-                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(alpha*a00);// + beta*c00;
+                        C[(j + jb + 0)*ldc + i + ib + 0] = cexp(I*alpha*a00);// + beta*c00;
                     }
                 }
             }

@@ -19,7 +19,7 @@ def make_complexdouble_array(c):
 # Data Generator
 #################################################################################
 class RandomDataGen():
-    def __init__(self, precision = 32):
+    def __init__(self, precision = 32, order='F'):
 
         if (precision == 32):
             self.ftype = np.float32
@@ -31,11 +31,12 @@ class RandomDataGen():
             raise Exception("Precision {0} not known".format(precision))
 
         # input parameters
-        self.N_height  = 248
-        self.N_width   = 124
-        self.N_antenna = 550
+        self.N_height  = 248#248
+        self.N_width   = 124#124
+        self.N_antenna = 10000#550
         self.N_beam = 24
         self.N_eig  = 12
+        self.order=order
         frequency = 145e6
         self.wl = constants.speed_of_light / frequency
 
@@ -43,29 +44,29 @@ class RandomDataGen():
     def getPixGrid(self):
         pixGrid = np.random.rand(3, self.N_height, self.N_width)*2-1
         #return pixGrid.astype(self.ftype)
-        return pixGrid.astype(self.ctype)
+        return pixGrid.astype(self.ftype, order=self.order)
 
     # visibilities matrix, (N_beam, N_eig) complex-valued eigenvectors.
-    def getV(self, i):
+    def getV(self, i = 0):
         V = np.random.rand(self.N_beam, self.N_eig)-0.5 + 1j*np.random.rand(self.N_beam, self.N_eig)-0.5j
-        return V.astype(self.ctype)
+        return V.astype(self.ctype, order=self.order)
 
     #  (N_antenna, 3) Cartesian instrument geometry.
-    def getXYZ(self, i):
+    def getXYZ(self, i = 0):
         XYZ = np.random.rand(self.N_antenna,3)
         #return XYZ.astype(self.ftype)
-        return XYZ.astype(self.ctype)
+        return XYZ.astype(self.ftype, order=self.order)
 
     # beamforming weights (N_antenna, N_beam) synthesis beamweights.
-    def getW(self, i):
+    def getW(self, i=0):
         W = np.random.rand(self.N_antenna, self.N_beam)-0.5 + 1j*np.random.rand(self.N_antenna, self.N_beam)-0.5j
-        return W.astype(self.ctype)
+        return W.astype(self.ctype, order=self.order)
 
     def getVXYZW(self, i):
         return (self.getV(i),self.getXYZ(i),self.getW(i))
 
 #################################################################################
-# Custom zgemm
+# Custom MM
 #################################################################################
 def zgemm(A,B, a = 1, b = 0):
     # setting up C function
@@ -80,8 +81,8 @@ def zgemm(A,B, a = 1, b = 0):
     #prep zgemm.c inputs
     (M,K) = A.shape
     (K,N) = B.shape
-    A = np.asfortranarray(A)
-    B = np.asfortranarray(B)
+    A = A.astype(np.complex128, order = 'F')
+    B = B.astype(np.complex128, order = 'F')
     ldA = M
     ldB = K
     C = np.zeros( (M,N),dtype =np.complex128, order='F')
@@ -107,8 +108,8 @@ def zgemmexp(A,B, a , b = 0):
     #prep zgemm.c inputs
     (M,K) = A.shape
     (K,N) = B.shape
-    A = np.asfortranarray(A)
-    B = np.asfortranarray(B)
+    A = A.astype(np.complex128, order = 'F')
+    B = B.astype(np.complex128, order = 'F')
     ldA = M
     ldB = K
     C = np.zeros( (M,N),dtype =np.complex128, order='F')
@@ -121,6 +122,56 @@ def zgemmexp(A,B, a , b = 0):
 
     return C
 
+def dgemm(A,B, a = 1, b = 0):
+    t0 = time.process_time() 
+    # setting up C function
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    custom_functions = CDLL(so_file)
+    custom_functions.dgemm.argtypes=[c_int, c_int, c_int,
+                                    c_double, #alpha
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    c_double, # beta
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int]
+    #prep zgemm.c inputs
+    (M,K) = A.shape
+    (K,N) = B.shape
+    A = np.asfortranarray(A)
+    B = np.asfortranarray(B)
+    ldA = M
+    ldB = K
+    C = np.zeros( (M,N),dtype =np.float64, order='F')
+    ldC = M
+
+    # function call
+    t1 = time.process_time() 
+    custom_functions.dgemm(M, N, K, a, A, ldA, B, ldB, b, C, ldC)
+
+    return C
+
+def dgemmexp(A,B, a = 1):
+    # setting up C function
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    custom_functions = CDLL(so_file)
+    custom_functions.dgemmexp.argtypes=[c_int, c_int, c_int,
+                                    c_double, #alpha
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='F'), c_int]
+    #prep zgemm.c inputs
+    (M,K) = A.shape
+    (K,N) = B.shape
+    A = np.asfortranarray(A)
+    B = np.asfortranarray(B)
+    ldA = M
+    ldB = K
+    C = np.zeros( (M,N),dtype =np.complex128, order='F')
+    ldC = M
+
+    # function call
+    custom_functions.dgemmexp(M, N, K, a, A, ldA, B, ldB, C, ldC)
+
+    return C
 #################################################################################
 # Synthesis kernel
 #################################################################################
@@ -185,6 +236,7 @@ def synthesize_reshape(pixGrid, V, XYZ, W, wl):
 
     #flatten the height and width
     pixGrid = pixGrid.reshape(pixGrid.shape[0], N_height * N_width)
+    t0 = time.process_time()
     B = XYZ @ pixGrid
 
     P = np.zeros(B.shape,dtype=np.complex64)
@@ -197,10 +249,13 @@ def synthesize_reshape(pixGrid, V, XYZ, W, wl):
 
     return I
 
-def custom_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
+def zgemm_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
     N_height, N_width = pixGrid.shape[1:] 
     N_eig = V.shape[1]
+
+    #V = np.asfortranarray(V)
+    #W = np.asfortranarray(W)
 
     pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
     XYZ = XYZ - XYZ.mean(axis=0)
@@ -209,11 +264,13 @@ def custom_synthesize_reshape(pixGrid, V, XYZ, W, wl):
 
     #flatten the height and width
     pixGrid = pixGrid.reshape(pixGrid.shape[0], N_height * N_width)
+
+    t1 = time.process_time()
     B = zgemm(XYZ,pixGrid)
 
     P = np.zeros(B.shape,dtype=np.complex64)
     ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
-    #P = np.exp(a*B) # introduces some differences at fp level
+
     PW = W.T @ P
     E  = V.T @ PW
     I  = E.real ** 2 + E.imag ** 2
@@ -221,10 +278,13 @@ def custom_synthesize_reshape(pixGrid, V, XYZ, W, wl):
 
     return I
 
-def customexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
+def dgemm_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
     N_height, N_width = pixGrid.shape[1:] 
     N_eig = V.shape[1]
+
+    #V = np.asfortranarray(V)
+    #W = np.asfortranarray(W)
 
     pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
     XYZ = XYZ - XYZ.mean(axis=0)
@@ -233,6 +293,37 @@ def customexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):
 
     #flatten the height and width
     pixGrid = pixGrid.reshape(pixGrid.shape[0], N_height * N_width)
+
+    t1 = time.process_time()
+    B = dgemm(XYZ,pixGrid)
+
+    P = np.zeros(B.shape,dtype=np.complex64)
+    ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
+
+    PW = W.T @ P
+    E  = V.T @ PW
+    I  = E.real ** 2 + E.imag ** 2
+    I  = I.reshape(I.shape[0],N_height, N_width)
+
+    return I
+
+def zgemmexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
+    N_antenna, N_beam = W.shape
+    N_height, N_width = pixGrid.shape[1:] 
+    N_eig = V.shape[1]
+
+    #V = np.asfortranarray(V) 
+    #W = np.asfortranarray(W)
+
+    pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
+    XYZ = XYZ - XYZ.mean(axis=0)
+
+    # dgemmexp will apply the imaginary component to a
+    a = 2 * np.pi / wl
+
+    #flatten the height and width
+    pixGrid = pixGrid.reshape(pixGrid.shape[0], N_height * N_width)
+
     P = zgemmexp(XYZ,pixGrid,a)
 
     PW = W.T @ P
@@ -242,7 +333,47 @@ def customexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):
 
     return I
 
+def dgemmexp_synthesize_reshape(pixGrid, V, XYZ, W, wl):  
+    N_antenna, N_beam = W.shape
+    N_height, N_width = pixGrid.shape[1:] 
+    N_eig = V.shape[1]
+
+    #V = np.asfortranarray(V) 
+    #W = np.asfortranarray(W)
+
+    pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
+    XYZ = XYZ - XYZ.mean(axis=0)
+
+    # dgemmexp will apply the imaginary component to a
+    a = 2 * np.pi / wl
+
+    #flatten the height and width
+    pixGrid = pixGrid.reshape(pixGrid.shape[0], N_height * N_width)
+
+    P = dgemmexp(XYZ,pixGrid,a)
+
+    PW = W.T @ P
+    E  = V.T @ PW
+    I  = E.real ** 2 + E.imag ** 2
+    I  = I.reshape(I.shape[0],N_height, N_width)
+
+    return I
+
 #################################################################################
+
+def test_dgemm(data, string = ""):
+    A2 = data.getXYZ()
+    B2 = data.getPixGrid()
+    B2 = B2 / linalg.norm(B2, axis=0)
+    A2 = A2 - A2.mean(axis=0)
+    B2 = B2.reshape(B2.shape[0], B2.shape[1] * B2.shape[2])
+
+    t2 = time.process_time()
+    result = dgemm(A2,B2)
+    print("DGEMM", string, "time", time.process_time() - t2)
+
+
+
 if __name__ == "__main__":
 
     # parameters
@@ -250,38 +381,46 @@ if __name__ == "__main__":
     wl = constants.speed_of_light / frequency
 
     data = RandomDataGen(64)
-    pix = data.getPixGrid()
     timer = timing.Timer()
 
-    for t in range(1,20):
+    pix = data.getPixGrid()
+
+    for t in range(0,3):
         (V, XYZ, W) = data.getVXYZW(t)
 
-
-
-        # call an alternate dummy synthesis kernel which reshapes the matrices
-        timer.start_time("Reshaped dummy synthesis")
-        stat_sdum = synthesize_reshape(pix,V,XYZ,W, wl)
-        timer.end_time("Reshaped dummy synthesis")
 
         # call the dummy synthesis kernal
         timer.start_time("Dummy synthesis")
         stat_dum  = synthesize(pix,V,XYZ,W, wl)
         timer.end_time("Dummy synthesis")
 
+        # call an alternate dummy synthesis kernel which reshapes the matrices
+        timer.start_time("Reshaped dummy synthesis")
+        stat_sdum = synthesize_reshape(pix,V,XYZ,W, wl)
+        timer.end_time("Reshaped dummy synthesis")
+
         # call an alternate dummy synthesis kernel which uses a special ZGEMM
-        timer.start_time("ZGEMM dummy synthesis")
-        stat_zdum = custom_synthesize_reshape(pix,V,XYZ,W, wl)
-        timer.end_time("ZGEMM dummy synthesis")
+        timer.start_time("DGEMM dummy synthesis")
+        stat_gdum = dgemm_synthesize_reshape(pix,V,XYZ,W, wl)
+        timer.end_time("DGEMM dummy synthesis")
+
+        # call an alternate dummy synthesis kernel which uses a special ZGEMM
+        #timer.start_time("ZGEMM dummy synthesis")
+        #stat_zdum = zgemm_synthesize_reshape(pix,V,XYZ,W, wl)
+        #timer.end_time("ZGEMM dummy synthesis")
 
         # call an alternate dummy synthesis kernel which uses an extra special ZGEMM
-        timer.start_time("ZGEMMexp dummy synthesis")
-        stat_zexpdum =  customexp_synthesize_reshape(pix,V,XYZ,W, wl)
-        timer.end_time("ZGEMMexp dummy synthesis")
+        timer.start_time("DGEMMexp dummy synthesis")
+        stat_dexpdum =  dgemmexp_synthesize_reshape(pix,V,XYZ,W, wl)
+        timer.end_time("DGEMMexp dummy synthesis")
         print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
-        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
-        print("Avg diff between dummy & ZGEMMexp synthesizers:", np.max( np.abs(stat_dum - stat_zexpdum)))
-        print("Avg diff between ZGEMM & ZGEMMexp synthesizers:", np.max( np.abs(stat_zdum - stat_zexpdum)))
+        print("Avg diff between dummy & DGEMM synthesizers:", np.max( np.abs(stat_dum - stat_gdum)))
+        #print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
+        print("Avg diff between dummy & DGEMMexp synthesizers:", np.max( np.abs(stat_dum - stat_dexpdum)))
+        #print("Avg diff between ZGEMM & ZGEMMexp synthesizers:", np.max( np.abs(stat_zdum - stat_zexpdum)))
 
     print(timer.summary())
-    #synthesize(data.getPixGrid(), *data.getVXYZW(0), data.wl)
+
+
+
 

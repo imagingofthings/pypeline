@@ -3,11 +3,11 @@ CC = icc
 #LIBS = -L/home/foureste/Projects/OpenBLAS-0.2.14/ -lopenblas 
 LIBS = -mkl
 INCLUDES =
-CFLAGS = -Ofast -qopt-report=5 -qopt-report-phase=vec -xCORE-AVX512 -qopt-zmm-usage=high -qopenmp -g -I./
+CFLAGS = -Ofast -qopt-report=2 -qopt-report-phase=vec -xCORE-AVX512 -qopt-zmm-usage=high -qopenmp -g -I./
 
 all:    dgemm-splat zgemm-splat python-tester
 
-dgemm-splat: dgemm.o dgemm-splat.o
+dgemm-splat: dgemm.o dgemm-splat.o dgemm-splat.so
 	$(CC) -o $@ dgemm.o dgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 zgemm-splat: zgemm.o zgemm-splat.o zgemm-splat.so
