@@ -156,7 +156,6 @@ double time_dgemm_blas(const int M, const unsigned N, const int K,
 		PAPI_START;
 #endif
 		dgemm_(&transa, &transb, &M, &N, &K, &alpha, A, &lda, B, &ldb, &beta, Ca, &ldc);
-
 #ifdef PAPI
 		PAPI_STOP;
 		PAPI_PRINT;
@@ -208,11 +207,6 @@ main (int argc, char *argv[])
 	int lda = M;
 	int ldb = K;
 	int ldc = M;
-
-	double complex z1 = 1.0 + 2.0*I;
-	double complex z2 = 2.0 + 1.0*I;
-	double complex z3 = z1*z2;
-	printf("%f %f\n", *(&z3), *(&z3 + 1));
 
 	double* A  = (double*) _mm_malloc(M*K*sizeof(double), 32);
 	double* B  = (double*) _mm_malloc(K*N*sizeof(double), 32);
