@@ -3,6 +3,8 @@ from ctypes import *
 import numpy as np
 import sys
 import faulthandler
+import time as time
+
 
 
 ################################
@@ -42,6 +44,28 @@ tester_functions.test_c_complex_pointer(C)
 sys.exit()
 
 '''
+def call_dgemm(M,N,K,A,B, a = 1, b = 0):
+    # setting up C function
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    custom_functions = CDLL(so_file)
+    custom_functions.dgemm.argtypes=[c_int, c_int, c_int,
+                                    c_double, #alpha
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    c_double, # beta
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int]
+    A = np.asfortranarray(A)
+    B = np.asfortranarray(B)
+    ldA = M
+    ldB = K
+    C = np.zeros( (M,N),dtype =np.float64, order='F')
+    ldC = M
+
+    # function call
+    faulthandler.enable()
+    custom_functions.dgemm(M, N, K, a, A, ldA, B, ldB, b, C, ldC)
+
+    return C
 
 def call_zgemm(M,N,K,A,B, a = 1, b = 0):
     # setting up C function
@@ -70,27 +94,33 @@ def call_zgemm(M,N,K,A,B, a = 1, b = 0):
     return C
 
 # setting up inputs
-M = 10
-N = 10
+M = 550
+N = 248*124
 K = 3
-A = np.random.rand(M,K).astype(np.complex128) + (1j*np.random.rand(M,K)).astype(np.complex128)
-B = np.random.rand(K,N).astype(np.complex128) + (1j*np.random.rand(K,N)).astype(np.complex128)
+A = np.random.rand(M,K).astype(np.float64) 
+B = np.random.rand(K,N).astype(np.float64)
 
 
-#A = np.array([[1,2,3],[4,5,6]],order='F').astype(np.complex128)
-#B = np.array([[1,1],[1,1],[1,1]],order='F').astype(np.complex128)
+t0 = time.process_time()
+result_dgemm1 = call_dgemm(M,N,K,A,B, 1,0)
+print("DGEMM 1st time:", time.process_time() - t0)
 
-print (np.real(A))
-print(np.real(B))
+t0 = time.process_time()
+result_dgemm2 = call_dgemm(M,N,K,A,B, 1,0)
+print("DGEMM 2nd time:", time.process_time() - t0)
 
-result_zgemm10 = call_zgemm(M,N,K,A,B, 1,0)
-#result_zgemm11 = call_zgemm(M,N,K,A,B,1,1)
+t1 = time.process_time()
 result_matmul = np.matmul(A,B)
-print("Custom zgemm (M = {0}, N = {1}, K = {2}, alpha = 1, beta = 0):".format(M,N,K))
-print(result_zgemm10)
-#print("First row from custom zgemm (M = {0}, N = {1}, K = {2}, alpha = 1, beta = 1):".format(M,N,K))
-#print(result_zgemm11[0])
-print("Numpy matmul(M = {0}, N = {1}, K = {2}):".format(M,N,K))
-print(result_matmul)
-print( np.mean(result_matmul-result_zgemm10))
-#print(A@B)
+print("numpy matmul time:", time.process_time() - t1)
+
+t0 = time.process_time()
+result_dgemm3 = call_dgemm(M,N,K,A,B, 1,0)
+print("DGEMM 3rd time:", time.process_time() - t0)
+
+t0 = time.process_time()
+result_dgemm4 = call_dgemm(M,N,K,A,B, 1,0)
+print("DGEMM 4th time:", time.process_time() - t0)
+
+
+print( "Agreement between matmul and dgemm:", np.mean(result_matmul-result_dgemm1))
+
