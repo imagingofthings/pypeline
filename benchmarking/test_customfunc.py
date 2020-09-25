@@ -67,6 +67,28 @@ def call_dgemm(M,N,K,A,B, a = 1, b = 0):
 
     return C
 
+def call_dgemmexp(M,N,K,A,B, a = 1):
+    # setting up C function
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    custom_functions = CDLL(so_file)
+    custom_functions.dgemmexp.argtypes=[c_int, c_int, c_int,
+                                    c_double, #alpha
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.float64,ndim=2,flags='F'), c_int,
+                                    ndpointer(dtype=np.complex128,ndim=2,flags='F'), c_int]
+    #prep zgemm.c inputs
+    A = np.asfortranarray(A)
+    B = np.asfortranarray(B)
+    ldA = M
+    ldB = K
+    C = np.zeros( (M,N),dtype =np.complex128, order='F')
+    ldC = M
+
+    # function call
+    custom_functions.dgemmexp(M, N, K, a, A, ldA, B, ldB, C, ldC)
+
+    return C
+
 def call_zgemm(M,N,K,A,B, a = 1, b = 0):
     # setting up C function
     so_file = "/home/etolley/bluebild/pypeline/src/zgemm-splat.so"
@@ -102,7 +124,11 @@ B = np.random.rand(K,N).astype(np.float64)
 
 t0 = time.process_time()
 result_dgemm1 = call_dgemm(M,N,K,A,B, 1,0)
-print("DGEMM 1st time:", time.process_time() - t0)
+print("DGEMM  time:", time.process_time() - t0)
+
+t0 = time.process_time()
+result_dgemmexp = call_dgemmexp(M,N,K,A,B, 1)
+print("DGEMM+exp time:", time.process_time() - t0)
 
 t1 = time.process_time()
 result_matmul = np.matmul(A,B)
