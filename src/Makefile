@@ -5,10 +5,13 @@ LIBS = -mkl
 INCLUDES =
 CFLAGS = -Ofast -qopt-report=2 -qopt-report-phase=vec -xCORE-AVX512 -qopt-zmm-usage=high -qopenmp -g -I./
 
-all:    dgemm-splat zgemm-splat python-tester
+all:    dgemm-simple dgemm-splat zgemm-splat python-tester
 
 dgemm-splat: dgemm.o dgemm-splat.o dgemm-splat.so
 	$(CC) -o $@ dgemm.o dgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)
+
+dgemm-simple: dgemm.o dgemm-simple.o dgemm-simple.so
+	$(CC) -o $@ dgemm.o dgemm-simple.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 zgemm-splat: zgemm.o zgemm-splat.o zgemm-splat.so
 	$(CC) -o $@ zgemm.o zgemm-splat.o $(CFLAGS) $(LIBS) $(INCLUDES)

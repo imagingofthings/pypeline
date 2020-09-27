@@ -22,7 +22,7 @@
 #endif
 
 #define _alpha 1.e0
-#define _beta  1.e0
+#define _beta  0.e0
 
 #define NN 32
 #define NRUNS 1
