@@ -33,7 +33,7 @@ class RandomDataGen():
         # input parameters
         self.N_height  = 248#248
         self.N_width   = 124#124
-        self.N_antenna = 10000#550
+        self.N_antenna = 550#550
         self.N_beam = 24
         self.N_eig  = 12
         self.order=order
@@ -125,7 +125,7 @@ def zgemmexp(A,B, a , b = 0):
 def dgemm(A,B, a = 1, b = 0):
     t0 = time.process_time() 
     # setting up C function
-    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-simple.so"
     custom_functions = CDLL(so_file)
     custom_functions.dgemm.argtypes=[c_int, c_int, c_int,
                                     c_double, #alpha
@@ -151,7 +151,7 @@ def dgemm(A,B, a = 1, b = 0):
 
 def dgemmexp(A,B, a = 1):
     # setting up C function
-    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-simple.so"
     custom_functions = CDLL(so_file)
     custom_functions.dgemmexp.argtypes=[c_int, c_int, c_int,
                                     c_double, #alpha
@@ -385,7 +385,7 @@ if __name__ == "__main__":
 
     pix = data.getPixGrid()
 
-    for t in range(0,3):
+    for t in range(0,1):
         (V, XYZ, W) = data.getVXYZW(t)
 
 
@@ -399,7 +399,7 @@ if __name__ == "__main__":
         stat_sdum = synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("Reshaped dummy synthesis")
 
-        # call an alternate dummy synthesis kernel which uses a special ZGEMM
+        # call an alternate dummy synthesis kernel which uses a special DGEMM
         timer.start_time("DGEMM dummy synthesis")
         stat_gdum = dgemm_synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("DGEMM dummy synthesis")
@@ -411,13 +411,12 @@ if __name__ == "__main__":
 
         # call an alternate dummy synthesis kernel which uses an extra special ZGEMM
         timer.start_time("DGEMMexp dummy synthesis")
-        stat_dexpdum =  dgemmexp_synthesize_reshape(pix,V,XYZ,W, wl)
+        stat_gexpdum =  dgemmexp_synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("DGEMMexp dummy synthesis")
         print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
         print("Avg diff between dummy & DGEMM synthesizers:", np.max( np.abs(stat_dum - stat_gdum)))
-        #print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
-        print("Avg diff between dummy & DGEMMexp synthesizers:", np.max( np.abs(stat_dum - stat_dexpdum)))
-        #print("Avg diff between ZGEMM & ZGEMMexp synthesizers:", np.max( np.abs(stat_zdum - stat_zexpdum)))
+        print("Avg diff between dummy & DGEMMexp synthesizers:", np.max( np.abs(stat_dum - stat_gexpdum)))
+        print("Avg diff between DGEMM & DGEMMexp synthesizers:", np.max( np.abs(stat_gdum - stat_gexpdum)))
 
     print(timer.summary())
 

@@ -1,11 +1,15 @@
 from numpy.ctypeslib import ndpointer
 from ctypes import *
 import numpy as np
+import numexpr as ne
 import sys
 import faulthandler
 import time as time
 
+import os
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
 
+#numactl --physcpubind=0 python test_customfunc.py
 
 ################################
 # defining custom types
@@ -46,7 +50,7 @@ sys.exit()
 
 def call_dgemm(M,N,K,A,B, a = 1, b = 0):
     # setting up C function
-    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-simple.so"
     custom_functions = CDLL(so_file)
     custom_functions.dgemm.argtypes=[c_int, c_int, c_int,
                                     c_double, #alpha
@@ -69,7 +73,7 @@ def call_dgemm(M,N,K,A,B, a = 1, b = 0):
 
 def call_dgemmexp(M,N,K,A,B, a = 1):
     # setting up C function
-    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-splat.so"
+    so_file = "/home/etolley/bluebild/pypeline/src/dgemm-simple.so"
     custom_functions = CDLL(so_file)
     custom_functions.dgemmexp.argtypes=[c_int, c_int, c_int,
                                     c_double, #alpha
@@ -126,21 +130,38 @@ t0 = time.process_time()
 result_dgemm1 = call_dgemm(M,N,K,A,B, 1,0)
 print("DGEMM  time:", time.process_time() - t0)
 
+t1 = time.process_time()
+result_matmul = np.matmul(A,B)
+print("numpy matmul time:", time.process_time() - t1)
+
 t0 = time.process_time()
 result_dgemmexp = call_dgemmexp(M,N,K,A,B, 1)
 print("DGEMM+exp time:", time.process_time() - t0)
 
 t1 = time.process_time()
-result_matmul = np.matmul(A,B)
-print("numpy matmul time:", time.process_time() - t1)
+result_matmulexp = np.exp(1j*np.matmul(A,B))
+print("numpy exp(matmul) time:", time.process_time() - t1)
 
-A = np.random.rand(M,K).astype(np.complex128) 
-B = np.random.rand(K,N).astype(np.complex128)
+t2 = time.process_time()
+result_matmul1 = np.matmul(A,B)
+result_matmulexpne = np.zeros(result_matmul1.shape,dtype=np.complex64)
+ne.evaluate( "exp(A * B)",dict(A=1j, B=result_matmul1),out=result_matmulexpne,casting="same_kind",) 
+print("numpy matmul + numexpr exp time:", time.process_time() - t2)
 
-t0 = time.process_time()
-result_zgemm = call_zgemm(M,N,K,A,B, 1,0)
-print("ZGEMM  time:", time.process_time() - t0)
 
+
+#A = np.random.rand(M,K).astype(np.complex128) 
+#B = np.random.rand(K,N).astype(np.complex128)
+
+#t0 = time.process_time()
+#result_zgemm = call_zgemm(M,N,K,A,B, 1,0)
+#print("ZGEMM  time:", time.process_time() - t0)
 
 print( "Agreement between matmul and dgemm:", np.mean(result_matmul-result_dgemm1))
+print( "Agreement between exp(matmul) and dgemmexp:", np.mean(result_matmulexp-result_dgemmexp))
+print( "Agreement between matmul + numexpr exp and dgemmexp:", np.mean(result_matmulexpne-result_dgemmexp))
+
+#print(result_matmul)
+#print(result_matmulexp)
+#print(result_matmulexpne)
 
