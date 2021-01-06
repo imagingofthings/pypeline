@@ -185,9 +185,9 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
-        self.timer.start_time(self.timer_tag + "Synthesizer call")
+        self.mark(self.timer_tag + "Synthesizer call")
 
-        self.timer.start_time(self.timer_tag + "Synthesizer numpy formatting")
+        self.mark(self.timer_tag + "Synthesizer numpy formatting")
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
@@ -200,34 +200,34 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         XYZ = XYZ - XYZ.mean(axis=0)
         P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
 
-        self.timer.end_time(self.timer_tag + "Synthesizer numpy formatting")
+        self.unmark(self.timer_tag + "Synthesizer numpy formatting")
 
-        self.timer.start_time(self.timer_tag + "Synthesizer numpy tensordot 1")
+        self.mark(self.timer_tag + "Synthesizer numpy tensordot 1")
         a = 1j * 2 * np.pi / self._wl
         b = np.tensordot(XYZ, self._grid, axes=1)
         #print(a)
         #print(b.shape,b.size())
-        self.timer.end_time(self.timer_tag + "Synthesizer numpy tensordot 1")
-        self.timer.start_time(self.timer_tag + "Synthesizer numexpr exponential")
+        self.unmark(self.timer_tag + "Synthesizer numpy tensordot 1")
+        self.mark(self.timer_tag + "Synthesizer numexpr exponential")
         ne.evaluate(
             "exp(A * B)",
             dict(A=a, B=b),
             out=P,
             casting="same_kind",
         )  # Due to limitations of NumExpr2
-        self.timer.end_time(self.timer_tag + "Synthesizer numexpr exponential")
+        self.unmark(self.timer_tag + "Synthesizer numexpr exponential")
 
-        self.timer.start_time(self.timer_tag + "Synthesizer numpy reshaping")
+        self.mark(self.timer_tag + "Synthesizer numpy reshaping")
         PW = W.T @ P.reshape(N_antenna, N_height * N_width)
         PW = PW.reshape(N_beam, N_height, N_width)
-        self.timer.end_time(self.timer_tag + "Synthesizer numpy reshaping")
+        self.unmark(self.timer_tag + "Synthesizer numpy reshaping")
 
-        self.timer.start_time(self.timer_tag + "Synthesizer numpy tensordot 2")
+        self.mark(self.timer_tag + "Synthesizer numpy tensordot 2")
         E = np.tensordot(V.T, PW, axes=1)
-        self.timer.end_time(self.timer_tag + "Synthesizer numpy tensordot 2")
+        self.unmark(self.timer_tag + "Synthesizer numpy tensordot 2")
         I = E.real ** 2 + E.imag ** 2
 
-        self.timer.end_time(self.timer_tag + "Synthesizer call")
+        self.unmark(self.timer_tag + "Synthesizer call")
 
         return I
 
