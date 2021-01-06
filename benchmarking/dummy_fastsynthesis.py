@@ -385,7 +385,6 @@ if __name__ == "__main__":
     for t in range(0,1):
         (V, XYZ, W) = data.getVXYZW(t)
 
-
         # call the dummy synthesis kernal
         timer.start_time("Dummy synthesis")
         stat_dum  = synthesize(pix,V,XYZ,W, wl)
@@ -400,11 +399,6 @@ if __name__ == "__main__":
         timer.start_time("DGEMM dummy synthesis")
         stat_gdum = dgemm_synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("DGEMM dummy synthesis")
-
-        # call an alternate dummy synthesis kernel which uses a special ZGEMM
-        #timer.start_time("ZGEMM dummy synthesis")
-        #stat_zdum = zgemm_synthesize_reshape(pix,V,XYZ,W, wl)
-        #timer.end_time("ZGEMM dummy synthesis")
 
         # call an alternate dummy synthesis kernel which uses an extra special ZGEMM
         timer.start_time("DGEMMexp dummy synthesis")

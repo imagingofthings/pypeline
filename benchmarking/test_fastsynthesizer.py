@@ -14,8 +14,7 @@ import pypeline.phased_array.bluebild.parameter_estimator as bb_pe
 import pypeline.phased_array.bluebild.data_processor as bb_dp
 import pypeline.phased_array.data_gen.source as source
 import pypeline.phased_array.data_gen.statistics as statistics
-import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth
-import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain_optimized as synth_test
+import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as synth
 import timing
 import dummy_synthesis 
 from dummy_synthesis import RandomDataGen, synthesize, synthesize_stack
@@ -23,7 +22,7 @@ from dummy_synthesis import RandomDataGen, synthesize, synthesize_stack
 class SimulatedDataGen():
     def __init__(self, wl):
         self.wl = wl
-        obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
+        self.obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
         field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
         FoV = np.deg2rad(5)
 
@@ -38,11 +37,11 @@ class SimulatedDataGen():
         T_integration = 8
         sky_model = source.from_tgss_catalog(field_center, FoV, N_src=20)
         self.vis = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=np.inf)
-        _, _, px_colat, px_lon = grid.equal_angle(
+        _, _, self.px_colat, self.px_lon = grid.equal_angle(
             N=self.dev.nyquist_rate(wl), direction=field_center.cartesian.xyz.value, FoV=FoV
         )
-        self.pix_grid = transform.pol2cart(1, px_colat, px_lon)
-        self.time = obs_start + (T_integration * u.s) * np.arange(3595)
+        self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
+        self.time = self.obs_start + (T_integration * u.s) * np.arange(3595)
         self.i = 0
 
         self.estimateParams()
@@ -82,12 +81,19 @@ if __name__ == "__main__":
     ###### make simulated dataset ###### 
     # parameters
     frequency = 145e6
+    obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
+    obs_end = atime.Time(56880.54171302732, scale="utc", format="mjd")
     wl = constants.speed_of_light / frequency
     precision = 32 # 32 or 64
 
+    T_kernel = np.deg2rad(10)
+
     # random or simulated dataset
-    #data = SimulatedDataGen(wl)
-    data = dummy_synthesis.RandomDataGen()
+    data = SimulatedDataGen(wl)
+    #data = dummy_synthesis.RandomDataGen()
+
+    R = data.dev.icrs2bfsf_rot(data.obs_start, data.time[-1])
+    N_FS = data.dev.bfsf_kernel_bandwidth(wl, data.obs_start, data.time[-1])
 
 
     ################################### 
@@ -99,17 +105,13 @@ if __name__ == "__main__":
 
     pix = data.getPixGrid()
 
-    # The Standard Synthesis Kernel
-    synthesizer      = synth.SpatialFieldSynthesizerBlock(wl, pix, precision)
+    # The Fast Periodic Synthesis Kernel
+    synthesizer  = synth.FourierFieldSynthesizerBlock(wl, data.px_colat, data.px_lon, N_FS, T_kernel, R, precision)
     synthesizer.set_timer(timer,)
-
-    # a copy of the Standard Synthesis Kernel that will be used for testing
-    synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, pix, precision)
-    synthesizer_test.set_timer(timer, "Test ")
 
     # iterate though timesteps
     # increase the range to run through more calls
-    for t in range(1,5):
+    for t in range(1,200):
         (V, XYZ, W) = data.getVXYZW(t)
 
 
@@ -123,15 +125,15 @@ if __name__ == "__main__":
         stat_bbss = synthesizer(V,XYZ,W)
 
         # call the dummy synthesis kernal
-        stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
+        #stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
 
         # call an alternate dummy synthesis kernel which reshapes the matrices
-        stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
+        #stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
 
         # call an alternate dummy synthesis kernel which uses a special ZGEMM
-        stat_zdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
+        #stat_zdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
 
-        print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
-        print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
-        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
+        #print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
+        #print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
+        #print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
     print(timer.summary())

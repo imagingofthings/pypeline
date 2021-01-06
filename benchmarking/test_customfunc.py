@@ -159,7 +159,9 @@ print("numpy matmul + numexpr exp time:", time.process_time() - t2)
 
 print( "Agreement between matmul and dgemm:", np.mean(result_matmul-result_dgemm1))
 print( "Agreement between exp(matmul) and dgemmexp:", np.mean(result_matmulexp-result_dgemmexp))
+print( "Agreement between matmul + numexpr exp and exp(matmul):", np.mean(result_matmulexpne-result_matmulexp))
 print( "Agreement between matmul + numexpr exp and dgemmexp:", np.mean(result_matmulexpne-result_dgemmexp))
+
 
 #print(result_matmul)
 #print(result_matmulexp)
