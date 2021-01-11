@@ -154,6 +154,8 @@ I_lsq_eq = s2image.Image(I_lsq.data / S.data, I_lsq.grid)
 I_lsq_eq.draw(catalog=sky_model.xyz.T, ax=ax[1])
 ax[1].set_title("Bluebild Least-Squares Image")
 fig.savefig("test_ss.png")
+fig.show()
+plt.show()
 
 timer.end_time("Total")
 print(timer.summary())

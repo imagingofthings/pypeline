@@ -3,9 +3,11 @@ import numpy as np
 import sys
 import scipy.constants as constants
 import imot_tools.math.sphere.grid as grid
+import imot_tools.io.s2image as image
 import imot_tools.math.sphere.transform as transform
 import astropy.units as u
 import astropy.time as atime
+import matplotlib.pyplot as plt
 import astropy.coordinates as coord
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
@@ -14,7 +16,8 @@ import pypeline.phased_array.bluebild.parameter_estimator as bb_pe
 import pypeline.phased_array.bluebild.data_processor as bb_dp
 import pypeline.phased_array.data_gen.source as source
 import pypeline.phased_array.data_gen.statistics as statistics
-import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as synth
+import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as synth_periodic
+import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth_standard
 import timing
 import dummy_synthesis 
 from dummy_synthesis import RandomDataGen, synthesize, synthesize_stack
@@ -95,7 +98,6 @@ if __name__ == "__main__":
     R = data.dev.icrs2bfsf_rot(data.obs_start, data.time[-1])
     N_FS = data.dev.bfsf_kernel_bandwidth(wl, data.obs_start, data.time[-1])
 
-
     ################################### 
 
     # timer
@@ -106,13 +108,17 @@ if __name__ == "__main__":
     pix = data.getPixGrid()
 
     # The Fast Periodic Synthesis Kernel
-    synthesizer  = synth.FourierFieldSynthesizerBlock(wl, data.px_colat, data.px_lon, N_FS, T_kernel, R, precision)
-    synthesizer.set_timer(timer,)
+    synthesizer_periodic  = synth_periodic.FourierFieldSynthesizerBlock(wl, data.px_colat, data.px_lon, N_FS, T_kernel, R, precision)
+    synthesizer_periodic.set_timer(timer, "Periodic ")
+
+    synthesizer_standard = synth_standard.SpatialFieldSynthesizerBlock(wl, pix, precision)
+    synthesizer_standard.set_timer(timer, "Standard ")
 
     # iterate though timesteps
     # increase the range to run through more calls
-    for t in range(1,200):
+    for t in range(1,2):
         (V, XYZ, W) = data.getVXYZW(t)
+        print("t = {0}".format(t))
 
 
         #do some copying for inputs which get modified by the synthesizer
@@ -121,19 +127,31 @@ if __name__ == "__main__":
         V2 = np.copy(V)
         XYZ2 = np.copy(XYZ) 
         
-        # call the Bluebild Standard Synthesis Kernel
-        stat_bbss = synthesizer(V,XYZ,W)
+        # call the Bluebild Synthesis Kernels
+        stats_periodic = synthesizer_periodic(V,XYZ,W)
+        stats_standard = synthesizer_standard(V,XYZ,W)
 
-        # call the dummy synthesis kernal
-        #stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
+        # trasform the periodic field statistics to periodic eigenimages
+        field_periodic = synthesizer_periodic.synthesize(stats_periodic)
+        bfsf_grid = transform.pol2cart(
+            1, synthesizer_periodic._grid_colat, synthesizer_periodic._grid_lon
+        )
+        icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
+        
+        print("Difference in results between standard & periodic synthesizers:", np.average( stats_standard - field_periodic))
 
-        # call an alternate dummy synthesis kernel which reshapes the matrices
-        #stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
+        img_standard = image.Image(stats_standard, pix)
+        img_periodic = image.Image(field_periodic, icrs_grid)
+        print("Difference between pix grid and  & icrs_grid:",  np.average(pix - icrs_grid))
 
-        # call an alternate dummy synthesis kernel which uses a special ZGEMM
-        #stat_zdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
+        fig, ax = plt.subplots(ncols=2)
+        img_standard.draw(ax=ax[0])
+        ax[0].set_title("Bluebild Standard Image")
 
-        #print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
-        #print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
-        #print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
+        img_periodic.draw(ax=ax[1])
+        ax[1].set_title("Bluebild Periodic Image")
+        fig.savefig("test_compare.png")
+        fig.show()
+        plt.show()
+
     print(timer.summary())

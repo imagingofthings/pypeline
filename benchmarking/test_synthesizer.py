@@ -109,8 +109,9 @@ if __name__ == "__main__":
 
     # iterate though timesteps
     # increase the range to run through more calls
-    for t in range(1,5):
+    for t in range(1,100):
         (V, XYZ, W) = data.getVXYZW(t)
+        print("t = {0}".format(t))
 
 
         #do some copying for inputs which get modified by the synthesizer
@@ -123,7 +124,7 @@ if __name__ == "__main__":
         stat_bbss = synthesizer(V,XYZ,W)
 
         # call the dummy synthesis kernal
-        stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
+        '''stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
 
         # call an alternate dummy synthesis kernel which reshapes the matrices
         stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
@@ -133,5 +134,5 @@ if __name__ == "__main__":
 
         print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
         print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
-        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
+        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))'''
     print(timer.summary())
