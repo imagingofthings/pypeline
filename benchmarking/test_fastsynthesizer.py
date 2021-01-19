@@ -26,8 +26,10 @@ class SimulatedDataGen():
     def __init__(self, wl):
         self.wl = wl
         self.obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
+        T_integration = 8
+        self.time = self.obs_start + (T_integration * u.s) * np.arange(3595)
         field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
-        FoV = np.deg2rad(5)
+        self.FoV = np.deg2rad(5)
 
         # Instrument
         N_station = 24  #24
@@ -37,14 +39,24 @@ class SimulatedDataGen():
         self.gram = bb_gr.GramBlock()
 
         # generation
-        T_integration = 8
-        sky_model = source.from_tgss_catalog(field_center, FoV, N_src=20)
-        self.vis = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=np.inf)
+
+        self.R = self.dev.icrs2bfsf_rot(self.obs_start, self.time[-1])
+        self.sky_model = source.from_tgss_catalog(field_center, self.FoV, N_src=5)
+        self.vis = statistics.VisibilityGeneratorBlock(self.sky_model, T_integration, fs=196000, SNR=np.inf)
+
+        _, _, self.px_colat_periodic, self.px_lon_periodic = grid.equal_angle(
+            N=self.dev.nyquist_rate(wl),
+            direction= self.R @ field_center.cartesian.xyz.value,  # BFSF-equivalent f_dir.
+            FoV=self.FoV
+        )
+
         _, _, self.px_colat, self.px_lon = grid.equal_angle(
-            N=self.dev.nyquist_rate(wl), direction=field_center.cartesian.xyz.value, FoV=FoV
+            N=self.dev.nyquist_rate(wl),
+            direction=field_center.cartesian.xyz.value,
+            FoV=self.FoV
         )
         self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
-        self.time = self.obs_start + (T_integration * u.s) * np.arange(3595)
+
         self.i = 0
 
         self.estimateParams()
@@ -89,14 +101,16 @@ if __name__ == "__main__":
     wl = constants.speed_of_light / frequency
     precision = 32 # 32 or 64
 
-    T_kernel = np.deg2rad(10)
 
     # random or simulated dataset
     data = SimulatedDataGen(wl)
     #data = dummy_synthesis.RandomDataGen()
+    T_kernel = np.deg2rad(10)
 
-    R = data.dev.icrs2bfsf_rot(data.obs_start, data.time[-1])
+
     N_FS = data.dev.bfsf_kernel_bandwidth(wl, data.obs_start, data.time[-1])
+    print("Default N_FS:", N_FS)
+    N_FS = 50001
 
     ################################### 
 
@@ -108,7 +122,7 @@ if __name__ == "__main__":
     pix = data.getPixGrid()
 
     # The Fast Periodic Synthesis Kernel
-    synthesizer_periodic  = synth_periodic.FourierFieldSynthesizerBlock(wl, data.px_colat, data.px_lon, N_FS, T_kernel, R, precision)
+    synthesizer_periodic  = synth_periodic.FourierFieldSynthesizerBlock(wl, data.px_colat_periodic, data.px_lon_periodic, N_FS, T_kernel, data.R, precision)
     synthesizer_periodic.set_timer(timer, "Periodic ")
 
     synthesizer_standard = synth_standard.SpatialFieldSynthesizerBlock(wl, pix, precision)
@@ -120,36 +134,37 @@ if __name__ == "__main__":
         (V, XYZ, W) = data.getVXYZW(t)
         print("t = {0}".format(t))
 
-
-        #do some copying for inputs which get modified by the synthesizer
-        V1 = np.copy(V) 
-        XYZ1 = np.copy(XYZ) 
-        V2 = np.copy(V)
-        XYZ2 = np.copy(XYZ) 
-        
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
         stats_standard = synthesizer_standard(V,XYZ,W)
 
         # trasform the periodic field statistics to periodic eigenimages
         field_periodic = synthesizer_periodic.synthesize(stats_periodic)
-        bfsf_grid = transform.pol2cart(
-            1, synthesizer_periodic._grid_colat, synthesizer_periodic._grid_lon
-        )
-        icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
-        
-        print("Difference in results between standard & periodic synthesizers:", np.average( stats_standard - field_periodic))
 
-        img_standard = image.Image(stats_standard, pix)
-        img_periodic = image.Image(field_periodic, icrs_grid)
+        icrs_grid = np.tensordot(synthesizer_periodic._R.T, pix, axes=1)
+        
+        print("Difference in results between standard & periodic synthesizers:", np.average( stats_standard - np.rot90(field_periodic,2)))
+
+        img_standard  = image.Image(stats_standard, pix)
+        img_periodic  = image.Image(np.rot90(field_periodic,2), pix)
+        img_standard2 = image.Image(np.rot90(stats_standard,2), icrs_grid)
+        img_periodic2 = image.Image(field_periodic, icrs_grid)
         print("Difference between pix grid and  & icrs_grid:",  np.average(pix - icrs_grid))
 
-        fig, ax = plt.subplots(ncols=2)
-        img_standard.draw(ax=ax[0])
-        ax[0].set_title("Bluebild Standard Image")
+        fig, ax = plt.subplots(ncols=2, nrows = 2)
+        fig.tight_layout(pad = 3.0)
+        img_standard.draw(catalog=data.sky_model.xyz.T, ax=ax[0,0])
+        ax[0,0].set_title("Bluebild Standard Image\nSS Grid")
 
-        img_periodic.draw(ax=ax[1])
-        ax[1].set_title("Bluebild Periodic Image")
+        img_standard2.draw(ax=ax[0,1])
+        ax[0,1].set_title("Bluebild Standard Image\nRotated 180$^\circ$\nPS Grid")
+
+        img_periodic.draw(ax=ax[1,0])
+        ax[1,0].set_title("Bluebild Periodic Image\nRotated 180$^\circ$\nSS Grid")
+
+        img_periodic2.draw(ax=ax[1,1])
+        ax[1,1].set_title("Bluebild Periodic Image\nPS Grid")
+
         fig.savefig("test_compare.png")
         fig.show()
         plt.show()
