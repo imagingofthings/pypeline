@@ -146,24 +146,32 @@ if __name__ == "__main__":
         print("Difference in results between standard & periodic synthesizers:", np.average( stats_standard - np.rot90(field_periodic,2)))
 
         img_standard  = image.Image(stats_standard, pix)
-        img_periodic  = image.Image(np.rot90(field_periodic,2), pix)
-        img_standard2 = image.Image(np.rot90(stats_standard,2), icrs_grid)
-        img_periodic2 = image.Image(field_periodic, icrs_grid)
+        img_periodic_rot  = image.Image(np.rot90(field_periodic,2), pix)
+        img_diff_pix = image.Image(stats_standard - np.rot90(field_periodic,2), pix)
+
+        img_standard_rot = image.Image(np.rot90(stats_standard,2), icrs_grid)
+        img_periodic = image.Image(field_periodic, icrs_grid)
+        img_diff_icrs_grid = image.Image(np.rot90(stats_standard,2) - field_periodic, icrs_grid)
+
         print("Difference between pix grid and  & icrs_grid:",  np.average(pix - icrs_grid))
 
-        fig, ax = plt.subplots(ncols=2, nrows = 2)
-        fig.tight_layout(pad = 3.0)
-        img_standard.draw(catalog=data.sky_model.xyz.T, ax=ax[0,0])
+        fig, ax = plt.subplots(ncols=3, nrows = 2)
+        plotcolors ="GnBu_r"
+        diffcolors = "RdBu"
+        fig.tight_layout(pad = 2.0)
+        img_standard.draw(catalog=data.sky_model.xyz.T, ax=ax[0,0], data_kwargs = {"cmap": plotcolors})
         ax[0,0].set_title("Bluebild Standard Image\nSS Grid")
+        img_periodic_rot.draw(ax=ax[0,1], data_kwargs = {"cmap": plotcolors})
+        ax[0,1].set_title("Bluebild Periodic Image\nRotated 180$^\circ$\nSS Grid")
+        img_diff_pix.draw(ax=ax[0,2], data_kwargs = {"cmap": diffcolors})
+        ax[0,2].set_title("Difference\nSS Grid")
 
-        img_standard2.draw(ax=ax[0,1])
-        ax[0,1].set_title("Bluebild Standard Image\nRotated 180$^\circ$\nPS Grid")
-
-        img_periodic.draw(ax=ax[1,0])
-        ax[1,0].set_title("Bluebild Periodic Image\nRotated 180$^\circ$\nSS Grid")
-
-        img_periodic2.draw(ax=ax[1,1])
+        img_standard_rot.draw(ax=ax[1,0], data_kwargs = {"cmap": plotcolors})
+        ax[1,0].set_title("Bluebild Standard Image\nRotated 180$^\circ$\nPS Grid")
+        img_periodic.draw(ax=ax[1,1], data_kwargs = {"cmap": plotcolors})
         ax[1,1].set_title("Bluebild Periodic Image\nPS Grid")
+        img_diff_icrs_grid.draw(ax=ax[1,2], data_kwargs = {"cmap": diffcolors})
+        ax[1,2].set_title("Difference\nPS Grid")
 
         fig.savefig("test_compare.png")
         fig.show()
