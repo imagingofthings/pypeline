@@ -18,7 +18,6 @@ import imot_tools.io.s2image as image
 import imot_tools.util.argcheck as chk
 import pypeline.util.array as array
 
-
 class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
     """
     Multi-field synthesizer based on StandardSynthesis.
@@ -153,10 +152,16 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         self._N_level = N_level
 
         self._synthesizer = ssd.SpatialFieldSynthesizerBlock(wl, pix_grid, precision)
+        self.timer = None
 
     def set_timer(self, t):
         self.timer = t
         self._synthesizer.set_timer(self.timer)
+
+    def mark(self, tag):
+      if self.timer: self.timer.start_time(tag)
+    def unmark(self, tag):
+      if self.timer: self.timer.end_time(tag)
     @chk.check(
         dict(
             D=chk.has_reals,
@@ -190,21 +195,21 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         stat : :py:class:`~numpy.ndarray`
             (2, N_level, N_height, N_width) field statistics.
         """
-        self.timer.start_time("Imager call")
+        self.mark("Imager call")
         D = D.astype(self._fp, copy=False)
 
-        self.timer.start_time("Image synthesis")
+        self.mark("Image synthesis")
         stat_std = self._synthesizer(V, XYZ, W)
-        self.timer.end_time("Image synthesis")
+        self.unmark("Image synthesis")
         stat_lsq = stat_std * D.reshape(-1, 1, 1)
         stat = np.stack([stat_std, stat_lsq], axis=0)
-        self.timer.start_time("Image cluster layers")
+        self.mark("Image cluster layers")
         stat = bim.cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
-        self.timer.end_time("Image cluster layers")
-        self.timer.start_time("Image update iteration")
+        self.unmark("Image cluster layers")
+        self.mark("Image update iteration")
         self._update(stat)
-        self.timer.end_time("Image update iteration")
-        self.timer.end_time("Imager call")
+        self.unmark("Image update iteration")
+        self.unmark("Imager call")
         return stat
 
     def as_image(self):

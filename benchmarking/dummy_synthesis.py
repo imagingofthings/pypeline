@@ -8,6 +8,7 @@ import scipy.linalg as linalg
 
 from numpy.ctypeslib import ndpointer
 from ctypes import *
+from data_gen_utils import RandomDataGen
 
 #local imports
 import timing
@@ -15,55 +16,7 @@ import timing
 def make_complexdouble_array(c):
     return np.array([c]).astype(np.complex128)
 
-#################################################################################
-# Data Generator
-#################################################################################
-class RandomDataGen():
-    def __init__(self, precision = 32, order='F'):
 
-        if (precision == 32):
-            self.ftype = np.float32
-            self.ctype = np.complex64
-        elif (precision == 64):
-            self.ftype = np.float64
-            self.ctype = np.complex128
-        else:
-            raise Exception("Precision {0} not known".format(precision))
-
-        # input parameters
-        self.N_height  = 248#248
-        self.N_width   = 124#124
-        self.N_antenna = 550#550
-        self.N_beam = 24
-        self.N_eig  = 12
-        self.order=order
-        frequency = 145e6
-        self.wl = constants.speed_of_light / frequency
-
-    # pixel grid must have dimensions (3, N_height, N_width).
-    def getPixGrid(self):
-        pixGrid = np.random.rand(3, self.N_height, self.N_width)*2-1
-        #return pixGrid.astype(self.ftype)
-        return pixGrid.astype(self.ftype, order=self.order)
-
-    # visibilities matrix, (N_beam, N_eig) complex-valued eigenvectors.
-    def getV(self, i = 0):
-        V = np.random.rand(self.N_beam, self.N_eig)-0.5 + 1j*np.random.rand(self.N_beam, self.N_eig)-0.5j
-        return V.astype(self.ctype, order=self.order)
-
-    #  (N_antenna, 3) Cartesian instrument geometry.
-    def getXYZ(self, i = 0):
-        XYZ = np.random.rand(self.N_antenna,3)
-        #return XYZ.astype(self.ftype)
-        return XYZ.astype(self.ftype, order=self.order)
-
-    # beamforming weights (N_antenna, N_beam) synthesis beamweights.
-    def getW(self, i=0):
-        W = np.random.rand(self.N_antenna, self.N_beam)-0.5 + 1j*np.random.rand(self.N_antenna, self.N_beam)-0.5j
-        return W.astype(self.ctype, order=self.order)
-
-    def getVXYZW(self, i):
-        return (self.getV(i),self.getXYZ(i),self.getW(i))
 
 #################################################################################
 # Custom MM

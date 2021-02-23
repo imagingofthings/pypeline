@@ -241,35 +241,59 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         stat : :py:class:`~numpy.ndarray`
             (N_eig, N_height, N_FS + Q) field statistics.
         """
+        self.mark(self.timer_tag + "Synthesizer call")
         if not fsd._have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
+
+        self.mark(self.timer_tag + "Synthesizer: astype casts")
         V = V.astype(self._cp, copy=False)
         XYZ = XYZ.astype(self._fp, copy=False)
         W = W.astype(self._cp, copy=False)
+        self.unmark(self.timer_tag + "Synthesizer: astype casts")
 
+        self.mark(self.timer_tag + "Synthesizer: matmul 1")
         bfsf_XYZ = XYZ @ self._R.T
+        self.unmark(self.timer_tag + "Synthesizer: matmul 1")
+
+        self.mark(self.timer_tag + "Synthesizer: calc phase shift")
         if self._XYZk is None:
             phase_shift = np.inf
         else:
             phase_shift = self._phase_shift(bfsf_XYZ)
+        self.unmark(self.timer_tag + "Synthesizer: calc phase shift")
+
 
         if self._regen_required(phase_shift):
+            self.mark(self.timer_tag + "Synthesizer: regenerate kernel")
             self._regen_kernel(bfsf_XYZ)
             phase_shift = 0
+            self.unmark(self.timer_tag + "Synthesizer: regenerate kernel")
 
         N_antenna, N_height, _2N1Q = self._FSk.shape
         N = (self._NFS - 1) // 2
         Q = _2N1Q - self._NFS
         N_beam = W.shape[1]
 
+        #print("W.T shape:", W.T.shape)
+        #print("V.T shape:", V.T.shape)
+        #print("FSk shape:", N_antenna, N_height * _2N1Q)
+        #print("PW_FS shape:", N_beam, N_height, _2N1Q)
+
+        self.mark(self.timer_tag + "Synthesizer: matmuls 2 & 3")
         PW_FS = W.T @ self._FSk.reshape(N_antenna, N_height * _2N1Q)
         E_FS = np.tensordot(V.T, PW_FS.reshape(N_beam, N_height, _2N1Q), axes=1)
+        self.unmark(self.timer_tag + "Synthesizer: matmuls 2 & 3")
 
+        self.mark(self.timer_tag + "Synthesizer: apply phase shift")
         mod_phase = -1j * 2 * np.pi * phase_shift / self._T
         E_FS *= np.exp(mod_phase) ** np.r_[-N : N + 1, np.zeros(Q)]
+        self.unmark(self.timer_tag + "Synthesizer: apply phase shift")
 
+        self.mark(self.timer_tag + "Synthesizer: IFFS")
         E_Ny = pyffs.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2)
+        self.unmark(self.timer_tag + "Synthesizer: IFFS")
         I_Ny = E_Ny.real ** 2 + E_Ny.imag ** 2
+        self.unmark(self.timer_tag + "Synthesizer call")
         return I_Ny
 
     @chk.check("stat", chk.has_reals)
