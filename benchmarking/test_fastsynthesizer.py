@@ -14,6 +14,65 @@ from dummy_synthesis import synthesize, synthesize_stack
 
 from data_gen_utils import RandomDataGen, SimulatedDataGen, RealDataGen
 
+def draw_comparison(stats_standard, field_periodic, pix, icrs_grid):
+    img_standard = image.Image(stats_standard, pix)
+    img_periodic = image.Image(field_periodic, icrs_grid)
+    img_periodic_rot = image.Image(np.rot90(field_periodic,2), pix)
+    img_standard_rot = image.Image(np.rot90(stats_standard,2), icrs_grid)
+    img_diff_pix = image.Image(stats_standard - np.rot90(field_periodic,2), pix)
+    img_diff_icrs_grid = image.Image(np.rot90(stats_standard,2) - field_periodic, icrs_grid)
+
+    print("Difference between pix grid and  & icrs_grid:",  np.average(pix - icrs_grid))
+
+    fig, ax = plt.subplots(ncols=3, nrows = 2)
+    fig.tight_layout(pad = 2.0)
+    grid_kwargs = {"ticks": False}
+    color_diff = "RdBu"
+    img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "GnBu_r"}, grid_kwargs = grid_kwargs)
+    ax[0,0].set_title("Bluebild Standard Image\nSS Grid")
+    img_periodic_rot.draw(ax=ax[0,1], data_kwargs = {"cmap": "GnBu_r"}, grid_kwargs = grid_kwargs)
+    ax[0,1].set_title("Bluebild Periodic Image\nRotated 180$^\circ$\nSS Grid")
+    img_diff_pix.draw(ax=ax[0,2], data_kwargs =  {"cmap": color_diff},grid_kwargs = grid_kwargs)
+    ax[0,2].set_title("Difference\nSS Grid")
+
+    img_standard_rot.draw(ax=ax[1,0], data_kwargs = {"cmap": "GnBu_r"}, grid_kwargs = grid_kwargs)
+    ax[1,0].set_title("Bluebild Standard Image\nRotated 180$^\circ$\nPS Grid")
+    img_periodic.draw(ax=ax[1,1], data_kwargs = {"cmap": "GnBu_r"}, grid_kwargs = grid_kwargs)
+    ax[1,1].set_title("Bluebild Periodic Image\nPS Grid")
+    img_diff_icrs_grid.draw(ax=ax[1,2], data_kwargs =  {"cmap": color_diff}, grid_kwargs = grid_kwargs)
+    ax[1,2].set_title("Difference\nPS Grid")
+
+
+    fig.savefig("test_compare.png")
+    fig.show()
+    plt.show()
+
+def draw_levels(stats_standard, field_periodic, pix, icrs_grid):
+    grid_kwargs = {"ticks": False}
+    img_standard = image.Image(stats_standard, pix)
+    img_periodic = image.Image(field_periodic, icrs_grid)
+    img_standard_norm = image.Image(stats_standard_norm, pix)
+    img_periodic_norm = image.Image(field_periodic_norm, icrs_grid)
+
+    fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 2, figsize=(7, 3))
+    #fig.tight_layout(pad = 2.0)
+    img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
+    ax[0,0].set_title("Standard Image\nAll Levels")
+    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
+    ax[1,0].set_title("Periodic Image\nAll Levels")
+    img_standard_norm.draw(ax=ax[0,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
+    ax[0,1].set_title("Standard Image\nAll Levels, Normalized")
+    img_periodic_norm.draw(ax=ax[1,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
+    ax[1,1].set_title("Periodic Image\nAll Levels, Normalized")
+    for i in range(0,data.N_level):
+        print(i)
+        img_standard_norm.draw(ax=ax[0,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
+        ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
+        img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
+        ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
+    fig.show()
+    plt.show()
+
 if __name__ == "__main__":
 
     ###### make simulated dataset ###### 
@@ -21,8 +80,7 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
-    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS")
-    data.N_level = 4
+    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 3)
     #data = dummy_synthesis.RandomDataGen()
 
     ################################### 
@@ -44,76 +102,36 @@ if __name__ == "__main__":
     # iterate though timesteps
     # increase the range to run through more calls
     for t in range(1,2):
-        (V, XYZ, W) = data.getVXYZW(t)
+        (V, XYZ, W, D) = data.getVXYZWD(t)
         print("t = {0}".format(t))
 
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
         stats_standard = synthesizer_standard(V,XYZ,W)
 
+        D_r =  D.reshape(-1, 1, 1)
+
+        stats_standard_norm = stats_standard * D_r
+        stats_periodic_norm = stats_periodic * D_r
+
         # trasform the periodic field statistics to periodic eigenimages
-        field_periodic = synthesizer_periodic.synthesize(stats_periodic)
+        field_periodic      = synthesizer_periodic.synthesize(stats_periodic)
+        field_periodic_norm = synthesizer_periodic.synthesize(stats_periodic_norm)
+
 
         bfsf_grid = transform.pol2cart(1, data.px_colat_periodic, data.px_lon_periodic)
         icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
 
-
-        if pix.shape != icrs_grid.shape:
-            print("Trimming down PS grid")
-            icrs_grid = icrs_grid[:,:,:-1]
-            field_periodic = field_periodic[:,:,:-1]
-        
         try:
             print("Difference in results between standard & periodic synthesizers:", np.average( stats_standard - np.rot90(field_periodic,2)))
         except:
             print("Shapes are different between standard & periodic synthesizers. Standard: {0}, periodic: {1}".format(stats_standard.shape, field_periodic.shape ))
+            print("Trimming down PS grid")
+            icrs_grid = icrs_grid[:,:,:-1]
+            field_periodic = field_periodic[:,:,:-1]
+            field_periodic_norm = field_periodic_norm[:,:,:-1]
 
-        print(stats_standard.shape, pix.shape)
-        print(field_periodic.shape, icrs_grid.shape)
-        print(field_periodic[:,10,10], stats_standard[:,10,10])
-        img_standard  = image.Image(stats_standard, pix)
-        img_periodic = image.Image(field_periodic, icrs_grid)
-        img_periodic_rot  = image.Image(np.rot90(field_periodic,2), pix)
-        img_standard_rot = image.Image(np.rot90(stats_standard,2), icrs_grid)
-
-
-        img_diff_pix = image.Image(stats_standard - np.rot90(field_periodic,2), pix)
-        img_diff_icrs_grid = image.Image(np.rot90(stats_standard,2) - field_periodic, icrs_grid)
-
-        print("Difference between pix grid and  & icrs_grid:",  np.average(pix - icrs_grid))
-
-        fig, ax = plt.subplots(ncols=3, nrows = 2)
-        fig.tight_layout(pad = 2.0)
-        grid_kwargs = {"ticks": False}
-        color = "GnBu_r"
-        color2 = "PuBu_r"
-        color_diff = "RdBu"
-        img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": color}, grid_kwargs = grid_kwargs)
-        ax[0,0].set_title("Bluebild Standard Image\nSS Grid")
-        img_periodic_rot.draw(ax=ax[0,1], data_kwargs = {"cmap": color}, grid_kwargs = grid_kwargs)
-        ax[0,1].set_title("Bluebild Periodic Image\nRotated 180$^\circ$\nSS Grid")
-        img_diff_pix.draw(ax=ax[0,2], data_kwargs =  {"cmap": color_diff},grid_kwargs = grid_kwargs)
-        ax[0,2].set_title("Difference\nSS Grid")
-
-        img_standard_rot.draw(ax=ax[1,0], data_kwargs = {"cmap": color}, grid_kwargs = grid_kwargs)
-        ax[1,0].set_title("Bluebild Standard Image\nRotated 180$^\circ$\nPS Grid")
-        img_periodic.draw(ax=ax[1,1], data_kwargs = {"cmap": color}, grid_kwargs = grid_kwargs)
-        ax[1,1].set_title("Bluebild Periodic Image\nPS Grid")
-        img_diff_icrs_grid.draw(ax=ax[1,2], data_kwargs =  {"cmap": color_diff}, grid_kwargs = grid_kwargs)
-        ax[1,2].set_title("Difference\nPS Grid")
-
-
-        fig.savefig("test_compare.png")
-        fig.show()
-        plt.show()
-
-        fig, ax = plt.subplots(ncols=data.N_level, nrows = 2)
-        for i in range(data.N_level):
-            img_standard.draw(ax=ax[0,i], index=slice(0+i,1+i,None), data_kwargs = {"cmap": color}, grid_kwargs = grid_kwargs)
-            ax[0,i].set_title("Bluebild Standard Image Level {0}".format(i))
-            img_periodic.draw(ax=ax[1,i], index=slice(0+i,1+i,None), data_kwargs = {"cmap": color2}, grid_kwargs = grid_kwargs)
-            ax[1,i].set_title("Bluebild Periodic Image Level {0}".format(i))
-        fig.show()
-        plt.show()
+        #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
+        draw_levels(stats_standard, field_periodic, pix, icrs_grid)
 
     print(timer.summary())

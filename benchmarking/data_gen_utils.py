@@ -68,10 +68,10 @@ class RandomDataGen():
         return (self.getV(i),self.getXYZ(i),self.getW(i))
 #################################################################################
 class SimulatedDataGen():
-    def __init__(self, frequency):
+    def __init__(self, frequency, N_level = 4):
             # parameters
         self.wl = constants.speed_of_light / frequency
-        self.N_level = 4
+        self.N_level = N_level
 
         self.obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
         T_integration = 8
@@ -125,7 +125,7 @@ class SimulatedDataGen():
 
     def getPixGrid(self):
         return self.pix_grid
-    def getVXYZW(self, i):
+    def getVXYZWD(self, i):
         try:
             t = self.time[i]
         except:
@@ -135,13 +135,13 @@ class SimulatedDataGen():
         W = self.mb(XYZ, self.wl)
         S = self.vis(XYZ, W, self.wl)
         G = self.gram(XYZ, W, self.wl)
-        __, V, __ = self.I_dp(S, G)
-        return (V,XYZ.data, W.data)
+        D, V, __ = self.I_dp(S, G)
+        return (V,XYZ.data, W.data, D)
 #################################################################################
 class RealDataGen():
-    def __init__(self, ms_file):
+    def __init__(self, ms_file, N_level = 4):
         N_station = 24  #24
-        self.N_level = 4
+        self.N_level = N_level
         self.ms = measurement_set.LofarMeasurementSet(ms_file, N_station)
         self.gram = bb_gr.GramBlock()
 
@@ -188,7 +188,7 @@ class RealDataGen():
 
     def getPixGrid(self):
         return self.pix_grid
-    def getVXYZW(self, i):
+    def getVXYZWD(self, i):
         t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
 
         XYZ = self.ms.instrument(t)
@@ -197,4 +197,4 @@ class RealDataGen():
         S, _ = measurement_set.filter_data(S, W)
         D, V, c_idx = self.I_dp(S, G)
 
-        return (V,XYZ.data, W.data)
+        return (V,XYZ.data, W.data,D)
