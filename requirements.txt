@@ -29,3 +29,4 @@ scipy == 1.2.*
 sphinx == 1.8.*
 sphinx_rtd_theme == 0.4.*
 tqdm == 4.29.*
+pycsou == 1.0.5
