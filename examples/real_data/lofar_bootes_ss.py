@@ -44,7 +44,7 @@ N_bits = 32
 _, _, px_colat, px_lon = grid.equal_angle(
     N=ms.instrument.nyquist_rate(wl), direction=ms.field_center.cartesian.xyz.value, FoV=FoV
 )
-px_grid = transform.pol2cart(1, px_colat, px_lon)
+px_grid = transform.pol2cart(1, px_colat, px_lon).reshape(3, -1)
 
 ### Intensity Field ===========================================================
 # Parameter Estimation

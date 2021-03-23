@@ -8,5 +8,4 @@ pypeline.util
 .. autosummary::
    :toctree:
 
-   ~pypeline.util.plot
    ~pypeline.util.array
