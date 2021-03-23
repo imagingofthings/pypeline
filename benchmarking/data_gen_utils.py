@@ -139,8 +139,8 @@ class SimulatedDataGen():
         return (V,XYZ.data, W.data, D)
 #################################################################################
 class RealDataGen():
-    def __init__(self, ms_file, N_level = 4):
-        N_station = 24  #24
+    def __init__(self, ms_file, N_level = 4, N_station = 24):
+        #24
         self.N_level = N_level
         self.ms = measurement_set.LofarMeasurementSet(ms_file, N_station)
         self.gram = bb_gr.GramBlock()
@@ -173,8 +173,10 @@ class RealDataGen():
         self.estimateParams()
 
     def estimateParams(self):
-        # Parameter Estimation
+        # Intensity Field Parameter Estimation
         I_est = bb_pe.IntensityFieldParameterEstimator(self.N_level, sigma=0.95)
+        # Sensitivity Field Parameter Estimation
+        S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
         for t, f, S in self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(None, None, 200), column="DATA"):
             wl = constants.speed_of_light / f.to_value(u.Hz)
             XYZ = self.ms.instrument(t)
@@ -183,8 +185,11 @@ class RealDataGen():
             S, _ = measurement_set.filter_data(S, W)
 
             I_est.collect(S, G)
+            S_est.collect(G)
         N_eig, c_centroid = I_est.infer_parameters()
+        N_eig_S = S_est.infer_parameters()
         self.I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
+        self.S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig_S)
 
     def getPixGrid(self):
         return self.pix_grid
@@ -198,3 +203,14 @@ class RealDataGen():
         D, V, c_idx = self.I_dp(S, G)
 
         return (V,XYZ.data, W.data,D)
+    def getInputs(self, i):
+        t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
+
+        XYZ = self.ms.instrument(t)
+        W = self.ms.beamformer(XYZ, self.wl)
+        G = self.gram(XYZ, W, self.wl)
+        S, _ = measurement_set.filter_data(S, W)
+        D, V, c_idx = self.I_dp(S, G)
+        Ds, Vs = self.S_dp(G)
+
+        return (V, Vs, XYZ.data, W.data,D, Ds)

@@ -47,7 +47,7 @@ def draw_comparison(stats_standard, field_periodic, pix, icrs_grid):
     fig.show()
     plt.show()
 
-def draw_levels(stats_standard, field_periodic, pix, icrs_grid):
+def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_periodic_norm, pix, icrs_grid):
     grid_kwargs = {"ticks": False}
     img_standard = image.Image(stats_standard, pix)
     img_periodic = image.Image(field_periodic, icrs_grid)
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
-    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 3)
+    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4) # n level = # eigenimages
     #data = dummy_synthesis.RandomDataGen()
 
     ################################### 
@@ -101,7 +101,12 @@ if __name__ == "__main__":
 
     # iterate though timesteps
     # increase the range to run through more calls
-    for t in range(1,2):
+    stats_standard_combined = None
+    stats_periodic_combined = None
+    stats_standard_normcombined = None
+    stats_periodic_normcombined = None
+    icrs_grid = None
+    for t in range(0,10):
         (V, XYZ, W, D) = data.getVXYZWD(t)
         print("t = {0}".format(t))
 
@@ -131,7 +136,18 @@ if __name__ == "__main__":
             field_periodic = field_periodic[:,:,:-1]
             field_periodic_norm = field_periodic_norm[:,:,:-1]
 
+        print(stats_standard[0:3,0,0])
+        try:    stats_standard_combined += stats_standard
+        except: stats_standard_combined = stats_standard
+        try:    stats_periodic_combined += field_periodic
+        except: stats_periodic_combined = field_periodic
+        try:    stats_standard_normcombined += stats_standard_norm
+        except: stats_standard_normcombined = stats_standard_norm
+        try:    stats_periodic_normcombined += field_periodic_norm
+        except: stats_periodic_normcombined = field_periodic_norm
+
         #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
-        draw_levels(stats_standard, field_periodic, pix, icrs_grid)
+    draw_levels(stats_standard_combined, stats_periodic_combined,
+                stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
 
     print(timer.summary())

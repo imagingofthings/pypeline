@@ -10,6 +10,7 @@ import sys
 from numpy.ctypeslib import ndpointer
 from ctypes import *
 
+#numactl --physcpubind=0 python test_matrixmult.py
 
 class PointerWrapper(object):
     """Just like ndpointer, but accept None!"""
@@ -96,22 +97,22 @@ def doMMtest(timer, N_iter, N_antenna = 550, N_height = 248, N_width = 124, y= 3
         timer.end_time("numpy matmul")
         timer.set_Nops("numpy matmul",N_antenna *N_height *N_width * y)
 
-        from ctypes import CDLL
+        '''from ctypes import CDLL
         so_file = "/home/etolley/bluebild/pypeline/custom_matmul/zgemm-splat.so"
         custom_functions = CDLL(so_file)
         timer.start_time("custom matmul")
         C3 = custom_functions.zgemm()
 
-        timer.end_time("custom matmul")
+        timer.end_time("custom matmul")'''
 
 
-        '''timer.start_time("LAPACK DGEMM")
+        timer.start_time("LAPACK DGEMM")
         C3 = np.zeros( (N_antenna, N_height, N_width))
         for i in range(N_width):
             C3[:,:,i] = dgemm(1., A, B[:,:,i])
         timer.end_time("LAPACK DGEMM")
         timer.set_Nops("LAPACK DGEMM",N_antenna *N_height *N_width * y)
-        print("avg diff wrt tensordot:", getDiff(C1,C0), getDiff(C1,C1), getDiff(C1,C2), getDiff(C1,C3))'''
+        #print("avg diff wrt tensordot:", getDiff(C1,C0), getDiff(C1,C1), getDiff(C1,C2), getDiff(C1,C3))
 
     print ("End matrix dimensions: ",N_antenna, N_height, N_width)
     print(timer.summary())
@@ -144,11 +145,13 @@ def testCustomFunc():
     print(C)
 
 if __name__ == "__main__":
-    testCustomFunc()
-    sys.exit()
+    #testCustomFunc()
+
 
     # timer
     timer = timing.Timer()
+    doMMtest(timer, 1)
+    sys.exit()
 
     (N_antenna, N_height, N_width) = (550, 248, 124)
     (N_antenna, N_height, N_width) = (10000, 10000, 124)
