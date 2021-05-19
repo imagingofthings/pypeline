@@ -2,6 +2,7 @@ import sys,timing
 import numpy as np
 
 import imot_tools.io.s2image as image
+import imot_tools.io.fits as ifits
 import imot_tools.math.sphere.transform as transform
 import astropy.time as atime
 
@@ -50,9 +51,11 @@ def try_fix(stats_standard, stats_standard_norm,  pix, wcs,  thresfactor = 0.1):
     mask = np.sum(stats_standard, axis = 0)
     mask /= np.max(mask)
 
+    print(stats_standard_norm.shape)
+
     for i in range(0,data.N_level):
-       eigenimage = stats_standard_norm[i,:,:] 
-       eigenimage *= mask
+       eigenimage = stats_standard_norm[i,:] 
+       #eigenimage *= mask
        thresh = np.max(eigenimage)*thresfactor
        #stats_standard_norm[i,:,:] = [0 if a_ > thresh else a_ for a_ in stats_standard_norm[i,:,:]]
        super_threshold_indices = eigenimage < thresh
@@ -62,7 +65,7 @@ def try_fix(stats_standard, stats_standard_norm,  pix, wcs,  thresfactor = 0.1):
     img_standard_norm = image.Image(stats_standard_norm, pix)
     #
     #img_mask = image.WCSImage(mask, wcs)
-    i#mg_standard_norm = image.WCSImage(stats_standard_norm, wcs)
+    #img_standard_norm = image.WCSImage(stats_standard_norm, wcs)
 
     import copy
     my_cmap = copy.copy(cm.get_cmap("GnBu_r")) # copy the default cmap
@@ -112,6 +115,7 @@ if __name__ == "__main__":
 
     # iterate though timesteps
     # increase the range to run through more calls
+    init_final_arrays= False
     stats_standard_combined = None
     stats_periodic_combined = None
     stats_standard_normcombined = None
@@ -124,71 +128,54 @@ if __name__ == "__main__":
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
         stats_standard = synthesizer_standard(V,XYZ,W)
-        stats_sens_periodic = synthesizer_periodic(Vs,XYZ,W)
+        #stats_sens_periodic = synthesizer_periodic(Vs,XYZ,W)
         stats_sens_standard = synthesizer_standard(Vs,XYZ,W)
         stats_sens_standard = np.sum(stats_sens_standard, axis = 0)
 
-        D_r  =  D.reshape(-1, 1, 1)
-        #D_rs =  Ds.reshape(-1, 1, 1)
 
-        stats_standard_norm = stats_standard * D_r
-        stats_periodic_norm = stats_periodic * D_r
-        #stats_sens_standard_norm = stats_sens_standard * D_rs
-        #stats_sens_periodic_norm = stats_sens_periodic * D_rs
+        stats_standard_norm = stats_standard * D.reshape(-1, 1)
+        stats_periodic_norm = stats_periodic *  D.reshape(-1, 1,1)
+        #stats_sens_standard_norm = stats_sens_standard * Ds.reshape(-1, 1, 1)
+        #stats_sens_periodic_norm = stats_sens_periodic * Ds.reshape(-1, 1, 1)
 
         # trasform the periodic field statistics to periodic eigenimages
         field_periodic      = synthesizer_periodic.synthesize(stats_periodic)
         field_periodic_norm = synthesizer_periodic.synthesize(stats_periodic_norm)
-        field_sens_periodic      = synthesizer_periodic.synthesize(stats_sens_periodic)
+        #field_sens_periodic = synthesizer_periodic.synthesize(stats_sens_periodic)
         #field_sens_periodic_norm = synthesizer_periodic.synthesize(stats_sens_periodic_norm)
 
 
         bfsf_grid = transform.pol2cart(1, data.px_colat_periodic, data.px_lon_periodic)
         icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
 
-        try:
-            print("Difference in results between standard & periodic synthesizers:", np.average( stats_standard - np.rot90(field_periodic,2)))
-        except:
-            print("Shapes are different between standard & periodic synthesizers. Standard: {0}, periodic: {1}".format(stats_standard.shape, field_periodic.shape ))
-            print("Trimming down PS grid")
-            icrs_grid                = icrs_grid[:,:,:-1]
-            field_periodic           = field_periodic[:,:,:-1]
-            field_periodic_norm      = field_periodic_norm[:,:,:-1]
-            field_sens_periodic      = field_sens_periodic[:,:,:-1]
-            #field_sens_periodic_norm = field_sens_periodic_norm[:,:,:-1]
-
-        print(stats_standard.shape)
-        print(stats_sens_standard.shape)
-        try:
-            for n in range(stats_standard.shape[0]):
-                stats_standard_combined[n,:,:]     += stats_standard[n,:,:]/stats_sens_standard
-                stats_standard_normcombined[n,:,:] += stats_standard_norm[n,:,:]/stats_sens_standard
-                stats_periodic_combined[n,:,:]     += field_periodic[n,:,:]/stats_sens_standard
-                stats_periodic_normcombined[n,:,:] += field_periodic_norm[n,:,:]/stats_sens_standard
-        except:
+        print(field_periodic.shape, stats_standard.shape, stats_standard_norm.shape)
+        if not init_final_arrays:
             stats_standard_combined = np.zeros(stats_standard.shape)
             stats_standard_normcombined = np.zeros(stats_standard.shape)
-            stats_periodic_combined = np.zeros(stats_standard.shape)
-            stats_periodic_normcombined = np.zeros(stats_standard.shape)
-            for n in range(stats_standard.shape[0]):
-                stats_standard_combined[n,:,:]     += stats_standard[n,:,:]/stats_sens_standard
-                stats_standard_normcombined[n,:,:] += stats_standard_norm[n,:,:]/stats_sens_standard
-                stats_periodic_combined[n,:,:]     += field_periodic[n,:,:]/stats_sens_standard
-                stats_periodic_normcombined[n,:,:] += field_periodic_norm[n,:,:]/stats_sens_standard
+            stats_periodic_combined = np.zeros(field_periodic.shape)
+            stats_periodic_normcombined = np.zeros(field_periodic.shape)
+            init_final_arrays = True
+        for n in range(data.N_level):
+            stats_standard_combined[n,:]     += stats_standard[n,:]#/stats_sens_standard
+            stats_standard_normcombined[n,:] += stats_standard_norm[n,:]#/stats_sens_standard
+            stats_periodic_combined[n,:]     += field_periodic[n,:]#/stats_sens_standard
+            stats_periodic_normcombined[n,:] += field_periodic_norm[n,:]#/stats_sens_standard
+
 
         #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
-    #draw_levels(stats_standard_combined, stats_periodic_combined,
-    #            stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
+    draw_levels(stats_standard_combined, stats_periodic_combined,
+                stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
     from astropy.io import fits
     import astropy.wcs as pywcs
-    with fits.open("/home/etolley/data/gauss4/gauss4-image-pb.fits") as hdul:
-    #with fits.open("/home/etolley/data/gauss4/C_4gaussian-model.fits") as hdul:
+    #with fits.open("/home/etolley/data/gauss4/gauss4-image-pb.fits") as hdul:
+    with fits.open("/home/etolley/data/gauss4/C_4gaussian-model.fits") as hdul:
         wcs = pywcs.WCS(hdul[0].header)
+        wcs = wcs.sub(['celestial'])
     img_standard = image.Image(stats_standard_combined, pix)
-    img_periodic = image.Image(stats_periodic_combined, icrs_grid)
     img_standard.to_fits('bluebild_standard_4gauss.fits')
-    img_periodic.to_fits('bluebild_periodic_4gauss.fits')
 
-    try_fix(stats_standard_combined, stats_standard_normcombined,  pix, wcs)
+    #try_fix(stats_standard_combined, stats_standard_normcombined,  pix, wcs)
 
     print(timer.summary())
+
+

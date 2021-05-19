@@ -24,7 +24,7 @@ def examine(filename):
 	print(freq)
 
 
-ms_files = ["/home/etolley/data/gauss_emma/gauss1hr_t201806301100_SBL150.MS"]
+ms_files = ["/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"]
 for m in ms_files: examine(m)
 
 

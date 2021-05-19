@@ -201,8 +201,8 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         self.mark("Image synthesis")
         stat_std = self._synthesizer(V, XYZ, W)
         self.unmark("Image synthesis")
-        #stat_lsq = stat_std * D.reshape(-1, 1, 1)
-        stat_lsq = stat_std * D.reshape(-1, 1)
+        stat_lsq = stat_std * D.reshape(-1, 1, 1)
+        #stat_lsq = stat_std * D.reshape(-1, 1)
 
         stat = np.stack([stat_std, stat_lsq], axis=0)
         self.mark("Image cluster layers")

@@ -152,8 +152,8 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self._wl = wl
 
-        if not ((pix_grid.ndim == 2) and (len(pix_grid) == 3)):
-            raise ValueError("Parameter[pix_grid] must have dimensions (3, N_px).")
+        if not ((pix_grid.ndim == 3) and (len(pix_grid) == 3)):
+            raise ValueError("Parameter[pix_grid] must have dimensions (3, N_height, N_width).")
         self._grid = pix_grid / linalg.norm(pix_grid, axis=0)
 
     @chk.check(
@@ -185,9 +185,12 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
+
         self.mark(self.timer_tag + "Synthesizer call")
 
-        self.mark(self.timer_tag + "Synthesizer numpy formatting")
+        
+
+        self.mark(self.timer_tag + "Synthesizer numpy formatting & array allocation")
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
@@ -195,38 +198,27 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         W = W.astype(self._cp, copy=False)
 
         N_antenna, N_beam = W.shape
-        N_px = self._grid.shape[1]
+        N_height, N_width = self._grid.shape[1:]
+        N_eig = V.shape[1]
+
+        
 
         XYZ = XYZ - XYZ.mean(axis=0)
-        #P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
-        P = np.zeros((N_antenna, N_px), dtype=self._cp)
 
-        self.unmark(self.timer_tag + "Synthesizer numpy formatting")
-
-        self.mark(self.timer_tag + "Synthesizer numpy tensordot 1")
         a = 1j * 2 * np.pi / self._wl
-        #b = np.tensordot(XYZ, self._grid, axes=1)
-        b = XYZ @ self._grid
+        E  = np.zeros((N_eig, N_height, N_width),  dtype=self._cp)
 
-        self.unmark(self.timer_tag + "Synthesizer numpy tensordot 1")
-        self.mark(self.timer_tag + "Synthesizer numexpr exponential")
-        ne.evaluate(
-            "exp(A * B)",
-            dict(A=a, B=b),
-            out=P,
-            casting="same_kind",
-        )  # Due to limitations of NumExpr2
-        self.unmark(self.timer_tag + "Synthesizer numexpr exponential")
+        self.unmark(self.timer_tag + "Synthesizer numpy formatting & array allocation")
 
-        self.mark(self.timer_tag + "Synthesizer numpy reshaping")
-        PW = W.T @ P.reshape(N_antenna, N_height * N_width)
-        PW = PW.reshape(N_beam, N_height, N_width)
-        self.unmark(self.timer_tag + "Synthesizer numpy reshaping")
-
-        self.mark(self.timer_tag + "Synthesizer numpy tensordot 2")
-        #E = np.tensordot(V.T, PW, axes=1)
-        E = V.T @ (W.T @ P)
-        self.unmark(self.timer_tag + "Synthesizer numpy tensordot 2")
+        for i in range(N_width):  
+          print("On iteration {0} of {1}".format(i, N_width))         
+          B = XYZ @ self._grid[:,:,i]
+          print(B.shape)
+          P = np.zeros(B.shape, dtype=self._cp)
+          ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
+          print( (W.T).shape, P.shape)
+          PW = W.T @ P
+          E[:,:,i]  = V.T @ PW
 
         I = E.real ** 2 + E.imag ** 2
 

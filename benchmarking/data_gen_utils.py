@@ -21,7 +21,7 @@ import imot_tools.math.sphere.transform as transform
 # Data Generators
 #################################################################################
 class RandomDataGen():
-    def __init__(self, precision = 32, order='F'):
+    def __init__(self, precision = 32, N_station = 24, order='F'):
 
         if (precision == 32):
             self.ftype = np.float32
@@ -33,11 +33,18 @@ class RandomDataGen():
             raise Exception("Precision {0} not known".format(precision))
 
         # input parameters
-        self.N_height  = 248#248
-        self.N_width   = 124#124
-        self.N_antenna = 550#550
-        self.N_beam = 24
-        self.N_eig  = 12
+        if N_station == 24 :
+            self.N_height  = 149#248
+            self.N_width   = 74#124
+            self.N_antenna = 1066#550
+            self.N_beam = 24
+            self.N_eig  = 4
+        if N_station == 37 :
+            self.N_height  = 4911#248
+            self.N_width   = 2455#124
+            self.N_antenna = 1631#550
+            self.N_beam = 37
+            self.N_eig  = 4
         self.order=order
         frequency = 145e6
         self.wl = constants.speed_of_light / frequency
@@ -165,7 +172,7 @@ class RealDataGen():
              direction=self.ms.field_center.cartesian.xyz.value,
              FoV=self.FoV
         )
-        self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
+        self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon).reshape(3, -1)
 
         self.i = 0
         self.N_FS, self.T_kernel = self.ms.instrument.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.obs_end), np.deg2rad(10)
@@ -187,6 +194,7 @@ class RealDataGen():
             I_est.collect(S, G)
             S_est.collect(G)
         N_eig, c_centroid = I_est.infer_parameters()
+        print("test reco:", N_eig, c_centroid)
         N_eig_S = S_est.infer_parameters()
         self.I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
         self.S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig_S)
@@ -206,9 +214,10 @@ class RealDataGen():
     def getInputs(self, i):
         t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
 
+        wl = constants.speed_of_light / f.to_value(u.Hz) #self.wl
         XYZ = self.ms.instrument(t)
-        W = self.ms.beamformer(XYZ, self.wl)
-        G = self.gram(XYZ, W, self.wl)
+        W = self.ms.beamformer(XYZ, wl)
+        G = self.gram(XYZ, W, wl)
         S, _ = measurement_set.filter_data(S, W)
         D, V, c_idx = self.I_dp(S, G)
         Ds, Vs = self.S_dp(G)

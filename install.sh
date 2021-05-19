@@ -21,6 +21,8 @@ conda create --name=pypeline       \
              --file=conda_requirements.txt
 source pypeline.sh --no_shell
 
+pip install pycsou
+
 cd ..
 
 git clone https://github.com/imagingofthings/pyFFS.git
@@ -37,6 +39,9 @@ git checkout v1.0
 python3 setup.py develop --user
 
 cd ..
+
+git clone https://github.com/matthieumeo/pycsou.git
+pip install -e pycsou/
 
 cd pypeline/
 # you may need to modify this path for your own directory structure
