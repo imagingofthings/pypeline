@@ -392,7 +392,7 @@ if __name__ == "__main__":
     frequency = 145e6
     wl = constants.speed_of_light / frequency
 
-    data = RandomDataGen(64, N_station = 37) # 24 or 37
+    data = RandomDataGen(64, N_station = 24) # 24 or 37
 
     timer = timing.Timer()
 
@@ -406,7 +406,7 @@ if __name__ == "__main__":
         stat_sdum = synthesize_loop(pix,V,XYZ,W, wl)
         timer.end_time("Test dummy synthesis")
 
-        break
+        #break
 
         # call the dummy synthesis kernal
         timer.start_time("Dummy synthesis")

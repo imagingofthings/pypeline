@@ -4,43 +4,95 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import matplotlib.cm as cm
 import numpy as np
+from scipy import ndimage
+import sys
 
-with fits.open("bluebild_processed_4gauss.fits") as hdul:
-    print(hdul)
-    grid = hdul[0].data
-    data = hdul[1].data
+with fits.open("/home/etolley/bluebild/pypeline/bluebild_ss_4gauss_37Sta.fits") as hdul:
+    bb_data = hdul[1].data
+    #data = hdul[1].data
 
 with fits.open("/home/etolley/data/gauss4/gauss4-image-pb.fits") as hdul:
-    wcs = pywcs.WCS(hdul[0].header)
-    clean_data = np.flip(hdul[0].data[0,0,:,:])
-
-print(wcs)
-corner_coords = wcs.wcs_pix2world([[ 0,0,0,0], [ 2000,2000,0,0]], 0)
-corners = [(c[0],c[1]) for c in corner_coords]
-a1, b1 = corners[0][0], corners[0][1]
-a2, b2 = corners[1][0], corners[1][1]
-
-x1, y1 = grid[0,0,0], grid[1,0,0]
-x2, y2 = grid[0,-1,-1], grid[1,-1,-1]
-print("coord diffs:", x2-x1, y2-y1, a2-a1, b2-b1)
+    clean_data = hdul[0].data[0,0,:,:]
 
 with fits.open("/home/etolley/data/gauss4/C_4gaussian-model.fits") as hdul:
-    true_data = np.flip(hdul[0].data[:,:])
- 
-print(clean_data.shape)
+    true_data = hdul[0].data
 
+avg_true_data_val = np.mean(true_data)
+regions = ndimage.find_objects(ndimage.label(true_data > avg_true_data_val)[0])
+print(regions)
 
+bb_mask = np.zeros(bb_data.shape)
+for i in range(4):
+    bb_mask[i,:,:] /= np.max(bb_mask[i,:,:] )
 
-fig, axs = plt.subplots(2, 3)
-#fig.tight_layout(pad = 0.5)
-plt.subplots_adjust(bottom=0.1, top=0.9, wspace=0.2, hspace = 0.3)
+bb_data = bb_mask
+
 
 import copy
 my_cmap = copy.copy(cm.get_cmap("GnBu_r")) # copy the default cmap
 my_cmap.set_bad((0,0,0))
 
-bb_data = np.sum(data,axis = 0)
+bb_data_sum = np.sum(bb_data,axis = 0)
 
+fig, axs = plt.subplots(2, 4)
+axs = axs.flatten()
+plt.subplots_adjust(bottom=0.05, top=0.95, wspace=0.35, hspace = 0.2)
+
+axs[0].imshow(bb_data_sum,  cmap = my_cmap, extent = [0, 2000, 0, 2000], origin='lower')
+axs[0].set_title("Bluebild Combined")
+axs[1].imshow(clean_data, cmap = my_cmap, origin='lower')
+axs[1].set_title("WSCLEAN")
+axs[2].imshow(true_data, cmap = my_cmap, origin='lower')
+axs[2].set_title("Truth")
+
+for i in range(4):
+    axs[4+i].imshow(bb_data[i],  cmap = my_cmap, extent = [0, 2000, 0, 2000], origin='lower')
+    axs[4+i].set_title("Bluebild Level {0}".format(i))
+avg_level_fluxes = [np.mean(bb_data[i]) for i in range(4)]
+
+true_fluxes, clean_fluxes, bb_fluxes, bb_level_fluxes = [],[],[],[]
+margin = 50
+
+for r in regions:
+    x1, x2 = r[0].start-margin, r[0].stop+margin
+    y1, y2 = r[1].start-margin, r[1].stop+margin
+    #print(x1,x2,y1,y2)
+    axs[0].add_patch(plt.Rectangle((y1,x1), y2-y1, x2-x1, fill = False, edgecolor="r"))
+    axs[1].add_patch(plt.Rectangle((y1,x1), y2-y1, x2-x1, fill = False, edgecolor="r"))
+    axs[2].add_patch(plt.Rectangle((y1,x1), y2-y1, x2-x1, fill = False, edgecolor="r"))
+
+    bb_level_flux = 0
+    for i in range(4):
+        sample_flux = np.mean(bb_data[i, int(x1/10) : int(x2/10), int(y1/10): int(y2/10)])
+        print(i, sample_flux > avg_level_fluxes[i] )
+        if sample_flux > avg_level_fluxes[i]:
+            #axs[i+4].add_patch(plt.Rectangle((y1,x1), y2-y1, x2-x1, fill = False, edgecolor="r"))
+            bb_level_flux += sample_flux
+
+    true_fluxes.append(  np.sum(true_data[x1:x2, y1:y2]))
+    clean_fluxes.append( np.sum(clean_data[x1:x2, y1:y2]))
+    bb_fluxes.append(    np.sum(bb_data_sum[ int(x1/10) : int(x2/10), int(y1/10): int(y2/10)]))
+    bb_level_fluxes.append(bb_level_flux)
+
+print(bb_level_fluxes)
+clean_fluxes = np.array(clean_fluxes) / max(clean_fluxes) 
+bb_level_fluxes = np.array(bb_level_fluxes) / max(bb_level_fluxes) 
+bb_fluxes = np.array(bb_fluxes) / max(bb_fluxes) 
+x = np.arange(min(true_fluxes), max(true_fluxes))
+axs[3].plot(true_fluxes, clean_fluxes, 'ro', label = "WSCLEAN Flux")
+#axs[1,2].plot(true_fluxes, [m1*x+b1 for x in true_fluxes], 'r-')
+axs[3].plot(true_fluxes, bb_fluxes, 'bo', label = "Combined Bluebild Flux")
+#axs[3].plot(true_fluxes, bb_level_fluxes, 'go', label = "Per-Level Bluebild Flux")
+#axs[1,2].plot(true_fluxes, [m2*x+b2 for x in true_fluxes], 'b-')
+axs[3].set(xlabel = "True Flux", ylabel = "Normalized Reconstructed Flux")
+axs[3].legend()
+
+axs[3].set_title("Reconstructed Flux")
+
+plt.show()
+
+
+sys.exit()
 bb_extent = [-400,2400,-800,2800]
 
 source_locs = [(180, 530), (460, 1550), (1360, 1367), (1439, 20)]
