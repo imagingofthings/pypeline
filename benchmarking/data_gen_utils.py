@@ -172,7 +172,8 @@ class RealDataGen():
              direction=self.ms.field_center.cartesian.xyz.value,
              FoV=self.FoV
         )
-        self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon).reshape(3, -1)
+        #self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon).reshape(3, -1)
+        self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
 
         self.i = 0
         self.N_FS, self.T_kernel = self.ms.instrument.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.obs_end), np.deg2rad(10)

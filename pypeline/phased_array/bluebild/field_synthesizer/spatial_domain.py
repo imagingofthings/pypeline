@@ -210,17 +210,16 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self.unmark(self.timer_tag + "Synthesizer numpy formatting & array allocation")
 
-        for i in range(N_width):  
-          print("On iteration {0} of {1}".format(i, N_width))         
+        self.mark(self.timer_tag + "Synthesizer matmuls")
+        for i in range(N_width):        
           B = XYZ @ self._grid[:,:,i]
-          print(B.shape)
           P = np.zeros(B.shape, dtype=self._cp)
           ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
-          print( (W.T).shape, P.shape)
           PW = W.T @ P
           E[:,:,i]  = V.T @ PW
 
         I = E.real ** 2 + E.imag ** 2
+        self.unmark(self.timer_tag + "Synthesizer matmuls")
 
         self.unmark(self.timer_tag + "Synthesizer call")
 

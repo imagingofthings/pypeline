@@ -32,7 +32,7 @@ from imot_tools.math.func import SphericalDirichlet
 import joblib as job
 
 # Instrument
-N_station = 37
+N_station = 24
 ms_file = "/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station) # stations 1 - N_station 
 gram = bb_gr.GramBlock()

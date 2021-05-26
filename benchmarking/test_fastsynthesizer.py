@@ -106,7 +106,7 @@ if __name__ == "__main__":
     stats_standard_normcombined = None
     stats_periodic_normcombined = None
     icrs_grid = None
-    for t in range(0,10):
+    for t in range(0,1):
         (V, XYZ, W, D) = data.getVXYZWD(t)
         print("t = {0}".format(t))
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
         except: stats_periodic_normcombined = field_periodic_norm
 
         #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
-    draw_levels(stats_standard_combined, stats_periodic_combined,
-                stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
+    #draw_levels(stats_standard_combined, stats_periodic_combined,
+    #            stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
 
     print(timer.summary())

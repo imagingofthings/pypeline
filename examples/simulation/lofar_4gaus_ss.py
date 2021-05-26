@@ -33,7 +33,7 @@ from imot_tools.math.func import SphericalDirichlet
 import joblib as job
 
 # Instrument
-N_station = 24
+N_station = 37
 ms_file = "/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station) # stations 1 - N_station 
 gram = bb_gr.GramBlock()
@@ -108,7 +108,7 @@ I_std, I_lsq = I_mfs.as_image()
 
 ### Sensitivity Field =========================================================
 # Parameter Estimation
-S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
+'''S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
 for t in ProgressBar(ms.time["TIME"][::200]):
     XYZ = ms.instrument(t)
     W = ms.beamformer(XYZ, wl)
@@ -133,12 +133,12 @@ for t, f, S in ProgressBar(
 
     D, V = S_dp(G)
     _ = S_mfs(D, V, XYZ.data, W.data, cluster_idx=np.zeros(N_eig, dtype=int))
-_, S = S_mfs.as_image()
+_, S = S_mfs.as_image()'''
 
 # Plot Results ================================================================
 fig, ax = plt.subplots(ncols=N_level, nrows=2)
-I_std_eq = s2image.Image(I_std.data / S.data , I_std.grid) #  / S.data
-I_lsq_eq = s2image.Image(I_lsq.data / S.data, I_lsq.grid) # / S.data
+I_std_eq = s2image.Image(I_std.data, I_std.grid) #  / S.data
+I_lsq_eq = s2image.Image(I_lsq.data, I_lsq.grid) # / S.data
 
 for i in range(N_level):
     I_std_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[0,i])
@@ -146,9 +146,9 @@ for i in range(N_level):
     I_lsq_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[1,i])
     ax[1,i].set_title("Least-Squares Image Level = {0}".format(i))
 fig.show()
-plt.show()
-plt.savefig("4gauss_standard")
-sys.exit()
+#plt.show()
+#sys.exit()
+#plt.savefig("4gauss_standard")
 
 '''print("Testing interpolation inputs...")
 print(N_level, I_lsq_eq.data.shape, I_lsq_eq.data.reshape(N_level, -1).shape )
@@ -172,21 +172,21 @@ N_cl_lon, N_cl_lat = cl_pix_icrs.shape[-2:]
 # Why are we doing this? The Bluebild image produced by PeriodicSynthesis lies
 # in the BFSF frame. We therefore need to do the interpolation in BFSF
 # coordinates.
-cl_pix_bfsf = np.tensordot(R, cl_pix_icrs, axes=1)
+#cl_pix_bfsf = np.tensordot(R, cl_pix_icrs, axes=1)
 # TODO/NB: to modify for SS remove above line
 
 # 3. Interpolation: Part I.
 # Due to the high Nyquist rate in astronomy and large pixel count in the images,
 # it is advantageous to do sparse interpolation. Doing so requires first
 # computing the interpolation kernel's spatial support per output pixel.
-bb_pix_bfsf = transform.pol2cart(1, pix_colat, pix_lon)  # Bluebild critical support points
+#bb_pix_bfsf = transform.pol2cart(1, pix_colat, pix_lon)  # Bluebild critical support points
 # TODO/NB: to modify for SS remove above line
 
 dirichlet_kernel = SphericalDirichlet(N=ms.instrument.nyquist_rate(wl), approx=True)
 nside = (ms.instrument.nyquist_rate(wl) + 1) / 3
 nodal_width = 2.8345 / np.sqrt(12 * nside ** 2)
-interpolator = pyclop.MappedDistanceMatrix(samples1=cl_pix_bfsf.reshape(3, -1).transpose(), # output res, replace with icrs for SS
-                                           samples2=bb_pix_bfsf.reshape(3, -1).transpose(), # input res, replace with icrs for SS
+interpolator = pyclop.MappedDistanceMatrix(samples1=cl_pix_icrs.reshape(3, -1).transpose(), # output res, replace with icrs for SS
+                                           samples2=px_grid.reshape(3, -1).transpose(), # input res, replace with icrs for SS
                                            function=dirichlet_kernel,
                                            mode='zonal', operator_type='sparse', max_distance=10 * nodal_width,
                                            #eps=1e-1,
@@ -194,10 +194,10 @@ interpolator = pyclop.MappedDistanceMatrix(samples1=cl_pix_bfsf.reshape(3, -1).t
 
 with job.Parallel(backend='loky', n_jobs=-1, verbose=True) as parallel:
     interpolated_maps = parallel(job.delayed(interpolator)
-                                 (I_std_eq.data.reshape(N_level, -1)[n])
+                                 (I_lsq_eq.data.reshape(N_level, -1)[n])
                                  for n in range(N_level))
 
-f_interp = np.stack(interpolated_maps, axis=0).reshape((N_level,) + cl_pix_bfsf.shape[1:])
+f_interp = np.stack(interpolated_maps, axis=0).reshape((N_level,) + cl_pix_icrs.shape[1:])
 f_interp = f_interp / (ms.instrument.nyquist_rate(wl) + 1)
 f_interp = np.clip(f_interp, 0, None)
 fig, ax = plt.subplots(ncols=N_level, nrows=2)
@@ -207,11 +207,11 @@ fig, ax = plt.subplots(ncols=N_level, nrows=2)
 print(f_interp.shape, I_std.data.shape)
 
 for i in range(N_level):
-    I_std_eq_orig = s2image.Image(I_std.data[i,] / S.data, I_std.grid)
-    I_std_eq_orig.draw(catalog=sky_model.xyz.T, ax=ax[0,i])
+    I_lsq_eq_orig = s2image.Image(I_lsq_eq.data[i,], I_lsq_eq.grid)
+    I_lsq_eq_orig.draw(catalog=sky_model.xyz.T, ax=ax[0,i])
     ax[0,i].set_title("Critically sampled Bluebild Standard Image Level = {0}".format(i))
 
-    I_lsq_eq_interp = s2image.Image(f_interp[i,], cl_pix_bfsf)
+    I_lsq_eq_interp = s2image.Image(f_interp[i,], cl_pix_icrs)
     I_lsq_eq_interp.draw(ax=ax[1,i])
     ax[1,i].set_title("Interpolated Bluebild Standard Image Level = {0}".format(i))
 plt.show()
@@ -223,4 +223,4 @@ f_interp = (f_interp  # We need to transpose axes due to the FORTRAN
             .reshape(N_level, N_cl_lon, N_cl_lat)  # indexing conventions of the FITS standard.
             .transpose(0, 2, 1))
 I_lsq_eq_interp = s2image.WCSImage(f_interp, cl_WCS)
-I_lsq_eq_interp.to_fits('bluebild_periodic_4gauss_newinterp_si.fits')
+I_lsq_eq_interp.to_fits('bluebild_ss_4gauss_{0}Stations.fits'.format(N_station))

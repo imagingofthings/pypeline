@@ -1,6 +1,7 @@
 #numactl --physcpubind=0 python test_parallel_synthesis.py
 
 import numpy as np
+import cupy as cp
 import numexpr as ne
 from numpy import matmul
 from scipy.linalg import expm
@@ -153,33 +154,6 @@ def synthesize(pixGrid, V, XYZ, W, wl):
 
     return I
 
-# does the same calculations as synthesize but iterating throught
-# the matrix stack instead of uisng tensordot. 
-# difference between the results is quite large, ~1e-7
-'''def synthesize_stack(pixGrid, V, XYZ, W, wl):  
-    N_antenna, N_beam = W.shape
-    N_height, N_width = pixGrid.shape[1:] 
-    N_eig = V.shape[1]
-
-    pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
-    XYZ = XYZ - XYZ.mean(axis=0)
-
-    a = 1j * 2 * np.pi / wl
-    B  = np.zeros((N_antenna, N_height,N_width),dtype=np.float32)
-    P  = np.zeros(B.shape,                      dtype=np.complex64)
-    PW = np.zeros((N_beam, N_height, N_width),  dtype=np.complex64)
-    E  = np.zeros((N_eig, N_height, N_width),   dtype=np.complex64)
-    I  = np.zeros(E.shape,                      dtype=np.float32)
-    for i in range(N_width): #iterate over N_width
-        B[:,:,i]  = matmul(XYZ, pixGrid[:,:,i])
-        #P[:,:,i]  = np.exp(a*B[:,:,i])
-        ne.evaluate( "exp(A * B)",dict(A=a, B=B[:,:,i]),out=P[:,:,i],casting="same_kind",) 
-        PW[:,:,i] = matmul(W.T,P[:,:,i])
-        E[:,:,i]  = matmul(V.T, PW[:,:,i])
-        I[:,:,i] = E[:,:,i].real ** 2 + E[:,:,i].imag ** 2
-
-    return I'''
-
 def synthesize_loop(pixGrid, V, XYZ, W, wl):  
     N_antenna, N_beam = W.shape
     N_height, N_width = pixGrid.shape[1:] 
@@ -192,16 +166,40 @@ def synthesize_loop(pixGrid, V, XYZ, W, wl):
     E  = np.zeros((N_eig, N_height, N_width),   dtype=np.complex64)
 
     for i in range(N_width): #iterate over N_width
-        print("On iteration {0} of {1}".format(i, N_width))
+        #print("On iteration {0} of {1}".format(i, N_width))
         B  = matmul(XYZ, pixGrid[:,:,i])
         P = np.zeros(B.shape,dtype=np.complex64)
-        ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
-
-        #pix = pixGrid[:,:,i]
-        #P = dgemmexp(XYZ,pix,a)
-        
+        ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",)         
         PW = matmul(W.T,P)
         E[:,:,i]  = matmul(V.T, PW)
+    I = E.real ** 2 + E.imag ** 2
+
+    return I
+
+def synthesize_loop_gpu(pixGrid, V, XYZ, W, wl):  
+    N_antenna, N_beam = W.shape
+    N_height, N_width = pixGrid.shape[1:] 
+    N_eig = V.shape[1]
+
+    pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
+    XYZ = XYZ - XYZ.mean(axis=0)
+    XYZ_gpu = cp.asarray(XYZ)
+    WT_gpu = cp.asarray(W.T)
+    VT_gpu = cp.asarray(V.T)
+
+    a = 1j * 2 * np.pi / wl
+    E  = np.zeros((N_eig, N_height, N_width),   dtype=np.complex64)
+
+    for i in range(N_width): #iterate over N_width
+        #print("On iteration {0} of {1}".format(i, N_width))
+        pix_gpu = cp.asarray(pixGrid[:,:,i])
+
+        B  = cp.matmul(XYZ_gpu, pix_gpu)
+        P  = cp.exp(B*a)        
+        PW = cp.matmul(WT_gpu,P)
+        E_part = cp.matmul(VT_gpu, PW)
+
+        E[:,:,i] = E_part.get()
     I = E.real ** 2 + E.imag ** 2
 
     return I
@@ -392,7 +390,7 @@ if __name__ == "__main__":
     frequency = 145e6
     wl = constants.speed_of_light / frequency
 
-    data = RandomDataGen(64, N_station = 24) # 24 or 37
+    data = RandomDataGen(64, N_station = 37) # 24 or 37
 
     timer = timing.Timer()
 
@@ -406,7 +404,12 @@ if __name__ == "__main__":
         stat_sdum = synthesize_loop(pix,V,XYZ,W, wl)
         timer.end_time("Test dummy synthesis")
 
-        #break
+         # call an alternate dummy synthesis kernel which reshapes the matrices
+        timer.start_time("GPU dummy synthesis")
+        stat_gpu = synthesize_loop_gpu(pix,V,XYZ,W, wl)
+        timer.end_time("GPU dummy synthesis")
+
+        break
 
         # call the dummy synthesis kernal
         timer.start_time("Dummy synthesis")
@@ -427,6 +430,7 @@ if __name__ == "__main__":
         stat_gexpdum =  dgemmexp_synthesize_reshape(pix,V,XYZ,W, wl)
         timer.end_time("DGEMMexp dummy synthesis")
         print("Avg diff between dummy & test-dummy synthesizers:", np.average( stat_dum - stat_sdum))
+        print("Avg diff between dummy & gpu-based synthesizers:", np.average( stat_dum - stat_gpu))
         print("Avg diff between dummy & DGEMM synthesizers:", np.max( np.abs(stat_dum - stat_gdum)))
         print("Avg diff between dummy & DGEMMexp synthesizers:", np.max( np.abs(stat_dum - stat_gexpdum)))
         print("Avg diff between DGEMM & DGEMMexp synthesizers:", np.max( np.abs(stat_gdum - stat_gexpdum)))
