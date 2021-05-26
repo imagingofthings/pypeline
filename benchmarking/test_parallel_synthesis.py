@@ -181,6 +181,8 @@ def synthesize_loop_gpu(pixGrid, V, XYZ, W, wl):
     N_height, N_width = pixGrid.shape[1:] 
     N_eig = V.shape[1]
 
+    print(W.dtype, W.shape, W)
+
     pixGrid = pixGrid / linalg.norm(pixGrid, axis=0)
     XYZ = XYZ - XYZ.mean(axis=0)
     XYZ_gpu = cp.asarray(XYZ)
@@ -390,7 +392,7 @@ if __name__ == "__main__":
     frequency = 145e6
     wl = constants.speed_of_light / frequency
 
-    data = RandomDataGen(64, N_station = 37) # 24 or 37
+    data = RandomDataGen(32, N_station = 24) # 24 or 37
 
     timer = timing.Timer()
 
@@ -399,7 +401,10 @@ if __name__ == "__main__":
     for t in range(0,1):
         (V, XYZ, W) = data.getVXYZW(t)
 
+        print(W.dtype, V.dtype)
+
         # call an alternate dummy synthesis kernel which reshapes the matrices
+
         timer.start_time("Test dummy synthesis")
         stat_sdum = synthesize_loop(pix,V,XYZ,W, wl)
         timer.end_time("Test dummy synthesis")

@@ -10,6 +10,7 @@ Field synthesizers that work in the spatial domain.
 
 import numexpr as ne
 import numpy as np
+import cupy as cp
 import scipy.linalg as linalg
 import scipy.sparse as sparse
 
@@ -190,33 +191,40 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         
 
-        self.mark(self.timer_tag + "Synthesizer numpy formatting & array allocation")
+        self.mark(self.timer_tag + "Synthesizer numpy/cupy formatting & array allocation")
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
         V = V.astype(self._cp, copy=False)
         XYZ = XYZ.astype(self._fp, copy=False)
         W = W.astype(self._cp, copy=False)
 
+        # need to convert array type to run on gpu
+        if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):
+          W = W.toarray()
+
         N_antenna, N_beam = W.shape
         N_height, N_width = self._grid.shape[1:]
         N_eig = V.shape[1]
 
-        
-
         XYZ = XYZ - XYZ.mean(axis=0)
+
+        XYZ_gpu = cp.asarray(XYZ)
+        WT_gpu  = cp.asarray(W.T)
+        VT_gpu  = cp.asarray(V.T)
 
         a = 1j * 2 * np.pi / self._wl
         E  = np.zeros((N_eig, N_height, N_width),  dtype=self._cp)
 
-        self.unmark(self.timer_tag + "Synthesizer numpy formatting & array allocation")
+        self.unmark(self.timer_tag + "Synthesizer numpy/cupy formatting & array allocation")
 
         self.mark(self.timer_tag + "Synthesizer matmuls")
         for i in range(N_width):        
-          B = XYZ @ self._grid[:,:,i]
-          P = np.zeros(B.shape, dtype=self._cp)
-          ne.evaluate( "exp(A * B)",dict(A=a, B=B),out=P,casting="same_kind",) 
-          PW = W.T @ P
-          E[:,:,i]  = V.T @ PW
+          pix_gpu = cp.asarray(self._grid[:,:,i])
+          B  = cp.matmul(XYZ_gpu, pix_gpu)
+          P  = cp.exp(B*a)        
+          PW = cp.matmul(WT_gpu,P)
+          E_part = cp.matmul(VT_gpu, PW)
+          E[:,:,i] = E_part.get()
 
         I = E.real ** 2 + E.imag ** 2
         self.unmark(self.timer_tag + "Synthesizer matmuls")

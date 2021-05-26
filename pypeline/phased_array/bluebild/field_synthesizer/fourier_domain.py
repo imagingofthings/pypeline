@@ -14,6 +14,7 @@ import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
 import numexpr as ne
 import numpy as np
+import cupy as cp
 import pyffs
 import scipy.fftpack as fftpack
 import scipy.linalg as linalg
@@ -249,6 +250,10 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         V = V.astype(self._cp, copy=False)
         XYZ = XYZ.astype(self._fp, copy=False)
         W = W.astype(self._cp, copy=False)
+        # need to convert array type to run on gpu
+        if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):
+          W = W.toarray()
+
         self.unmark(self.timer_tag + "Synthesizer: astype casts")
 
         self.mark(self.timer_tag + "Synthesizer: matmul 1")
@@ -279,10 +284,20 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         #print("FSk shape:", N_antenna, N_height * _2N1Q)
         #print("PW_FS shape:", N_beam, N_height, _2N1Q)
 
-        self.mark(self.timer_tag + "Synthesizer: matmuls 2 & 3")
-        PW_FS = W.T @ self._FSk.reshape(N_antenna, N_height * _2N1Q)
-        E_FS = np.tensordot(V.T, PW_FS.reshape(N_beam, N_height, _2N1Q), axes=1)
-        self.unmark(self.timer_tag + "Synthesizer: matmuls 2 & 3")
+        self.mark(self.timer_tag + "Synthesizer: GPU array allocation")
+        WT_gpu = cp.asarray(W.T)
+        VT_gpu = cp.asarray(V.T)
+        FSk_gpu = cp.asarray(self._FSk.reshape(N_antenna, N_height * _2N1Q))
+        self.unmark(self.timer_tag + "Synthesizer: GPU array allocation")
+
+        self.mark(self.timer_tag + "Synthesizer: GPU matmuls 2 & 3")
+        PW_FS = cp.matmul(WT_gpu, FSk_gpu)
+        E_FS = cp.matmul(VT_gpu, PW_FS)
+        
+        E_FS = E_FS.get()
+        print(E_FS.shape)
+        E_FS = E_FS.reshape(E_FS.shape[0], N_height, _2N1Q)
+        self.unmark(self.timer_tag + "Synthesizer: GPU matmuls 2 & 3")
 
         self.mark(self.timer_tag + "Synthesizer: apply phase shift")
         mod_phase = -1j * 2 * np.pi * phase_shift / self._T

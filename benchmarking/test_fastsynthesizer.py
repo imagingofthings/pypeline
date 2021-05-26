@@ -73,6 +73,30 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
     fig.show()
     plt.show()
 
+def draw_standard_levels(stats_standard, stats_standard_norm, pix, ):
+    grid_kwargs = {"ticks": False}
+    img_standard = image.Image(stats_standard, pix)
+    img_standard_norm = image.Image(stats_standard_norm, pix)
+
+    fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 1, figsize=(7, 3))
+    #fig.tight_layout(pad = 2.0)
+    img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
+    ax[0,0].set_title("Standard Image\nAll Levels")
+    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
+    ax[1,0].set_title("Periodic Image\nAll Levels")
+    img_standard_norm.draw(ax=ax[0,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
+    ax[0,1].set_title("Standard Image\nAll Levels, Normalized")
+    img_periodic_norm.draw(ax=ax[1,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
+    ax[1,1].set_title("Periodic Image\nAll Levels, Normalized")
+    for i in range(0,data.N_level):
+        print(i)
+        img_standard_norm.draw(ax=ax[0,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
+        ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
+        img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
+        ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
+    fig.show()
+    plt.show()
+
 if __name__ == "__main__":
 
     ###### make simulated dataset ###### 
@@ -80,7 +104,7 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
-    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4) # n level = # eigenimages
+    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4, N_station = 37) # n level = # eigenimages
     #data = dummy_synthesis.RandomDataGen()
 
     ################################### 
@@ -106,7 +130,7 @@ if __name__ == "__main__":
     stats_standard_normcombined = None
     stats_periodic_normcombined = None
     icrs_grid = None
-    for t in range(0,1):
+    for t in range(0,10):
         (V, XYZ, W, D) = data.getVXYZWD(t)
         print("t = {0}".format(t))
 
@@ -136,7 +160,6 @@ if __name__ == "__main__":
             field_periodic = field_periodic[:,:,:-1]
             field_periodic_norm = field_periodic_norm[:,:,:-1]
 
-        print(stats_standard[0:3,0,0])
         try:    stats_standard_combined += stats_standard
         except: stats_standard_combined = stats_standard
         try:    stats_periodic_combined += field_periodic
@@ -147,7 +170,6 @@ if __name__ == "__main__":
         except: stats_periodic_normcombined = field_periodic_norm
 
         #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
-    #draw_levels(stats_standard_combined, stats_periodic_combined,
-    #            stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
-
+    #draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
+    draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
     print(timer.summary())
