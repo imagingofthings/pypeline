@@ -17,7 +17,7 @@ import imot_tools.math.sphere.grid as grid
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.constants as constants
-import sys
+import sys, time
 
 import pypeline.phased_array.bluebild.data_processor as bb_dp
 import pypeline.phased_array.bluebild.gram as bb_gr
@@ -31,6 +31,8 @@ import imot_tools.math.sphere.transform as transform
 import pycsou.linop as pyclop
 from imot_tools.math.func import SphericalDirichlet
 import joblib as job
+
+start_time = time.process_time()
 
 # Instrument
 N_station = 37
@@ -73,7 +75,7 @@ print("Grid size is:", px_colat.shape, px_lon.shape)
 I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
 for t, f, S in ProgressBar(
         ms.visibilities(
-            channel_id=[channel_id], time_id=slice(None, None, 200), column="DATA"
+            channel_id=[channel_id], time_id=slice(0, None, 200), column="DATA"
         )
 ):
     wl = constants.speed_of_light / f.to_value(u.Hz)
@@ -93,7 +95,7 @@ I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
 #I_mfs = bb_fd.Fourier_IMFS_Block(wl, pix_colat, pix_lon, N_FS, T_kernel, R, N_level, N_bits)
 I_mfs = bb_sd.Spatial_IMFS_Block(wl, px_grid, N_level, N_bits)
 for t, f, S in ProgressBar(
-        ms.visibilities(channel_id=[channel_id], time_id=slice(None, None, time_slice), column="DATA")
+        ms.visibilities(channel_id=[channel_id], time_id=slice(0, 10, 1), column="DATA")
 ):
     wl = constants.speed_of_light / f.to_value(u.Hz)
     XYZ = ms.instrument(t)
@@ -105,6 +107,9 @@ for t, f, S in ProgressBar(
     c_idx = [0,1,2,3]
     _ = I_mfs(D, V, XYZ.data, W.data, c_idx)
 I_std, I_lsq = I_mfs.as_image()
+
+end_time = time.process_time()
+print("Time elapsed: {0}s".format(end_time - start_time))
 
 ### Sensitivity Field =========================================================
 # Parameter Estimation
@@ -150,18 +155,15 @@ fig.show()
 #sys.exit()
 #plt.savefig("4gauss_standard")
 
-'''print("Testing interpolation inputs...")
-print(N_level, I_lsq_eq.data.shape, I_lsq_eq.data.reshape(N_level, -1).shape )
-print("Orig array:", I_lsq_eq.data[0,:,:])
-print("reshaped array:", I_lsq_eq.data.reshape(N_level, -1)[0] )
-sys.exit()'''
-
 
 ### Interpolate critical-rate image to any grid resolution ====================
 # Example: to compare outputs of WSCLEAN and Bluebild with AstroPy/DS9, we
 # interpolate the Bluebild estimate at CLEAN (cl_) sky coordinates.
 
 # 1. Load pixel grid the CLEAN image is defined on.
+
+start_interp_time = time.process_time()
+
 cl_WCS = ifits.wcs("/home/etolley/data/gauss4/gauss4-image-pb.fits")
 cl_WCS = cl_WCS.sub(['celestial'])
 cl_WCS = cl_WCS.slice((slice(None, None, 10), slice(None, None, 10)))  # downsample, too high res!
@@ -202,10 +204,7 @@ f_interp = f_interp / (ms.instrument.nyquist_rate(wl) + 1)
 f_interp = np.clip(f_interp, 0, None)
 fig, ax = plt.subplots(ncols=N_level, nrows=2)
 
-
-
-print(f_interp.shape, I_std.data.shape)
-
+'''
 for i in range(N_level):
     I_lsq_eq_orig = s2image.Image(I_lsq_eq.data[i,], I_lsq_eq.grid)
     I_lsq_eq_orig.draw(catalog=sky_model.xyz.T, ax=ax[0,i])
@@ -215,7 +214,7 @@ for i in range(N_level):
     I_lsq_eq_interp.draw(ax=ax[1,i])
     ax[1,i].set_title("Interpolated Bluebild Standard Image Level = {0}".format(i))
 plt.show()
-plt.savefig("4gauss_interp")
+plt.savefig("4gauss_interp")'''
 
 # 5. Store the interpolated Bluebild image in standard-compliant FITS for view
 # in AstroPy/DS9.
@@ -224,3 +223,8 @@ f_interp = (f_interp  # We need to transpose axes due to the FORTRAN
             .transpose(0, 2, 1))
 I_lsq_eq_interp = s2image.WCSImage(f_interp, cl_WCS)
 I_lsq_eq_interp.to_fits('bluebild_ss_4gauss_{0}Stations.fits'.format(N_station))
+
+end_interp_time = time.process_time()
+
+print("Time to make BB image: {0}s".format(end_time - start_time))
+print("Time to reinterpolate image: {0}s".format(end_interp_time - start_interp_time))

@@ -286,7 +286,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self.mark(self.timer_tag + "Synthesizer: GPU array allocation")
         WT_gpu = cp.asarray(W.T)
-        VT_gpu = cp.asarray(V.T)
+        VT_gpu = cp.asarray(V.T) # buffer matrices on gpu to avoid slow allocation time, or directly compute on gpu
         FSk_gpu = cp.asarray(self._FSk.reshape(N_antenna, N_height * _2N1Q))
         self.unmark(self.timer_tag + "Synthesizer: GPU array allocation")
 
@@ -305,7 +305,7 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         self.unmark(self.timer_tag + "Synthesizer: apply phase shift")
 
         self.mark(self.timer_tag + "Synthesizer: IFFS")
-        E_Ny = pyffs.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2)
+        E_Ny = pyffs.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2) # TODO: send on GPU
         self.unmark(self.timer_tag + "Synthesizer: IFFS")
         I_Ny = E_Ny.real ** 2 + E_Ny.imag ** 2
         self.unmark(self.timer_tag + "Synthesizer call")
@@ -390,17 +390,22 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
             `XYZ` must be given in BFSF.
         """
-        N_samples = fftpack.next_fast_len(self._NFS)
-        lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples)
+
+
+        N_samples = fftpack.next_fast_len(self._NFS) # TODO: need to also cupy this (if possible)
+        lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples) # TODO: need to take first element instead of two
         pix_smpl = transform.pol2cart(1, self._grid_colat, lon_smpl.reshape(1, -1))
 
         N_antenna = len(XYZ)
         N_height = len(self._grid_colat)
 
+        # TODO: fix memory problems with DASK array => but can DASK work with gpu?
+        #       or break up by blocks of antenna stations?
+        #       
         # `self._NFS` assumes imaging is performed with `XYZ` centered at the origin.
         XYZ_c = XYZ - XYZ.mean(axis=0)
         window = func.Tukey(self._T, self._Tc, self._alpha_window)
-        k_smpl = np.zeros((N_antenna, N_height, N_samples), dtype=self._cp)
+        k_smpl = np.zeros((N_antenna, N_height, N_samples), dtype=self._cp) # allocate on gpu
         ne.evaluate(
             "exp(A * B) * C",
             dict(
@@ -412,5 +417,5 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             casting="same_kind",
         )  # Due to limitations of NumExpr2
 
-        self._FSk = pyffs.ffs(k_smpl, self._T, self._Tc, self._NFS, axis=2)
+        self._FSk = pyffs.ffs(k_smpl, self._T, self._Tc, self._NFS, axis=2) #TODO:  convert to run on GPU
         self._XYZk = XYZ
