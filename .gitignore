@@ -4,8 +4,11 @@
 # Author : Sepand KASHANI [kashani.sepand@gmail.com]
 # #############################################################################
 
+*~
+slurm-*.out
 *.png
 *.fits
+*_environment_*_*.yml
 
 ### VsCode Settings ===========================================================
 settings.json
@@ -13,6 +16,7 @@ settings.json
 ### Manually-installed Python Packages ========================================
 pyFFS/
 ImoT_tools/
+finufft
 
 ### Pbr template ==============================================================
 AUTHORS
