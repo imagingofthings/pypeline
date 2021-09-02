@@ -191,6 +191,10 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         # for CPU/GPU agnostic code
         xp = cp.get_array_module(V)  # not using 'xp' instead of cp or np
+        print("Using:", xp.__name__)
+
+        #if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):
+        #  W = W.toarray()
 
         self.mark(self.timer_tag + "Synthesizer call")
 
@@ -218,8 +222,11 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         for i in range(N_width):        
           pix_gpu = xp.asarray(self._grid[:,:,i])
           B  = xp.matmul(XYZ, pix_gpu)
-          P  = xp.exp(B*a)        
-          PW = xp.matmul(W.T,P)
+          P  = xp.exp(B*a)  
+          if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):   
+            PW = W.T @ P
+          else:
+            PW = xp.matmul(W.T,P)
           E[:,:,i]  = xp.matmul(V.T, PW)
 
         I = E.real ** 2 + E.imag ** 2
