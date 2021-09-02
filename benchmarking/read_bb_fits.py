@@ -48,13 +48,13 @@ avg_true_data_val = np.mean(true_data)
 regions = ndimage.find_objects(ndimage.label(true_data > avg_true_data_val)[0])
 print(regions)
 
-'''
+
 bb_mask = np.zeros(bb_data.shape)
 for i in range(4):
-    bb_mask[i,:,:] /= np.max(bb_mask[i,:,:] )
+    bb_mask[i,:,:] = bb_data[i,:,:]/np.max(bb_data[i,:,:] )
 
-bb_data = bb_mask
-'''
+#bb_data *= bb_mask
+
 
 
 import copy
@@ -108,77 +108,22 @@ print(bb_level_fluxes)
 clean_fluxes = np.array(clean_fluxes) / max(clean_fluxes) 
 bb_level_fluxes = np.array(bb_level_fluxes) / max(bb_level_fluxes) 
 bb_fluxes = np.array(bb_fluxes) / max(bb_fluxes) 
-x = np.arange(min(true_fluxes), max(true_fluxes))
+x = np.arange(min(true_fluxes), max(true_fluxes),0.1)
+print(x)
 
 m2,b2 = np.polyfit(true_fluxes, bb_fluxes, 1)
 m1,b1 = np.polyfit(true_fluxes, clean_fluxes, 1)
 
 axs[3].plot(true_fluxes, clean_fluxes, 'ro', label = "WSCLEAN Flux")
-axs[3].plot(true_fluxes, [m1*x+b1 for x in true_fluxes], 'r-')
+axs[3].plot(x, m1*x+b1, 'r-')
 axs[3].plot(true_fluxes, bb_fluxes, 'bo', label = "Combined Bluebild Flux")
-axs[3].plot(true_fluxes, [m2*x+b2 for x in true_fluxes], 'b-')
+axs[3].plot(x, m2*x+b2, 'b-')
 axs[3].set(xlabel = "True Flux", ylabel = "Normalized Reconstructed Flux")
-axs[3].legend()
+axs[3].legend(loc = 'upper left')
+axs[3].set_xscale("log")
 
 axs[3].set_title("Reconstructed Flux")
 
 plt.show()
 
 ###########################################################################
-
-sys.exit()
-bb_extent = [-400,2400,-800,2800]
-
-source_locs = [(180, 530), (460, 1550), (1360, 1367), (1439, 20)]
-
-def rect(s):
-    return plt.Rectangle(s, 300, 300, fill = False, edgecolor="r") 
-
-axs[0,0].imshow(bb_data, cmap = my_cmap, norm=LogNorm(vmin=0.001, vmax=np.max(bb_data)),extent= bb_extent, origin='lower')
-axs[0,0].set_title("BB Processed image")
-#for s in source_locs: axs[0,0].add_patch(rect(s))
-
-axs[0,1].imshow(grid[0,:,:], cmap = my_cmap, origin='lower', )
-axs[0,1].set_title("BB Fits grid[0]")
-axs[0,2].imshow(grid[1,:,:], cmap = my_cmap,origin='lower',)
-axs[0,2].set_title("BB Fits grid[1]")
-axs[1,0].imshow(true_data, cmap = my_cmap, norm=LogNorm(vmin=0.00001, vmax=np.max(true_data)), origin='lower' )
-axs[1,0].set_title("True image (flipped)")
-#for s in source_locs: axs[1,0].add_patch(rect(s))
-axs[1,1].imshow(clean_data, cmap = my_cmap, norm=LogNorm(vmin=0.01, vmax=np.max(clean_data)), origin='lower' )
-axs[1,1].set_title("WSClean image (flipped)")
-#for s in source_locs: axs[1,1].add_patch(rect(s))
-#axs[1,2].imshow(bb_data, cmap = my_cmap, norm=LogNorm(vmin=0.001, vmax=np.max(bb_data)),origin='lower', extent= bb_extent)
-#axs[1,2].imshow(true_data, cmap = my_cmap, norm=LogNorm(vmin=0.00001, vmax=np.max(true_data)), alpha=0.5, origin='lower' )
-
-true_fluxes, clean_fluxes, bb_fluxes = [],[],[]
-for s in source_locs:
-    axs[0,0].add_patch(rect(s))
-    axs[1,0].add_patch(rect(s))
-    axs[1,1].add_patch(rect(s))
-    true_flux  = np.sum(true_data[ s[1]:s[1]+300, s[0]:s[0]+300])
-    clean_flux = np.sum(clean_data[s[1]:s[1]+300, s[0]:s[0]+300])
-    bb_x_start = int((s[1] - bb_extent[2])*bb_data.shape[0]/(bb_extent[3]-bb_extent[2]))
-    bb_y_start = int((s[0] - bb_extent[0])*bb_data.shape[1]/(bb_extent[1]-bb_extent[0]))
-    bb_x_w = int(300 *bb_data.shape[0]/(bb_extent[3]-bb_extent[2]))
-    bb_y_w = int(300*bb_data.shape[1]/(bb_extent[1]-bb_extent[0]))
-    bb_flux = np.sum(bb_data[ bb_x_start:bb_x_start+bb_x_w, bb_y_start:bb_y_start + bb_y_w])
-    print(true_flux, clean_flux, bb_flux)
-    true_fluxes.append(true_flux)
-    clean_fluxes.append(clean_flux/15000)
-    bb_fluxes.append(bb_flux)
-
-m2,b2 = np.polyfit(true_fluxes, bb_fluxes, 1)
-m1,b1 = np.polyfit(true_fluxes, clean_fluxes, 1)
-
-x = np.arange(min(true_fluxes), max(true_fluxes))
-print (x)
-axs[1,2].plot(true_fluxes, clean_fluxes, 'ro', label = "WSCLEAN Flux/15000")
-axs[1,2].plot(true_fluxes, [m1*x+b1 for x in true_fluxes], 'r-')
-axs[1,2].plot(true_fluxes, bb_fluxes, 'bo', label = "Bluebild Flux")
-axs[1,2].plot(true_fluxes, [m2*x+b2 for x in true_fluxes], 'b-')
-axs[1,2].set(xlabel = "True Flux", ylabel = "Reconstructed Flux")
-axs[1,2].legend()
-
-axs[1,2].set_title("Reconstructed Flux")
-plt.show()

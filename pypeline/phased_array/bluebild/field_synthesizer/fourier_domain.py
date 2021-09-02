@@ -279,35 +279,31 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         Q = _2N1Q - self._NFS
         N_beam = W.shape[1]
 
-        #print("W.T shape:", W.T.shape)
-        #print("V.T shape:", V.T.shape)
-        #print("FSk shape:", N_antenna, N_height * _2N1Q)
-        #print("PW_FS shape:", N_beam, N_height, _2N1Q)
-
         self.mark(self.timer_tag + "Synthesizer: GPU array allocation")
         WT_gpu = cp.asarray(W.T)
-        VT_gpu = cp.asarray(V.T) # buffer matrices on gpu to avoid slow allocation time, or directly compute on gpu
+        VT_gpu = cp.asarray(V.T) # TODO: buffer matrices on gpu to avoid slow allocation time, or directly compute on gpu
         FSk_gpu = cp.asarray(self._FSk.reshape(N_antenna, N_height * _2N1Q))
         self.unmark(self.timer_tag + "Synthesizer: GPU array allocation")
 
         self.mark(self.timer_tag + "Synthesizer: GPU matmuls 2 & 3")
         PW_FS = cp.matmul(WT_gpu, FSk_gpu)
         E_FS = cp.matmul(VT_gpu, PW_FS)
-        
-        E_FS = E_FS.get()
-        print(E_FS.shape)
         E_FS = E_FS.reshape(E_FS.shape[0], N_height, _2N1Q)
         self.unmark(self.timer_tag + "Synthesizer: GPU matmuls 2 & 3")
 
         self.mark(self.timer_tag + "Synthesizer: apply phase shift")
         mod_phase = -1j * 2 * np.pi * phase_shift / self._T
-        E_FS *= np.exp(mod_phase) ** np.r_[-N : N + 1, np.zeros(Q)]
+        s = np.r_[-N : N + 1, np.zeros(Q)]
+        mod_phase_gpu = cp.asarray(mod_phase * s)
+
+        E_FS *= cp.exp(mod_phase_gpu)
         self.unmark(self.timer_tag + "Synthesizer: apply phase shift")
 
         self.mark(self.timer_tag + "Synthesizer: IFFS")
         E_Ny = pyffs.iffs(E_FS, self._T, self._Tc, self._NFS, axis=2) # TODO: send on GPU
         self.unmark(self.timer_tag + "Synthesizer: IFFS")
         I_Ny = E_Ny.real ** 2 + E_Ny.imag ** 2
+        I_Ny = I_Ny.get()
         self.unmark(self.timer_tag + "Synthesizer call")
         return I_Ny
 
@@ -393,7 +389,9 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
 
         N_samples = fftpack.next_fast_len(self._NFS) # TODO: need to also cupy this (if possible)
-        lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples) # TODO: need to take first element instead of two
+        lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples)[0] # TODO: need to take first element instead of two DONE
+        lon_smpl = lon_smpl.get()
+        print("DEBUG lon_smpl: ", type(lon_smpl))
         pix_smpl = transform.pol2cart(1, self._grid_colat, lon_smpl.reshape(1, -1))
 
         N_antenna = len(XYZ)

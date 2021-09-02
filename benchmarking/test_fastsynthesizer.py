@@ -104,7 +104,7 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
-    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4, N_station = 37) # n level = # eigenimages
+    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4, N_station = 24) # n level = # eigenimages
     #data = dummy_synthesis.RandomDataGen()
 
     ################################### 
@@ -171,5 +171,5 @@ if __name__ == "__main__":
 
         #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
     #draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
-    draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
+    #draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
     print(timer.summary())

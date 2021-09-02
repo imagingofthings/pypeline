@@ -27,7 +27,7 @@ cd ..
 
 git clone https://github.com/imagingofthings/pyFFS.git
 cd pyFFS/
-git checkout v1.0
+#git checkout v1.0
 mkdir install
 python3 setup.py develop --user
 
