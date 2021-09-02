@@ -157,13 +157,15 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             raise ValueError("Parameter[pix_grid] must have dimensions (3, N_height, N_width).")
         self._grid = pix_grid / linalg.norm(pix_grid, axis=0)
 
-    @chk.check(
+    # needed to remove this check for GPU/CPU flexibility
+    # TODO: add back in...
+    '''@chk.check(
         dict(
             V=chk.has_complex,
             XYZ=chk.has_reals,
             W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
         )
-    )
+    )'''
     def __call__(self, V, XYZ, W):
         """
         Compute instantaneous field statistics.
@@ -187,20 +189,19 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
 
-        self.mark(self.timer_tag + "Synthesizer call")
+        # for CPU/GPU agnostic code
+        xp = cp.get_array_module(V)  # not using 'xp' instead of cp or np
 
-        
+        self.mark(self.timer_tag + "Synthesizer call")
 
         self.mark(self.timer_tag + "Synthesizer numpy/cupy formatting & array allocation")
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
-        V = V.astype(self._cp, copy=False)
-        XYZ = XYZ.astype(self._fp, copy=False)
-        W = W.astype(self._cp, copy=False)
 
-        # need to convert array type to run on gpu
-        if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):
-          W = W.toarray()
+        # TODO: re-enable control of precision
+        #V = V.astype(self._cp, copy=False)
+        #XYZ = XYZ.astype(self._fp, copy=False)
+        #W = W.astype(self._cp, copy=False)
 
         N_antenna, N_beam = W.shape
         N_height, N_width = self._grid.shape[1:]
@@ -208,23 +209,18 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         XYZ = XYZ - XYZ.mean(axis=0)
 
-        XYZ_gpu = cp.asarray(XYZ)
-        WT_gpu  = cp.asarray(W.T)
-        VT_gpu  = cp.asarray(V.T)
-
         a = 1j * 2 * np.pi / self._wl
-        E  = np.zeros((N_eig, N_height, N_width),  dtype=self._cp)
+        E  = xp.zeros((N_eig, N_height, N_width)) #,  dtype=self._cp)
 
         self.unmark(self.timer_tag + "Synthesizer numpy/cupy formatting & array allocation")
 
         self.mark(self.timer_tag + "Synthesizer matmuls")
         for i in range(N_width):        
-          pix_gpu = cp.asarray(self._grid[:,:,i])
-          B  = cp.matmul(XYZ_gpu, pix_gpu)
-          P  = cp.exp(B*a)        
-          PW = cp.matmul(WT_gpu,P)
-          E_part = cp.matmul(VT_gpu, PW)
-          E[:,:,i] = E_part.get()
+          pix_gpu = xp.asarray(self._grid[:,:,i])
+          B  = xp.matmul(XYZ, pix_gpu)
+          P  = xp.exp(B*a)        
+          PW = xp.matmul(W.T,P)
+          E[:,:,i]  = xp.matmul(V.T, PW)
 
         I = E.real ** 2 + E.imag ** 2
         self.unmark(self.timer_tag + "Synthesizer matmuls")

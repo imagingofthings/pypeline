@@ -1,5 +1,7 @@
 import sys,timing
 import numpy as np
+import cupy as cp
+import scipy.sparse as sparse
 
 import imot_tools.io.s2image as image
 import imot_tools.math.sphere.transform as transform
@@ -134,9 +136,18 @@ if __name__ == "__main__":
         (V, XYZ, W, D) = data.getVXYZWD(t)
         print("t = {0}".format(t))
 
+        if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):
+          W = W.toarray()
+
+        XYZ_gpu = cp.asarray(XYZ)
+        W_gpu  = cp.asarray(W)
+        V_gpu  = cp.asarray(V)
+
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
-        stats_standard = synthesizer_standard(V,XYZ,W)
+        #stats_periodic = stats_periodic_gpu.get()
+        stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
+        stats_standard = stats_standard_gpu.get()
 
         D_r =  D.reshape(-1, 1, 1)
 
