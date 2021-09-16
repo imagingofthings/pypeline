@@ -35,7 +35,7 @@ import joblib as job
 start_time = time.process_time()
 
 # Instrument
-N_station = 37
+N_station = 24
 ms_file = "/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station) # stations 1 - N_station 
 gram = bb_gr.GramBlock()
@@ -104,6 +104,7 @@ for t, f, S in ProgressBar(
     S, W = measurement_set.filter_data(S, W)
 
     D, V, c_idx = I_dp(S, G)
+    print(c_idx)
     c_idx = [0,1,2,3]
     _ = I_mfs(D, V, XYZ.data, W.data, c_idx)
 I_std, I_lsq = I_mfs.as_image()
@@ -150,10 +151,10 @@ for i in range(N_level):
     ax[0,i].set_title("Standardized Image Level = {0}".format(i))
     I_lsq_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[1,i])
     ax[1,i].set_title("Least-Squares Image Level = {0}".format(i))
-fig.show()
+#fig.show()
 #plt.show()
 #sys.exit()
-#plt.savefig("4gauss_standard")
+plt.savefig("4gauss_standard_new")
 
 
 ### Interpolate critical-rate image to any grid resolution ====================
