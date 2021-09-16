@@ -145,8 +145,9 @@ if __name__ == "__main__":
 
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
-        stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
-        stats_standard = stats_standard_gpu.get()
+        stats_standard = synthesizer_standard(V,XYZ,W)
+        #stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
+        #stats_standard = stats_standard_gpu.get()
 
         D_r =  D.reshape(-1, 1, 1)
 
@@ -179,7 +180,7 @@ if __name__ == "__main__":
         try:    stats_periodic_normcombined += field_periodic_norm
         except: stats_periodic_normcombined = field_periodic_norm
 
-        #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
-    #draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
+    draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
+    draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
     #draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
     print(timer.summary())
