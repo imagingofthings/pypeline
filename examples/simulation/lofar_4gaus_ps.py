@@ -8,6 +8,8 @@
 Real-data LOFAR imaging with Bluebild (PeriodicSynthesis).
 Compare Bluebild image with WSCLEAN image.
 """
+import matplotlib as mpl
+mpl.use('agg')
 
 from tqdm import tqdm as ProgressBar
 import astropy.units as u
@@ -33,7 +35,7 @@ import joblib as job
 
 # Instrument
 N_station = 24
-ms_file = "/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"
+ms_file = "/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station) # stations 1 - N_station 
 gram = bb_gr.GramBlock()
 
@@ -127,9 +129,9 @@ I_lsq_eq = s2image.Image(I_lsq.data / S.data, I_lsq.grid) # / S.data
 
 for i in range(N_level):
     I_std_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[0,i])
-    ax[0,i].set_title("Standardized Image Level = {0}".format(i))
+    ax[0,i].set_title("Standardized\nImage Level={0}".format(i))
     I_lsq_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[1,i])
-    ax[1,i].set_title("Least-Squares Image Level = {0}".format(i))
+    ax[1,i].set_title("Least-Squares\nImage Level={0}".format(i))
 fig.show()
 plt.show()
 plt.savefig("4gauss_standard")
@@ -146,7 +148,7 @@ sys.exit()'''
 # interpolate the Bluebild estimate at CLEAN (cl_) sky coordinates.
 
 # 1. Load pixel grid the CLEAN image is defined on.
-cl_WCS = ifits.wcs("/home/etolley/data/gauss4/gauss4-image-pb.fits")
+cl_WCS = ifits.wcs("/users/mibianco/data/gauss4/gauss4-image-pb.fits")
 cl_WCS = cl_WCS.sub(['celestial'])
 cl_WCS = cl_WCS.slice((slice(None, None, 10), slice(None, None, 10)))  # downsample, too high res!
 cl_pix_icrs = ifits.pix_grid(cl_WCS)  # (3, N_cl_lon, N_cl_lat) ICRS reference frame
@@ -193,11 +195,11 @@ print(f_interp.shape, I_std.data.shape)
 for i in range(N_level):
     I_std_eq_orig = s2image.Image(I_std.data[i,] / S.data, I_std.grid)
     I_std_eq_orig.draw(catalog=sky_model.xyz.T, ax=ax[0,i])
-    ax[0,i].set_title("Critically sampled Bluebild Standard Image Level = {0}".format(i))
+    ax[0,i].set_title("Critically sampled Bluebild\nStandard Image Level={0}".format(i))
 
     I_lsq_eq_interp = s2image.Image(f_interp[i,], cl_pix_bfsf)
     I_lsq_eq_interp.draw(ax=ax[1,i])
-    ax[1,i].set_title("Interpolated Bluebild Standard Image Level = {0}".format(i))
+    ax[1,i].set_title("Interpolated Bluebild\nStandard Image Level={0}".format(i))
 plt.show()
 plt.savefig("4gauss_interp")
 

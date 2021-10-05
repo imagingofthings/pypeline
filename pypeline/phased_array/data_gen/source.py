@@ -124,6 +124,7 @@ class SkyEmission:
         """
         return self.__intensity
 
+#TODO:  FUNCTION USER_DEFINED_CATALOG
 
 @chk.check(dict(direction=chk.is_instance(coord.SkyCoord), FoV=chk.is_real, N_src=chk.is_integer))
 def from_tgss_catalog(direction, FoV, N_src):

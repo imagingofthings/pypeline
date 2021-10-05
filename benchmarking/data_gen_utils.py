@@ -96,7 +96,7 @@ class SimulatedDataGen():
         # generation
 
         self.R = self.dev.icrs2bfsf_rot(self.obs_start, self.time[-1])
-        self.sky_model = source.from_tgss_catalog(field_center, self.FoV, N_src=5)
+        self.sky_model = source.from_tgss_catalog(field_center, self.FoV, N_src=5) #TODO: list of positions and brightness
         self.vis = statistics.VisibilityGeneratorBlock(self.sky_model, T_integration, fs=196000, SNR=np.inf)
 
         _, _, self.px_colat_periodic, self.px_lon_periodic = grid.equal_angle(

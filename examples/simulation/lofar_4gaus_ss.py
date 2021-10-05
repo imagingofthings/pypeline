@@ -8,6 +8,8 @@
 Real-data LOFAR imaging with Bluebild (PeriodicSynthesis).
 Compare Bluebild image with WSCLEAN image.
 """
+import matplotlib as mpl
+mpl.use('agg')
 
 from tqdm import tqdm as ProgressBar
 import astropy.units as u
@@ -36,7 +38,7 @@ start_time = time.process_time()
 
 # Instrument
 N_station = 24
-ms_file = "/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"
+ms_file = "/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station) # stations 1 - N_station 
 gram = bb_gr.GramBlock()
 
@@ -44,14 +46,14 @@ print("Reading {0}\nUsing {1} stations".format(ms_file, N_station))
 
 # Observation
 FoV = np.deg2rad(5)
-channel_id = 0
+channel_id = 1
 frequency = ms.channels["FREQUENCY"][channel_id]
 wl = constants.speed_of_light / frequency.to_value(u.Hz)
-sky_model = source.from_tgss_catalog(ms.field_center, FoV, N_src=4)
+sky_model = source.from_tgss_catalog(ms.field_center, FoV, N_src=3)
 obs_start, obs_end = ms.time["TIME"][[0, -1]]
 
 # Imaging
-N_level = 4
+N_level = 3
 N_bits = 32
 #R = ms.instrument.icrs2bfsf_rot(obs_start, obs_end)
 #colat_idx, lon_idx, pix_colat, pix_lon = grid.equal_angle(
@@ -142,19 +144,20 @@ for t, f, S in ProgressBar(
 _, S = S_mfs.as_image()'''
 
 # Plot Results ================================================================
-fig, ax = plt.subplots(ncols=N_level, nrows=2)
+fig, ax = plt.subplots(ncols=N_level, nrows=2, figsize=(12, 7))
 I_std_eq = s2image.Image(I_std.data, I_std.grid) #  / S.data
 I_lsq_eq = s2image.Image(I_lsq.data, I_lsq.grid) # / S.data
 
 for i in range(N_level):
     I_std_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[0,i])
-    ax[0,i].set_title("Standardized Image Level = {0}".format(i))
+    ax[0,i].set_title("Standardized\nImage Level={0}".format(i))
     I_lsq_eq.draw(index=i, catalog=sky_model.xyz.T, ax=ax[1,i])
-    ax[1,i].set_title("Least-Squares Image Level = {0}".format(i))
+    ax[1,i].set_title("Least-Squares\nImage Level={0}".format(i))
 #fig.show()
 #plt.show()
 #sys.exit()
-plt.savefig("4gauss_standard_new")
+plt.subplots_adjust(wspace=0.5)
+plt.savefig("4gauss_standard_new", bbox_inches='tight')
 
 
 ### Interpolate critical-rate image to any grid resolution ====================
@@ -165,7 +168,7 @@ plt.savefig("4gauss_standard_new")
 
 start_interp_time = time.process_time()
 
-cl_WCS = ifits.wcs("/home/etolley/data/gauss4/gauss4-image-pb.fits")
+cl_WCS = ifits.wcs("/users/mibianco/data/gauss4/gauss4-image-pb.fits")
 cl_WCS = cl_WCS.sub(['celestial'])
 cl_WCS = cl_WCS.slice((slice(None, None, 10), slice(None, None, 10)))  # downsample, too high res!
 cl_pix_icrs = ifits.pix_grid(cl_WCS)  # (3, N_cl_lon, N_cl_lat) ICRS reference frame

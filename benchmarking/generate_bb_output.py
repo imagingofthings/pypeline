@@ -1,3 +1,6 @@
+import matplotlib as mpl
+mpl.use('agg')
+
 import sys,timing
 import numpy as np
 
@@ -42,8 +45,9 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
         ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
         img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
-    fig.show()
-    plt.show()
+    plt.savefig("generate_bb", bbox_inches='tight')
+    #fig.show()
+    #plt.show()
 
 def try_fix(stats_standard, stats_standard_norm,  pix, wcs,  thresfactor = 0.1):
     grid_kwargs = {"ticks": False}
@@ -93,7 +97,7 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
-    data = RealDataGen("/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4,  N_station = 24 ) # n level = # eigenimages
+    data = RealDataGen("/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4,  N_station = 24 ) # n level = # eigenimages
     #data = RealDataGen("/home/etolley/data/gauss2/gauss2_t201806301100_SBL180.MS", N_level = 2)
     #data = dummy_synthesis.RandomDataGen()
 
@@ -133,7 +137,7 @@ if __name__ == "__main__":
         stats_sens_standard = np.sum(stats_sens_standard, axis = 0)
 
 
-        stats_standard_norm = stats_standard * D.reshape(-1, 1)
+        stats_standard_norm = stats_standard * D.reshape(-1, 1,1)
         stats_periodic_norm = stats_periodic *  D.reshape(-1, 1,1)
         #stats_sens_standard_norm = stats_sens_standard * Ds.reshape(-1, 1, 1)
         #stats_sens_periodic_norm = stats_sens_periodic * Ds.reshape(-1, 1, 1)
@@ -168,10 +172,12 @@ if __name__ == "__main__":
     from astropy.io import fits
     import astropy.wcs as pywcs
     #with fits.open("/home/etolley/data/gauss4/gauss4-image-pb.fits") as hdul:
-    with fits.open("/home/etolley/data/gauss4/C_4gaussian-model.fits") as hdul:
+    with fits.open("/users/mibianco/data/gauss4/C_4gaussian-model.fits") as hdul:
         wcs = pywcs.WCS(hdul[0].header)
         wcs = wcs.sub(['celestial'])
+    print(pix)
     img_standard = image.Image(stats_standard_combined, pix)
+    print(img_standard.shape)
     img_standard.to_fits('bluebild_standard_4gauss.fits')
 
     #try_fix(stats_standard_combined, stats_standard_normcombined,  pix, wcs)

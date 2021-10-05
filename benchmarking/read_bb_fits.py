@@ -1,3 +1,6 @@
+import matplotlib as mpl
+mpl.use('agg')
+
 from astropy.io import fits
 import astropy.wcs as pywcs
 import matplotlib.pyplot as plt
@@ -27,20 +30,20 @@ def convert_coords(coords, wcs1, wcs2):
     coords = [ [ int(c[0]), int(c[1])] for c in coords]
     return coords
 
-with fits.open("/home/etolley/bluebild/pypeline/bluebild_ss_4gauss_37Stations.fits") as hdul:
+with fits.open("/users/mibianco/data/gauss4/bluebild_ss_4gauss_24Stations.fits") as hdul:
     bb_data = hdul[1].data
     bb_wcs = pywcs.WCS(hdul[1].header)
 
 
-with fits.open("/home/etolley/casacore_setup/deconvScale-image.fits") as hdul: #
+with fits.open("/users/mibianco/casacore_setup/deconvScale-image.fits") as hdul: #
     clean_data = hdul[0].data[0,0,:,:]
     clean_wcs = pywcs.WCS(hdul[0].header)
 
-with fits.open("/home/etolley//data/gauss4/gauss4-image-pb.fits") as hdul: #"/home/etolley/casacore_setup/deconv-image.fits"
+with fits.open("/users/mibianco//data/gauss4/gauss4-image-pb.fits") as hdul: #"/users/mibianco/casacore_setup/deconv-image.fits"
     #clean_data = hdul[0].data[0,0,:,:]
     true_wcs = pywcs.WCS(hdul[0].header)
 
-with fits.open("/home/etolley/data/gauss4/C_4gaussian-model.fits") as hdul:
+with fits.open("/users/mibianco/data/gauss4/C_4gaussian-model.fits") as hdul:
     true_data = hdul[0].data
     #true_wcs = pywcs.WCS(hdul[0].header)
 
