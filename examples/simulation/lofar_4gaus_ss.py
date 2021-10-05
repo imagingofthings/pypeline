@@ -35,7 +35,7 @@ import joblib as job
 start_time = time.process_time()
 
 # Instrument
-N_station = 24
+N_station = 37
 ms_file = "/home/etolley/data/gauss4/gauss4_t201806301100_SBL180.MS"
 ms = measurement_set.LofarMeasurementSet(ms_file, N_station) # stations 1 - N_station 
 gram = bb_gr.GramBlock()

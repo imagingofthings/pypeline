@@ -72,6 +72,7 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
         ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
         img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
+    fig.savefig("test_compare_levels.png")
     fig.show()
     plt.show()
 
@@ -145,9 +146,9 @@ if __name__ == "__main__":
 
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
-        stats_standard = synthesizer_standard(V,XYZ,W)
-        #stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
-        #stats_standard = stats_standard_gpu.get()
+        #stats_standard = synthesizer_standard(V,XYZ,W)
+        stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
+        stats_standard = stats_standard_gpu.get()
 
         D_r =  D.reshape(-1, 1, 1)
 
