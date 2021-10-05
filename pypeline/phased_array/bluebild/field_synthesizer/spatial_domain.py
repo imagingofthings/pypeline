@@ -188,7 +188,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         # for CPU/GPU agnostic code
         xp = cp.get_array_module(V)  # not using 'xp' instead of cp or np
-        print("Using:", xp.__name__)
+        #print("Using:", xp.__name__)
 
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
@@ -205,7 +205,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         N_eig = V.shape[1]
 
         XYZ = XYZ - XYZ.mean(axis=0)
-        P = xp.zeros((N_antenna, N_height, N_width), dtype=self._cp)
+        #P = xp.zeros((N_antenna, N_height, N_width), dtype=self._cp)
         E = xp.zeros((N_eig, N_height, N_width), dtype=self._cp)
 
         a = 1j * 2 * np.pi / self._wl

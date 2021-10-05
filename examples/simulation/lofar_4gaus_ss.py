@@ -16,6 +16,7 @@ import imot_tools.io.s2image as s2image
 import imot_tools.math.sphere.grid as grid
 import matplotlib.pyplot as plt
 import numpy as np
+import cupy as cp
 import scipy.constants as constants
 import sys, time
 
@@ -106,7 +107,15 @@ for t, f, S in ProgressBar(
     D, V, c_idx = I_dp(S, G)
     print(c_idx)
     c_idx = [0,1,2,3]
-    _ = I_mfs(D, V, XYZ.data, W.data, c_idx)
+
+    #_ = I_mfs(D, V, XYZ.data, W.data, c_idx)
+
+    XYZ_gpu = cp.asarray(XYZ.data)
+    W_gpu  = cp.asarray(W.data.toarray())
+    V_gpu  = cp.asarray(V)
+
+    _ = I_mfs(D, V_gpu, XYZ_gpu, W_gpu, c_idx)
+    
 I_std, I_lsq = I_mfs.as_image()
 
 end_time = time.process_time()
