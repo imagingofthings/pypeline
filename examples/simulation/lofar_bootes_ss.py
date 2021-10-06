@@ -18,6 +18,7 @@ import imot_tools.math.sphere.transform as transform
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.constants as constants
+import sys
 
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.bluebild.data_processor as bb_dp
@@ -54,7 +55,9 @@ N_bits = 32 # 32
 _, _, px_colat, px_lon = grid.equal_angle(
     N=dev.nyquist_rate(wl), direction=field_center.cartesian.xyz.value, FoV=FoV
 )
+
 px_grid = transform.pol2cart(1, px_colat, px_lon).reshape(3, -1)
+
 
 ### Intensity Field ===========================================================
 # Parameter Estimation

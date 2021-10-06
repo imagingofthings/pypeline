@@ -65,6 +65,9 @@ _, _, px_colat, px_lon = grid.equal_angle(
     N=ms.instrument.nyquist_rate(wl), direction=ms.field_center.cartesian.xyz.value, FoV=FoV
 )
 
+print(ms.instrument.nyquist_rate(wl), "Nstation {0}, px_col {1}, px_lon {2}".format(N_station, px_colat.shape, px_lon.shape))
+sys.exit()
+
 #N_FS, T_kernel = ms.instrument.bfsf_kernel_bandwidth(wl, obs_start, obs_end), np.deg2rad(10)
 #px_grid = transform.pol2cart(1, px_colat, px_lon).reshape(3, -1)
 px_grid = transform.pol2cart(1, px_colat, px_lon)
