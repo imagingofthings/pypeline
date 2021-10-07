@@ -1,5 +1,6 @@
 import matplotlib as mpl
 mpl.use('agg')
+from pathlib import Path
 
 import sys,timing
 import numpy as np
@@ -46,8 +47,7 @@ def draw_comparison(stats_standard, field_periodic, pix, icrs_grid):
     ax[1,1].set_title("Bluebild Periodic Image\nPS Grid")
     img_diff_icrs_grid.draw(ax=ax[1,2], data_kwargs =  {"cmap": color_diff}, grid_kwargs = grid_kwargs)
     ax[1,2].set_title("Difference\nPS Grid")
-
-    fig.savefig("test_compare.png", bbox_inches='tight')
+    fig.savefig("%sdata/outputs/test_compare_Nsrc%d_Nlvl%d.png" %(str(Path.home())+'/', data.N_sources, data.N_level), bbox_inches='tight')
     #fig.show()
     #plt.show()
 
@@ -58,7 +58,7 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
     img_standard_norm = image.Image(stats_standard_norm, pix)
     img_periodic_norm = image.Image(field_periodic_norm, icrs_grid)
 
-    fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 2, figsize=(15, 5))
+    fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 2, figsize=(15, 7))
     #fig.tight_layout(pad = 2.0)
     img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
     ax[0,0].set_title("Standard Image\nAll Levels")
@@ -75,8 +75,7 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
         img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
     plt.subplots_adjust(wspace=0.5)
-    fig.savefig("test_levels.png", bbox_inches='tight')
-
+    fig.savefig("%sdata/outputs/test_Nsrc%d_Nlvl%d.png" %(str(Path.home())+'/', data.N_sources, data.N_level), bbox_inches='tight')
     #fig.show()
     #plt.show()
 
@@ -89,20 +88,20 @@ def draw_standard_levels(stats_standard, stats_standard_norm, pix, ):
     #fig.tight_layout(pad = 2.0)
     img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
     ax[0,0].set_title("Standard Image\nAll Levels")
-    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
+    #img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
     ax[1,0].set_title("Periodic Image\nAll Levels")
     img_standard_norm.draw(ax=ax[0,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
     ax[0,1].set_title("Standard Image\nAll Levels, Normalized")
-    img_periodic_norm.draw(ax=ax[1,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
+    #img_periodic_norm.draw(ax=ax[1,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
     ax[1,1].set_title("Periodic Image\nAll Levels, Normalized")
     for i in range(0,data.N_level):
         print(i)
         img_standard_norm.draw(ax=ax[0,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
-        img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
+        #img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
-    fig.savefig("test_standard_levels.png", bbox_inches='tight')
-    
+    fig.savefig("%sdata/outputs/test_standard_Nsrc%d_Nlvl%d.png" %(str(Path.home())+'/', data.N_sources, data.N_level), bbox_inches='tight')
+
     #fig.show()
     #plt.show()
 
@@ -113,9 +112,11 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
-    data = RealDataGen("/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4, N_station = 24) # n level = # eigenimages
+    #data = RealDataGen("/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level=4, N_station=24) # n level = # eigenimages
+    #cat = np.array([[216.9, 32.8, 190.2], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
+    cat = np.array([[216.9, 32.8, 190.2]]) 
+    data = SimulatedDataGen(frequency=145e6, N_level=1 , N_sources=1, mock_catalog=cat)
     #data = dummy_synthesis.RandomDataGen()
-
     ################################### 
 
     # timer
@@ -187,7 +188,7 @@ if __name__ == "__main__":
         try:    stats_periodic_normcombined += field_periodic_norm
         except: stats_periodic_normcombined = field_periodic_norm
 
-    draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
+    #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
     draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
     #draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
     print(timer.summary())

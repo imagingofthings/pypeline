@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np, pandas as pd
 
 import scipy.constants as constants
 import imot_tools.math.sphere.grid as grid
@@ -75,11 +75,11 @@ class RandomDataGen():
         return (self.getV(i),self.getXYZ(i),self.getW(i))
 #################################################################################
 class SimulatedDataGen():
-    def __init__(self, frequency, N_level = 4):
-            # parameters
+    def __init__(self, frequency, N_level=4, N_sources=None, mock_catalog=None):
+        # parameters
         self.wl = constants.speed_of_light / frequency
         self.N_level = N_level
-
+        self.N_sources = N_sources
         self.obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
         T_integration = 8
         self.time = self.obs_start + (T_integration * u.s) * np.arange(3595)
@@ -94,44 +94,69 @@ class SimulatedDataGen():
         self.gram = bb_gr.GramBlock()
 
         # generation
-
         self.R = self.dev.icrs2bfsf_rot(self.obs_start, self.time[-1])
-        self.sky_model = source.from_tgss_catalog(field_center, self.FoV, N_src=5) #TODO: list of positions and brightness
+        if not (isinstance(mock_catalog, (str, np.ndarray))):
+            self.N_sources = 4
+            self.sky_model = source.from_tgss_catalog(field_center, self.FoV, N_src=self.N_sources)
+        elif(isinstance(mock_catalog, str)):
+            print('Sky model from user defined catalog.')
+            if(self.N_sources == None): 
+                mock_catalog = pd.read_csv(mock_catalog, index_col=0)
+                self.N_sources = mock_catalog.shape[0]
+            else:
+                mock_catalog = pd.read_csv(mock_catalog, index_col=0).loc[0:self.N_sources-1,:]
+            self.sky_model = source.user_defined_catalog(field_center, self.FoV, catalog_user=mock_catalog)
+        elif(isinstance(mock_catalog, np.ndarray)):
+            print('Sky model from user defined catalog. Saving the catalog as a .csv file.')
+            if(self.N_sources == None): 
+                self.N_sources = mock_catalog.shape[0]
+            else:
+                mock_catalog = mock_catalog[0:self.N_sources,:]
+            self.sky_model = source.user_defined_catalog(field_center, self.FoV, catalog_user=mock_catalog, save_catalog=False) #save_catalog=True)
+        else:
+            raise ValueError("Parameter[mock_catalog] must be either a string, array or list.")
+
         self.vis = statistics.VisibilityGeneratorBlock(self.sky_model, T_integration, fs=196000, SNR=np.inf)
 
         _, _, self.px_colat_periodic, self.px_lon_periodic = grid.equal_angle(
-            N=self.dev.nyquist_rate(wl),
+            N=self.dev.nyquist_rate(self.wl),
             direction= self.R @ field_center.cartesian.xyz.value,  # BFSF-equivalent f_dir.
             FoV=self.FoV
-        )
+            )
 
         _, _, self.px_colat, self.px_lon = grid.equal_angle(
-            N=self.dev.nyquist_rate(wl),
+            N=self.dev.nyquist_rate(self.wl),
             direction=field_center.cartesian.xyz.value,
             FoV=self.FoV
         )
         self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
         self.T_kernel = np.deg2rad(10)
-        self.N_FS = self.dev.bfsf_kernel_bandwidth(wl, self.obs_start, self.time[-1])
+        self.N_FS = self.dev.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.time[-1])
 
         self.estimateParams()
-
+        
     def estimateParams(self):
-        # Parameter Estimation
-        I_est = bb_pe.IntensityFieldParameterEstimator(self.N_level, sigma=0.95)
-        for t in self.time[::200]:
-            XYZ = self.dev(t)
-            W = self.mb(XYZ, self.wl)
-            S = self.vis(XYZ, W, self.wl)
-            G = self.gram(XYZ, W, self.wl)
+        if(self.N_level != 1):
+            # Parameter Estimation
+            I_est = bb_pe.IntensityFieldParameterEstimator(self.N_level, sigma=0.95)
+            
+            for t in self.time[::200]:
+                XYZ = self.dev(t)
+                W = self.mb(XYZ, self.wl)
+                S = self.vis(XYZ, W, self.wl)
+                G = self.gram(XYZ, W, self.wl)
 
-            I_est.collect(S, G)
+                I_est.collect(S, G)
 
-        N_eig, c_centroid = I_est.infer_parameters()
+            N_eig, c_centroid = I_est.infer_parameters()
+        else:
+            N_eig, c_centroid = 1, [0]
+
         self.I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
 
     def getPixGrid(self):
         return self.pix_grid
+
     def getVXYZWD(self, i):
         try:
             t = self.time[i]
@@ -144,6 +169,7 @@ class SimulatedDataGen():
         G = self.gram(XYZ, W, self.wl)
         D, V, __ = self.I_dp(S, G)
         return (V,XYZ.data, W.data, D)
+
 #################################################################################
 class RealDataGen():
     def __init__(self, ms_file, N_level = 4, N_station = 24):
