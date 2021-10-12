@@ -84,7 +84,7 @@ class SimulatedDataGen():
         T_integration = 8
         self.time = self.obs_start + (T_integration * u.s) * np.arange(3595)
         field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
-        self.FoV = np.deg2rad(5)
+        self.FoV = np.deg2rad(1)
 
         # Instrument
         N_station = 24  #24
@@ -133,7 +133,9 @@ class SimulatedDataGen():
         self.T_kernel = np.deg2rad(10)
         self.N_FS = self.dev.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.time[-1])
 
-        self.estimateParams()
+        N_eig, c_centroid = self.N_level, list(range(self.N_level))
+        self.I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
+        #self.estimateParams()
         
     def estimateParams(self):
         if(self.N_level != 1):

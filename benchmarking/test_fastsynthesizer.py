@@ -62,14 +62,17 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
     #fig.tight_layout(pad = 2.0)
     img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
     ax[0,0].set_title("Standard Image\nAll Levels")
-    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
+    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs, use_contours=True)
     ax[1,0].set_title("Periodic Image\nAll Levels")
     img_standard_norm.draw(ax=ax[0,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
+    print(img_standard_norm.data.shape)
+
     ax[0,1].set_title("Standard Image\nAll Levels, Normalized")
     img_periodic_norm.draw(ax=ax[1,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
     ax[1,1].set_title("Periodic Image\nAll Levels, Normalized")
     for i in range(0,data.N_level):
         print(i)
+        print(img_standard_norm.data.shape)
         img_standard_norm.draw(ax=ax[0,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
         img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
@@ -113,9 +116,10 @@ if __name__ == "__main__":
 
     #data = SimulatedDataGen(frequency = 145e6)
     #data = RealDataGen("/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level=4, N_station=24) # n level = # eigenimages
-    #cat = np.array([[216.9, 32.8, 190.2], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
-    cat = np.array([[216.9, 32.8, 190.2]]) 
-    data = SimulatedDataGen(frequency=145e6, N_level=1 , N_sources=1, mock_catalog=cat)
+    #cat = np.array([[216.9, 32.8, 87.5], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
+    #cat = np.array([[216.9, 32.8, 190.2]]) 
+    cat = np.array([[218.00001, 34.500001, 1e6]]) 
+    data = SimulatedDataGen(frequency=145e6, N_level=4 , N_sources=1, mock_catalog=cat)
     #data = dummy_synthesis.RandomDataGen()
     ################################### 
 
