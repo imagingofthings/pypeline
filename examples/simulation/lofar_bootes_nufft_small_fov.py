@@ -131,7 +131,7 @@ ICRS_baselines = []
 gram_corrected_visibilities = []
 baseline_rescaling = 2 * np.pi / wl
 
-for t in ProgressBar(time[::25]):
+for t in ProgressBar(time[0:25]):
     XYZ = dev(t)
     UVW = (uvw_frame.transpose() @ XYZ.data.transpose()).transpose()
     UVW_baselines_t = (UVW[:, None, :] - UVW[None, ...])
@@ -172,6 +172,8 @@ bb_image = finufft.nufft2d1(x=scalingx * UVW_baselines[:, 1],
 
 bb_image = np.real(bb_image)
 
+print(bb_image.shape,bb_image[0,0])
+
 ### Sensitivity Field =========================================================
 # Parameter Estimation
 S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
@@ -186,7 +188,7 @@ N_eig = S_est.infer_parameters()
 # Imaging
 S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
 sensitivity_coeffs = []
-for t in ProgressBar(time[::25]):
+for t in ProgressBar(time[0:25]):
     XYZ = dev(t)
     W = mb(XYZ, wl)
     G = gram(XYZ, W, wl)
@@ -204,6 +206,8 @@ sensitivity_image = finufft.nufft2d1(x=scalingx * UVW_baselines[:, 1],
 
 sensitivity_image = np.real(sensitivity_image)
 
+print(sensitivity_image.shape,sensitivity_image[0,0])
+
 I_lsq_eq = s2image.Image(bb_image / sensitivity_image, pix_xyz)
 t2 = tt.time()
 print(f'Elapsed time: {t2 - t1} seconds.')
@@ -214,3 +218,4 @@ I_lsq_eq.draw(catalog=sky_model.xyz.T, ax=ax, data_kwargs=dict(cmap='cubehelix')
 ax.set_title(f'Bluebild Least-squares, sensitivity-corrected image (NUFFT)\n'
              f'Bootes Field: {sky_model.intensity.size} sources (simulated), LOFAR: {N_station} stations, FoV: {np.round(FoV * 180/np.pi)} degrees.\n'
              f'Run time {np.floor(t2 - t1)} seconds.')
+plt.savefig("test_nufft")
