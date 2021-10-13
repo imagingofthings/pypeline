@@ -201,7 +201,6 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         N_antenna, N_beam = W.shape
         N_height, N_width = self._grid.shape[1:]
-        N_height, N_width = self._grid.shape[1:]
         N_eig = V.shape[1]
 
         XYZ = XYZ - XYZ.mean(axis=0)
@@ -212,10 +211,9 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self.mark(self.timer_tag + "Synthesizer matmuls")
 
-
+        grid_gpu = xp.asarray(self._grid)
         for i in range(N_width):
-          pix_gpu = xp.asarray(self._grid[:,:,i])
-          b  = xp.matmul(XYZ,  pix_gpu)
+          b = xp.matmul(XYZ,  grid_gpu[:,:,i])
           P = xp.exp(a*b)
           if xp == np and (isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix)):   
             PW = W.T @ P
