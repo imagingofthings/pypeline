@@ -180,9 +180,9 @@ if __name__ == "__main__":
 
         # call the Bluebild Synthesis Kernels
         stats_periodic = synthesizer_periodic(V,XYZ,W)
-        stats_standard = synthesizer_standard(V,XYZ,W)
-        #stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
-        #stats_standard = stats_standard_gpu.get()
+        #stats_standard = synthesizer_standard(V,XYZ,W)
+        stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
+        stats_standard = stats_standard_gpu.get()
 
         D_r =  D.reshape(-1, 1, 1)
 

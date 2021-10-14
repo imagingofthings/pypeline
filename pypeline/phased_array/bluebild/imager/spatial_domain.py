@@ -9,6 +9,7 @@ High-level Bluebild interfaces that work in the spatial domain.
 """
 
 import numpy as np
+import cupy as cp
 import scipy.sparse as sparse
 import time as stime
 
@@ -162,7 +163,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
       if self.timer: self.timer.start_time(tag)
     def unmark(self, tag):
       if self.timer: self.timer.end_time(tag)
-    @chk.check(
+    '''@chk.check(
         dict(
             D=chk.has_reals,
             V=chk.has_complex,
@@ -170,7 +171,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
             cluster_idx=chk.has_integers,
         )
-    )
+    )'''
     def __call__(self, D, V, XYZ, W, cluster_idx):
         """
         Compute (clustered) integrated field statistics for least-squares and standardized estimates.
@@ -200,6 +201,11 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         self.mark("Image synthesis")
         stat_std = self._synthesizer(V, XYZ, W)
+
+        # get result from GPU
+        if cp == cp.get_array_module(stat_std):
+          stat_std = stat_std.get()
+          
         self.unmark("Image synthesis")
         stat_lsq = stat_std * D.reshape(-1, 1, 1)
         #stat_lsq = stat_std * D.reshape(-1, 1)

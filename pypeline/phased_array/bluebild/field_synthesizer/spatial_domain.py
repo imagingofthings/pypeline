@@ -166,142 +166,69 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             W=chk.is_instance(np.ndarray, sparse.csr_matrix, sparse.csc_matrix),
         )
     )'''
-    '''
+    
     def __call__(self, V, XYZ, W):
         """
         Compute instantaneous field statistics.
-
         Parameters
         ----------
         V : :py:class:`~numpy.ndarray`
             (N_beam, N_eig) complex-valued eigenvectors.
         XYZ : :py:class:`~numpy.ndarray`
             (N_antenna, 3) Cartesian instrument geometry.
-
             `XYZ` must be defined in the same reference frame as `pix_grid` from :py:meth:`~pypeline.phased_array.bluebild.field_synthesizer.spatial_domain.SpatialFieldSynthesizerBlock.__init__`.
         W : :py:class:`~numpy.ndarray` or :py:class:`~scipy.sparse.csr_matrix` or :py:class:`~scipy.sparse.csc_matrix`
             (N_antenna, N_beam) synthesis beamweights.
-
         Returns
         -------
         stat : :py:class:`~numpy.ndarray`
             (N_eig, N_px) field statistics.
-
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
 
         # for CPU/GPU agnostic code
         xp = cp.get_array_module(V)  # not using 'xp' instead of cp or np
-        print("Using:", xp.__name__)
+        #print("Using:", xp.__name__)
 
-        self.mark(self.timer_tag + "Synthesizer call")
-
-        self.mark(self.timer_tag + "Synthesizer numpy/cupy formatting & array allocation")
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
-
-        # TODO: re-enable control of precision
+        # TODO: move precision control outside of the call
         #V = V.astype(self._cp, copy=False)
         #XYZ = XYZ.astype(self._fp, copy=False)
         #W = W.astype(self._cp, copy=False)
+
+        self.mark(self.timer_tag + "Synthesizer call")
 
         N_antenna, N_beam = W.shape
         N_height, N_width = self._grid.shape[1:]
         N_eig = V.shape[1]
 
         XYZ = XYZ - XYZ.mean(axis=0)
+        #P = xp.zeros((N_antenna, N_height, N_width), dtype=self._cp)
+        E = xp.zeros((N_eig, N_height, N_width), dtype=self._cp)
 
         a = 1j * 2 * np.pi / self._wl
-        E  = xp.zeros((N_eig, N_height, N_width)) #,  dtype=self._cp)
-
-        self.unmark(self.timer_tag + "Synthesizer numpy/cupy formatting & array allocation")
 
         self.mark(self.timer_tag + "Synthesizer matmuls")
 
-        for i in range(N_width):        
-          pix_gpu = xp.asarray(self._grid[:,:,i])
-          B  = xp.matmul(XYZ, pix_gpu)
-          P  = xp.exp(B*a)  
-          if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):   
+        grid_gpu = xp.asarray(self._grid)
+        for i in range(N_width):
+          b = xp.matmul(XYZ,  grid_gpu[:,:,i])
+          P = xp.exp(a*b)
+          if xp == np and (isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix)):   
             PW = W.T @ P
           else:
             PW = xp.matmul(W.T,P)
           E[:,:,i]  = xp.matmul(V.T, PW)
 
-        I = E.real ** 2 + E.imag ** 2
         self.unmark(self.timer_tag + "Synthesizer matmuls")
 
-        self.unmark(self.timer_tag + "Synthesizer call")
-
-        return I
-    '''
-
-
-    def __call__(self, V, XYZ, W):
-        """
-        Compute instantaneous field statistics.
-        Parameters
-        ----------
-        V : :py:class:`~numpy.ndarray`
-            (N_beam, N_eig) complex-valued eigenvectors.
-        XYZ : :py:class:`~numpy.ndarray`
-            (N_antenna, 3) Cartesian instrument geometry.
-            `XYZ` must be defined in the same reference frame as `pix_grid` from :py:meth:`~pypeline.phased_array.bluebild.field_synthesizer.spatial_domain.SpatialFieldSynthesizerBlock.__init__`.
-        W : :py:class:`~numpy.ndarray` or :py:class:`~scipy.sparse.csr_matrix` or :py:class:`~scipy.sparse.csc_matrix`
-            (N_antenna, N_beam) synthesis beamweights.
-        Returns
-        -------
-        stat : :py:class:`~numpy.ndarray`
-            (N_eig, N_px) field statistics.
-            (Note: StandardSynthesis statistics correspond to the actual field values.)
-        """
-        self.mark(self.timer_tag + "Synthesizer call")
-
-        self.mark(self.timer_tag + "Synthesizer numpy formatting")
-        if not _have_matching_shapes(V, XYZ, W):
-            raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
-        V = V.astype(self._cp, copy=False)
-        XYZ = XYZ.astype(self._fp, copy=False)
-        W = W.astype(self._cp, copy=False)
-
-        N_antenna, N_beam = W.shape
-        N_height, N_width = self._grid.shape[1:]
-
-        XYZ = XYZ - XYZ.mean(axis=0)
-        #P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
-        P = np.zeros((N_antenna, N_height, N_width), dtype=self._cp)
-
-        self.unmark(self.timer_tag + "Synthesizer numpy formatting")
-
-        self.mark(self.timer_tag + "Synthesizer numpy tensordot 1")
-        a = 1j * 2 * np.pi / self._wl
-        b = np.tensordot(XYZ, self._grid, axes=1)
-
-        self.unmark(self.timer_tag + "Synthesizer numpy tensordot 1")
-        self.mark(self.timer_tag + "Synthesizer numexpr exponential")
-        ne.evaluate(
-            "exp(A * B)",
-            dict(A=a, B=b),
-            out=P,
-            casting="same_kind",
-        )  # Due to limitations of NumExpr2
-        self.unmark(self.timer_tag + "Synthesizer numexpr exponential")
-
-        self.mark(self.timer_tag + "Synthesizer numpy reshaping")
-        PW = W.T @ P.reshape(N_antenna, N_height * N_width)
-        PW = PW.reshape(N_beam, N_height, N_width)
-        self.unmark(self.timer_tag + "Synthesizer numpy reshaping")
-
-        self.mark(self.timer_tag + "Synthesizer numpy tensordot 2")
-        E = np.tensordot(V.T, PW, axes=1)
-        #E = V.T @ (W.T @ P)
-        self.unmark(self.timer_tag + "Synthesizer numpy tensordot 2")
-
         I = E.real ** 2 + E.imag ** 2
 
         self.unmark(self.timer_tag + "Synthesizer call")
 
         return I
+    
 
     @chk.check("stat", chk.has_reals)
     def synthesize(self, stat):

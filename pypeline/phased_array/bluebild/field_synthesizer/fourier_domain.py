@@ -391,7 +391,6 @@ class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         N_samples = fftpack.next_fast_len(self._NFS) # TODO: need to also cupy this (if possible)
         lon_smpl = pyffs.ffs_sample(self._T, self._NFS, self._Tc, N_samples)[0] # TODO: need to take first element instead of two DONE
         lon_smpl = lon_smpl.get()
-        print("DEBUG lon_smpl: ", type(lon_smpl))
         pix_smpl = transform.pol2cart(1, self._grid_colat, lon_smpl.reshape(1, -1))
 
         N_antenna = len(XYZ)

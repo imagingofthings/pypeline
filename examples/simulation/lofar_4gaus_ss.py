@@ -18,8 +18,10 @@ import imot_tools.io.s2image as s2image
 import imot_tools.math.sphere.grid as grid
 import matplotlib.pyplot as plt
 import numpy as np
+import cupy as cp
 import scipy.constants as constants
 import sys, time
+import finufft
 
 import pypeline.phased_array.bluebild.data_processor as bb_dp
 import pypeline.phased_array.bluebild.gram as bb_gr
@@ -66,6 +68,8 @@ _, _, px_colat, px_lon = grid.equal_angle(
     N=ms.instrument.nyquist_rate(wl), direction=ms.field_center.cartesian.xyz.value, FoV=FoV
 )
 
+print(ms.instrument.nyquist_rate(wl), "Nstation {0}, px_col {1}, px_lon {2}".format(N_station, px_colat.shape, px_lon.shape))
+
 #N_FS, T_kernel = ms.instrument.bfsf_kernel_bandwidth(wl, obs_start, obs_end), np.deg2rad(10)
 #px_grid = transform.pol2cart(1, px_colat, px_lon).reshape(3, -1)
 px_grid = transform.pol2cart(1, px_colat, px_lon)
@@ -108,7 +112,15 @@ for t, f, S in ProgressBar(
     D, V, c_idx = I_dp(S, G)
     print(c_idx)
     c_idx = [0,1,2,3]
-    _ = I_mfs(D, V, XYZ.data, W.data, c_idx)
+
+    #_ = I_mfs(D, V, XYZ.data, W.data, c_idx)
+
+    XYZ_gpu = cp.asarray(XYZ.data)
+    W_gpu  = cp.asarray(W.data.toarray())
+    V_gpu  = cp.asarray(V)
+
+    _ = I_mfs(D, V_gpu, XYZ_gpu, W_gpu, c_idx)
+    
 I_std, I_lsq = I_mfs.as_image()
 
 end_time = time.process_time()

@@ -99,6 +99,8 @@ if __name__ == "__main__":
     #data = SimulatedDataGen(frequency = 145e6)
     data = RealDataGen("/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4,  N_station = 24 ) # n level = # eigenimages
     #data = RealDataGen("/home/etolley/data/gauss2/gauss2_t201806301100_SBL180.MS", N_level = 2)
+
+    doPeriodic = False
     #data = dummy_synthesis.RandomDataGen()
 
     ################################### 
@@ -130,40 +132,44 @@ if __name__ == "__main__":
         print("t = {0}".format(t))
 
         # call the Bluebild Synthesis Kernels
-        stats_periodic = synthesizer_periodic(V,XYZ,W)
         stats_standard = synthesizer_standard(V,XYZ,W)
-        #stats_sens_periodic = synthesizer_periodic(Vs,XYZ,W)
         stats_sens_standard = synthesizer_standard(Vs,XYZ,W)
         stats_sens_standard = np.sum(stats_sens_standard, axis = 0)
+        stats_standard_norm = stats_standard * D.reshape(-1, 1, 1)
+        if doPeriodic:
+            stats_periodic = synthesizer_periodic(V,XYZ,W)
+            stats_periodic_norm = stats_periodic *  D.reshape(-1, 1, 1)
+            # trasform the periodic field statistics to periodic eigenimages
+            field_periodic      = synthesizer_periodic.synthesize(stats_periodic)
+            field_periodic_norm = synthesizer_periodic.synthesize(stats_periodic_norm)
+            bfsf_grid = transform.pol2cart(1, data.px_colat_periodic, data.px_lon_periodic)
+            icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
 
-
-        stats_standard_norm = stats_standard * D.reshape(-1, 1,1)
-        stats_periodic_norm = stats_periodic *  D.reshape(-1, 1,1)
+        
         #stats_sens_standard_norm = stats_sens_standard * Ds.reshape(-1, 1, 1)
         #stats_sens_periodic_norm = stats_sens_periodic * Ds.reshape(-1, 1, 1)
 
-        # trasform the periodic field statistics to periodic eigenimages
-        field_periodic      = synthesizer_periodic.synthesize(stats_periodic)
-        field_periodic_norm = synthesizer_periodic.synthesize(stats_periodic_norm)
+        
         #field_sens_periodic = synthesizer_periodic.synthesize(stats_sens_periodic)
         #field_sens_periodic_norm = synthesizer_periodic.synthesize(stats_sens_periodic_norm)
 
 
-        bfsf_grid = transform.pol2cart(1, data.px_colat_periodic, data.px_lon_periodic)
-        icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
+        
 
-        print(field_periodic.shape, stats_standard.shape, stats_standard_norm.shape)
+        if doPeriodic: print(field_periodic.shape, stats_standard.shape, stats_standard_norm.shape)
         if not init_final_arrays:
             stats_standard_combined = np.zeros(stats_standard.shape)
             stats_standard_normcombined = np.zeros(stats_standard.shape)
-            stats_periodic_combined = np.zeros(field_periodic.shape)
-            stats_periodic_normcombined = np.zeros(field_periodic.shape)
+            if doPeriodic:
+                stats_periodic_combined = np.zeros(field_periodic.shape)
+                stats_periodic_normcombined = np.zeros(field_periodic.shape)
             init_final_arrays = True
         for n in range(data.N_level):
             stats_standard_combined[n,:]     += stats_standard[n,:]#/stats_sens_standard
             stats_standard_normcombined[n,:] += stats_standard_norm[n,:]#/stats_sens_standard
-            stats_periodic_combined[n,:]     += field_periodic[n,:]#/stats_sens_standard
-            stats_periodic_normcombined[n,:] += field_periodic_norm[n,:]#/stats_sens_standard
+            if doPeriodic:
+                stats_periodic_combined[n,:]     += field_periodic[n,:]#/stats_sens_standard
+                stats_periodic_normcombined[n,:] += field_periodic_norm[n,:]#/stats_sens_standard
 
 
         #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
