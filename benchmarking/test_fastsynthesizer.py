@@ -19,6 +19,7 @@ import dummy_synthesis
 from dummy_synthesis import synthesize, synthesize_stack
 
 from data_gen_utils import RandomDataGen, SimulatedDataGen, RealDataGen
+from other_utils import rad_average
 
 def draw_comparison(stats_standard, field_periodic, pix, icrs_grid):
     img_standard = image.Image(stats_standard, pix)
@@ -51,25 +52,38 @@ def draw_comparison(stats_standard, field_periodic, pix, icrs_grid):
     #fig.show()
     #plt.show()
 
-def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_periodic_norm, pix, icrs_grid):
+def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_periodic_norm, pix, icrs_grid, psf):
     grid_kwargs = {"ticks": False}
     img_standard = image.Image(stats_standard, pix)
     img_periodic = image.Image(field_periodic, icrs_grid)
     img_standard_norm = image.Image(stats_standard_norm, pix)
     img_periodic_norm = image.Image(field_periodic_norm, icrs_grid)
 
-    fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 2, figsize=(15, 7))
+    if(psf):
+        fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 3, figsize=(15, 8))
+    else:
+        fig, ax = plt.subplots(ncols=data.N_level+2, nrows = 2, figsize=(15, 5))
     #fig.tight_layout(pad = 2.0)
     img_standard.draw(ax=ax[0,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
     ax[0,0].set_title("Standard Image\nAll Levels")
-    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs, use_contours=True)
+    img_periodic.draw(ax=ax[1,0], data_kwargs = {"cmap": "Purples_r"}, grid_kwargs = grid_kwargs)
     ax[1,0].set_title("Periodic Image\nAll Levels")
     img_standard_norm.draw(ax=ax[0,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
-    print(img_standard_norm.data.shape)
-
     ax[0,1].set_title("Standard Image\nAll Levels, Normalized")
     img_periodic_norm.draw(ax=ax[1,1], data_kwargs = {"cmap": "Greens_r"}, grid_kwargs = grid_kwargs)
     ax[1,1].set_title("Periodic Image\nAll Levels, Normalized")
+
+    if(psf):
+        # PSF radial distribution profile
+        intens, rad = rad_average(np.sum(img_standard.data, axis=0), bin_size=2)
+        ax[2,0].semilogy(rad, intens, color='b', label='standard')
+        intens, rad = rad_average(np.sum(img_periodic.data, axis=0), bin_size=2)
+        ax[2,0].semilogy(rad, intens, color='g', label='periodic')
+        ax[2,0].legend()
+        intens, rad = rad_average(np.sum(img_standard_norm.data, axis=0), bin_size=2)
+        ax[2,1].semilogy(rad, intens, color='b')
+        intens, rad = rad_average(np.sum(img_periodic_norm.data, axis=0), bin_size=2)
+        ax[2,1].semilogy(rad, intens, color='g')
     for i in range(0,data.N_level):
         print(i)
         print(img_standard_norm.data.shape)
@@ -77,12 +91,19 @@ def draw_levels(stats_standard, field_periodic, stats_standard_norm, field_perio
         ax[0,i+2].set_title("Standard Image\nNormalized Level {0}".format(i))
         img_periodic_norm.draw(ax=ax[1,i+2], index=i, data_kwargs = {"cmap": "Blues_r"}, grid_kwargs = grid_kwargs)
         ax[1,i+2].set_title("Periodic Image\nNormalized Level {0}".format(i))
+        if(psf):
+            intens, rad = rad_average(img_standard_norm.data[i], bin_size=2)
+            ax[2,i+2].semilogy(rad, intens, color='b')
+            intens, rad = rad_average(img_periodic_norm.data[i], bin_size=2)
+            ax[2,i+2].semilogy(rad, intens, color='g')
     plt.subplots_adjust(wspace=0.5)
     fig.savefig("%sdata/outputs/test_Nsrc%d_Nlvl%d.png" %(str(Path.home())+'/', data.N_sources, data.N_level), bbox_inches='tight')
     #fig.show()
     #plt.show()
 
-def draw_standard_levels(stats_standard, stats_standard_norm, pix, ):
+
+
+def draw_standard_levels(stats_standard, stats_standard_norm, pix):
     grid_kwargs = {"ticks": False}
     img_standard = image.Image(stats_standard, pix)
     img_standard_norm = image.Image(stats_standard_norm, pix)
@@ -108,6 +129,8 @@ def draw_standard_levels(stats_standard, stats_standard_norm, pix, ):
     #fig.show()
     #plt.show()
 
+
+
 if __name__ == "__main__":
 
     ###### make simulated dataset ###### 
@@ -119,7 +142,7 @@ if __name__ == "__main__":
     #cat = np.array([[216.9, 32.8, 87.5], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
     #cat = np.array([[216.9, 32.8, 190.2]]) 
     cat = np.array([[218.00001, 34.500001, 1e6]]) 
-    data = SimulatedDataGen(frequency=145e6, N_level=4 , N_sources=1, mock_catalog=cat)
+    data = SimulatedDataGen(frequency=145e6, N_level=1 , N_sources=1, mock_catalog=cat)
     #data = dummy_synthesis.RandomDataGen()
     ################################### 
 
@@ -193,6 +216,6 @@ if __name__ == "__main__":
         except: stats_periodic_normcombined = field_periodic_norm
 
     #draw_comparison(stats_standard, field_periodic, pix, icrs_grid)
-    draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid)
+    draw_levels(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid, psf=True)
     #draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
     print(timer.summary())

@@ -130,6 +130,7 @@ class SimulatedDataGen():
             FoV=self.FoV
         )
         self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
+        print(' pix_grid', self.pix_grid.shape)
         self.T_kernel = np.deg2rad(10)
         self.N_FS = self.dev.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.time[-1])
 
