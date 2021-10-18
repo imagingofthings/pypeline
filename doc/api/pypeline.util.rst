@@ -9,3 +9,4 @@ pypeline.util
    :toctree:
 
    ~pypeline.util.array
+   ~pypeline.util.frame

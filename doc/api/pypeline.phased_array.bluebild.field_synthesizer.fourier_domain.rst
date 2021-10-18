@@ -14,6 +14,7 @@ pypeline.phased\_array.bluebild.field\_synthesizer.fourier\_domain
    .. autosummary::
    
       FourierFieldSynthesizerBlock
+      NUFFTFieldSynthesizerBlock
    
    
 
