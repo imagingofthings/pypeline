@@ -51,9 +51,7 @@ gram = bb_gr.GramBlock()
 
 # Data generation
 T_integration = 8
-#sky_model = source.from_tgss_catalog(field_center, FoV, N_src=40)
-mock_catalog = np.array([[218.00001, 34.500001, 1e6]]) 
-sky_model = source.user_defined_catalog(field_center, FoV, catalog_user=mock_catalog)
+sky_model = source.from_tgss_catalog(field_center, FoV, N_src=40)
 vis = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=30)
 time = obs_start + (T_integration * u.s) * np.arange(3595)
 obs_end = time[-1]
@@ -70,18 +68,15 @@ time_slice = 25
 
 ### Intensity Field ===========================================================
 # Parameter Estimation
-if(N_level != 1):
-    N_eig, c_centroid = N_level, list(range(N_level))
-else:
-    I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
-    for ti in ProgressBar(time[::200]):
-        XYZ = dev(ti)
-        W = mb(XYZ, wl)
-        S = vis(XYZ, W, wl)
-        G = gram(XYZ, W, wl)
+I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
+for t in ProgressBar(time[::200]):
+    XYZ = dev(t)
+    W = mb(XYZ, wl)
+    G = gram(XYZ, W, wl)
+    S = vis(XYZ, W, wl)
+    I_est.collect(S, G)
 
-        I_est.collect(S, G)
-    N_eig, c_centroid = I_est.infer_parameters()
+N_eig, c_centroid = I_est.infer_parameters()
 
 # Imaging
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
@@ -123,17 +118,14 @@ lsq_image, sqrt_image = nufft_imager(gram_corrected_visibilities)
 
 ### Sensitivity Field =========================================================
 # Parameter Estimation
-if(N_level != 1):
-    N_eig, c_centroid = N_level, list(range(N_level))
-else:
-    S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
-    for t in ProgressBar(time[::200]):
-        XYZ = dev(t)
-        W = mb(XYZ, wl)
-        G = gram(XYZ, W, wl)
+S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
+for t in ProgressBar(time[::200]):
+    XYZ = dev(t)
+    W = mb(XYZ, wl)
+    G = gram(XYZ, W, wl)
 
-        S_est.collect(G)
-    N_eig = S_est.infer_parameters()
+    S_est.collect(G)
+N_eig = S_est.infer_parameters()
 
 # Imaging
 S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
@@ -183,4 +175,3 @@ for i in range(lsq_image.shape[0]):
                   catalog_kwargs=dict(s=30, linewidths=0.5, alpha = 0.5), show_gridlines=False)
 
 plt.suptitle(f'Bluebild Eigenmaps')
-plt.savefig("%sdata/outputs/test_boostes_nufft3" %(str(Path.home())+'/'), bbox_inches='tight')

@@ -138,17 +138,17 @@ t.end_time("Set up data")
 ### Intensity Field =================================================
 # Parameter Estimation
 t.start_time("Estimate intensity field parameters")
-I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
-for ti in ProgressBar(time[::200]):
-    XYZ = dev(ti)
-    W = mb(XYZ, wl)
-    S = vis(XYZ, W, wl)
-    G = gram(XYZ, W, wl)
-
-    I_est.collect(S, G)
-if(N_level == 1):
+if(N_level != 1):
     N_eig, c_centroid = N_level, list(range(N_level))
 else:
+    I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
+    for ti in ProgressBar(time[::200]):
+        XYZ = dev(ti)
+        W = mb(XYZ, wl)
+        S = vis(XYZ, W, wl)
+        G = gram(XYZ, W, wl)
+
+        I_est.collect(S, G)
     N_eig, c_centroid = I_est.infer_parameters()
 t.end_time("Estimate intensity field parameters")
 
@@ -225,15 +225,15 @@ print(bb_image.shape,bb_image[0,0])
 ### Sensitivity Field =========================================================
 # Parameter Estimation
 t.start_time("Estimate sensitivity field parameters")
-S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
-for ti in ProgressBar(time[::200]):
-    XYZ = dev(ti)
-    W = mb(XYZ, wl)
-    G = gram(XYZ, W, wl)
-    S_est.collect(G)
-if(N_level == 1):
+if(N_level != 1):
     N_eig, c_centroid = N_level, list(range(N_level))
 else:
+    S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
+    for ti in ProgressBar(time[::200]):
+        XYZ = dev(ti)
+        W = mb(XYZ, wl)
+        G = gram(XYZ, W, wl)
+        S_est.collect(G)
     N_eig, c_centroid = I_est.infer_parameters()
 t.end_time("Estimate sensitivity field parameters")
 
