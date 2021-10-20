@@ -15,6 +15,9 @@ import numpy as np
 import pypeline.core as core
 import pypeline.phased_array.data_gen.statistics as vis
 import pypeline.phased_array.bluebild.gram as gram
+import pypeline.phased_array.beamforming as bb_beam
+import typing as typ
+import scipy.sparse as sparse
 
 
 class DataProcessorBlock(core.Block):
@@ -258,3 +261,70 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
         Dg = 1 / (D ** 2)
 
         return Dg, V
+
+
+class VirtualVisibilitiesDataProcessingBlock(DataProcessorBlock):
+    r"""
+    Data processor for transforming the fPCA decomposition returned by :py:class:`~pypeline.phased_array.bluebild.data_processor.IntensityFieldDataProcessorBlock`
+    into a set of virtual visibilities to be fed to the NUFFT synthesizer for imaging.
+    """
+
+    @chk.check(dict(N_eig=chk.is_integer))
+    def __init__(self, N_eig: int, filters: typ.Tuple[str, ...] = ('lsq', 'std', 'sqrt')):
+        r"""
+
+        Parameters
+        ----------
+        N_eig: int
+            Number of eigenpairs in the fPCA decomposition.
+        filters: Tuple[str, ...]
+            Filters to be applied to the spectrum ``D`` of the fPCA. Possible values are: ``dict(lsq=D, std=np.ones(D.size, np.float), sqrt=np.sqrt(D), inv=1 / D)``.
+        """
+        if N_eig <= 0:
+            raise ValueError("Parameter [N_eig] must be positive.")
+
+        super().__init__()
+        self.filters = filters
+        self._N_eig = N_eig
+
+    def __call__(self, D: np.ndarray, V: np.ndarray, W: typ.Optional[bb_beam.MatchedBeamformerBlock] = None,
+                 cluster_idx: typ.Optional[np.ndarray] = None) -> np.ndarray:
+        r"""
+        Filter the fPCA eigenlevels and transform them into virtual visibilities. If a beamforming matrix is provided the
+        filtered eigenlevels are also uncompressed (i.e. beamforming reversed).
+
+        Parameters
+        ----------
+        D: np.ndarray
+            (N_eig,) positive eigenvalues.
+        V: np.ndarray
+            (N_antenna, N_eig) --or (N_beam, N_eig) with beamforming-- complex-valued eigenvectors.
+        W: Optional[pypeline.phased_array.beamforming.MatchedBeamformerBlock]
+            (N_antenna, N_beam) optional beamforming matrix.
+        cluster_idx: Optional[np.ndarray]
+            (N_eig,) cluster indices defining each eigenlevel.
+
+        Returns
+        -------
+        virtual_vis_stack: np.ndarray
+         (N_filter, N_eig, N_antenna, N_antenna) stack of (N_antenna, N_antenna) virtual visibilities.
+        """
+        Filtered_eigs = dict(lsq=D, std=np.ones(D.size, np.float), sqrt=np.sqrt(D), inv=1 / D)
+        if W is not None:
+            W = sparse.csr_matrix(W.data)
+            V_unbeamformed = np.asarray(W * V)
+            virtual_vis_stack = np.zeros((len(self.filters), np.unique(cluster_idx).size, W.shape[0], W.shape[0]),
+                                         dtype=np.complex128)
+        else:
+            V_unbeamformed = V
+            virtual_vis_stack = np.zeros((len(self.filters), np.unique(cluster_idx).size, V.shape[0], V.shape[0]),
+                                         dtype=np.complex128)
+        if cluster_idx is None:
+            cluster_idx = np.zeros(self._N_eig)
+
+        for k, filter in enumerate(self.filters):
+            for i in np.unique(cluster_idx):
+                filtered_eig = Filtered_eigs[filter][i == cluster_idx]
+                virtual_vis_stack[k, i] = (V_unbeamformed[:, i == cluster_idx] * filtered_eig[None, :]) \
+                                          @ V_unbeamformed[:, i == cluster_idx].transpose().conj()
+        return virtual_vis_stack

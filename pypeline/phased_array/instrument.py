@@ -36,6 +36,8 @@ import scipy.linalg as linalg
 
 import pypeline.core as core
 import pypeline.util.array as array
+import pypeline.util.frame as frame
+import typing as typ
 
 
 def is_antenna_index(x):
@@ -380,6 +382,37 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
             data=icrs_position.T, index=self._layout.index, columns=("X", "Y", "Z")
         )
         return _as_InstrumentGeometry(icrs_layout)
+
+    def baselines(self, t: time.Time, uvw: bool = False,
+                  field_center: typ.Optional[coord.SkyCoord] = None) -> np.ndarray:
+        r"""
+        Baselines of the instrument at a given time.
+
+        Parameters
+        ----------
+        t: astropy.time.time
+            Time at which the coordinates are wanted.
+        uvw: bool
+            If ``True``, the baselines coordinates are expressed in the local UVW frame, attached to the center of the FoV.
+            If ``False``, the baseline coordinates are expressed in the ICRS frame.
+        field_center: Optional[astropy.coordinates.SkyCoord]
+            If ``uvw=True`` this argument specifies the center of the FoV used to define the local UVW frame.
+
+        Returns
+        -------
+        baselines: np.ndarray
+            (N_antenna, N_antenna, 3) baselines coordinates.
+        """
+        XYZ = self.__call__(t).data
+        if uvw:
+            if field_center is None:
+                raise ValueError('Please provide a field_center for uvw coordinates conversion.')
+            uvw_frame = frame.uvw_basis(field_center)
+            UVW = (uvw_frame.transpose() @ XYZ.transpose()).transpose()
+            baselines = (UVW[:, None, :] - UVW[None, ...])
+        else:
+            baselines = (XYZ[:, None, :] - XYZ[None, ...])
+        return baselines
 
     @chk.check(dict(obs_start=chk.is_instance(time.Time), obs_end=chk.is_instance(time.Time)))
     def icrs2bfsf_rot(self, obs_start, obs_end):
