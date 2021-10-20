@@ -32,3 +32,4 @@ sphinx_rtd_theme == 0.4.*
 tqdm == 4.29.*
 pycsou == 1.0.5
 cupy-cuda102
+finufft==2.0.3.post1

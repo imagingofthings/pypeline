@@ -39,7 +39,7 @@ with fits.open("/users/mibianco/casacore_setup/deconvScale-image.fits") as hdul:
     clean_data = hdul[0].data[0,0,:,:]
     clean_wcs = pywcs.WCS(hdul[0].header)
 
-with fits.open("/users/mibianco//data/gauss4/gauss4-image-pb.fits") as hdul: #"/users/mibianco/casacore_setup/deconv-image.fits"
+with fits.open("/users/mibianco/data/deconv-image.fits") as hdul: #"/users/mibianco/casacore_setup/deconv-image.fits"
     #clean_data = hdul[0].data[0,0,:,:]
     true_wcs = pywcs.WCS(hdul[0].header)
 

@@ -12,6 +12,17 @@ Simulated LOFAR imaging with Bluebild (PeriodicSynthesis).
 import matplotlib as mpl
 mpl.use('agg')
 from pathlib import Path
+# #############################################################################
+# lofar_bootes_ps_small_fov.py
+# ==================
+# Author : Sepand KASHANI [kashani.sepand@gmail.com] (modified by Matthieu)
+# #############################################################################
+
+"""
+Simulated LOFAR imaging with Bluebild (Standard, Periodic, and nufft).
+"""
+
+'''export OMP_NUM_THREADS=1''' 
 
 from tqdm import tqdm as ProgressBar
 import astropy.coordinates as coord
@@ -43,11 +54,17 @@ from timing import Timer
 
 t = Timer()
 
+do_spherical_interpolation = True # BEWARE, if set to true the runtime becomes very slow!!
+do_periodic_synthesis = True
+timeslice = slice(None,None,5)
+
 t.start_time("Set up data")
+
+
 # Observation
 obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
 field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
-FoV, frequency = np.deg2rad(8), 145e6
+FoV, frequency = np.deg2rad(1), 145e6
 wl = constants.speed_of_light / frequency
 
 # Instrument
@@ -59,8 +76,9 @@ gram = bb_gr.GramBlock()
 
 # Data generation
 T_integration = 8
-sky_model = source.from_tgss_catalog(field_center, FoV, N_src=30)
-
+#sky_model = source.from_tgss_catalog(field_center, FoV, N_src=30)
+mock_catalog = np.array([[218.00001, 34.500001, 1e6]]) 
+sky_model = source.user_defined_catalog(field_center, FoV, catalog_user=mock_catalog)
 vis = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=30)
 time = obs_start + (T_integration * u.s) * np.arange(3595)
 obs_end = time[-1]
@@ -84,6 +102,11 @@ _, _, px_colat, px_lon = grid.equal_angle(
 
 px_grid = transform.pol2cart(1, px_colat, px_lon)
 
+print('''You are running bluebild with the following input parameters:
+         {0} timesteps
+         {1} stations
+         clustering into {2} levels
+         The output grid will be {3}x{4} = {5} pixels'''.format(len(time[timeslice]), N_station,N_level, px_grid.shape[1],  px_grid.shape[2],  px_grid.shape[1]* px_grid.shape[2]))
 
 ### NUFFT imaging parameters ===========================================================
 
@@ -123,7 +146,10 @@ for ti in ProgressBar(time[::200]):
     G = gram(XYZ, W, wl)
 
     I_est.collect(S, G)
-N_eig, c_centroid = I_est.infer_parameters()
+if(N_level == 1):
+    N_eig, c_centroid = N_level, list(range(N_level))
+else:
+    N_eig, c_centroid = I_est.infer_parameters()
 t.end_time("Estimate intensity field parameters")
 
 ####################################################################
@@ -136,7 +162,7 @@ UVW_baselines = []
 ICRS_baselines = []
 gram_corrected_visibilities = []
 baseline_rescaling = 2 * np.pi / wl
-for ti in ProgressBar(time[:10]):
+for ti in ProgressBar(time[timeslice]):
     t.start_time("Synthesis: prep input matrices & fPCA")
     XYZ = dev(ti)
     W = mb(XYZ, wl)
@@ -163,29 +189,38 @@ for ti in ProgressBar(time[:10]):
     UVW_baselines.append(baseline_rescaling * UVW_baselines_t)
     ICRS_baselines.append(baseline_rescaling * ICRS_baselines_t)
     W = W.data
-    S_corrected = (W @ ((V @ np.diag(D)) @ V.transpose().conj())) @ W.transpose().conj()
+    S_corrected  = (W @ ((V @ np.diag(D)) @ V.transpose().conj())) @ W.transpose().conj()
+    S_corrected2 = (W @ ((V @ np.diag(D)) @ V.transpose().conj())) @ W.transpose().conj()
     gram_corrected_visibilities.append(S_corrected)
     t.end_time("NUFFT Synthesis 1")
+
 
 I_std_ps, I_lsq_ps = I_mfs_ps.as_image()
 I_std_ss, I_lsq_ss = I_mfs_ss.as_image()
 
 t.start_time("NUFFT Synthesis 2")
 UVW_baselines = np.stack(UVW_baselines, axis=0).reshape(-1, 3)
-ICRS_baselines = np.stack(ICRS_baselines, axis=0).reshape(-1, 3)
+ICRS_baselines = np.stack(ICRS_baselines, axis=0)
 gram_corrected_visibilities = np.stack(gram_corrected_visibilities, axis=0).reshape(-1)
+
 w_correction = np.exp(1j * UVW_baselines[:, -1])
-gram_corrected_visibilities *= w_correction
+gram_corrected_visibilities_nufft = gram_corrected_visibilities*w_correction
+
+print("test")
+
 scalingx = 2 * lim / N_pix
 scalingy = 2 * lim / N_pix
 bb_image = finufft.nufft2d1(x=scalingx * UVW_baselines[:, 1],
                             y=scalingy * UVW_baselines[:, 0],
-                            c=gram_corrected_visibilities,
+                            c=gram_corrected_visibilities_nufft,
                             n_modes=N_pix, eps=1e-4)
 
 bb_image = np.real(bb_image)
 t.end_time("NUFFT Synthesis 2")
 print(bb_image.shape,bb_image[0,0])
+
+
+#====
 
 ### Sensitivity Field =========================================================
 # Parameter Estimation
@@ -196,7 +231,10 @@ for ti in ProgressBar(time[::200]):
     W = mb(XYZ, wl)
     G = gram(XYZ, W, wl)
     S_est.collect(G)
-N_eig = S_est.infer_parameters()
+if(N_level == 1):
+    N_eig, c_centroid = N_level, list(range(N_level))
+else:
+    N_eig, c_centroid = I_est.infer_parameters()
 t.end_time("Estimate sensitivity field parameters")
 
 # Imaging
@@ -204,7 +242,7 @@ S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
 S_mfs_ps = bb_fd.Fourier_IMFS_Block(wl, pix_colat, pix_lon, N_FS, T_kernel, R, 1, N_bits)
 S_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid, 1, N_bits)
 sensitivity_coeffs = []
-for ti in ProgressBar(time[:10]): 
+for ti in ProgressBar(time[timeslice]): 
 
     XYZ = dev(ti)
     W = mb(XYZ, wl)
@@ -244,60 +282,61 @@ I_lsq_eq_nufft = s2image.Image(bb_image / sensitivity_image, pix_xyz)
 
 ### Spherical reinterpolation Field =========================================================
 
+if do_spherical_interpolation:
 
-pix_xyz_interp = pix_xyz[:,::5, ::5]  # downsample, too high res!
-#pix_xyz_interp = pix_xyz
-dirichlet_kernel = SphericalDirichlet(N=dev.nyquist_rate(wl), approx=True)
+    #pix_xyz_interp = pix_xyz[:,::5, ::5]  # downsample, too high res!
+    pix_xyz_interp = pix_xyz
+    dirichlet_kernel = SphericalDirichlet(N=dev.nyquist_rate(wl), approx=True)
 
-nside = (dev.nyquist_rate(wl) + 1) / 3
-nodal_width = 2.8345 / np.sqrt(12 * nside ** 2)
-interpolator_ss = pyclop.MappedDistanceMatrix(samples1=pix_xyz_interp.reshape(3, -1).transpose(), # output res
-                                           samples2=px_grid.reshape(3, -1).transpose(), # input res
-                                           function=dirichlet_kernel,
-                                           mode='zonal', operator_type='sparse', max_distance=10 * nodal_width,
-                                           #eps=1e-1,
-                                           )
+    nside = (dev.nyquist_rate(wl) + 1) / 3
+    nodal_width = 2.8345 / np.sqrt(12 * nside ** 2)
+    interpolator_ss = pyclop.MappedDistanceMatrix(samples1=pix_xyz_interp.reshape(3, -1).transpose(), # output res
+                                               samples2=px_grid.reshape(3, -1).transpose(), # input res
+                                               function=dirichlet_kernel,
+                                               mode='zonal', operator_type='sparse', max_distance=10 * nodal_width,
+                                               #eps=1e-1,
+                                               )
 
-with job.Parallel(backend='loky', n_jobs=-1, verbose=True) as parallel:
-    interpolated_maps_ss = parallel(job.delayed(interpolator_ss)
-                                 (I_lsq_eq_ss.data.reshape(N_level, -1)[n]) for n in range(N_level)
-                                 )
+    with job.Parallel(backend='loky', n_jobs=-1, verbose=True) as parallel:
+        interpolated_maps_ss = parallel(job.delayed(interpolator_ss)
+                                     (I_lsq_eq_ss.data.reshape(N_level, -1)[n]) for n in range(N_level)
+                                     )
 
-f_interp_ss = np.stack(interpolated_maps_ss, axis=0).reshape((N_level,) + pix_xyz_interp.shape[1:])
-f_interp_ss = f_interp_ss / (dev.nyquist_rate(wl) + 1)
-f_interp_ss = np.clip(f_interp_ss, 0, None)
+    f_interp_ss = np.stack(interpolated_maps_ss, axis=0).reshape((N_level,) + pix_xyz_interp.shape[1:])
+    f_interp_ss = f_interp_ss / (dev.nyquist_rate(wl) + 1)
+    f_interp_ss = np.clip(f_interp_ss, 0, None)
 
-#============================================================================================
+    #============================================================================================
+    if do_periodic_synthesis:
+        # 2. ICRS <> BFSF transform.
+        # Why are we doing this? The Bluebild image produced by PeriodicSynthesis lies
+        # in the BFSF frame. We therefore need to do the interpolation in BFSF
+        # coordinates.
+        pix_bfsf = np.tensordot(R, pix_xyz_interp, axes=1)
+        # TODO/NB: to modify for SS remove above line
 
-# 2. ICRS <> BFSF transform.
-# Why are we doing this? The Bluebild image produced by PeriodicSynthesis lies
-# in the BFSF frame. We therefore need to do the interpolation in BFSF
-# coordinates.
-pix_bfsf = np.tensordot(R, pix_xyz_interp, axes=1)
-# TODO/NB: to modify for SS remove above line
+        # 3. Interpolation: Part I.
+        # Due to the high Nyquist rate in astronomy and large pixel count in the images,
+        # it is advantageous to do sparse interpolation. Doing so requires first
+        # computing the interpolation kernel's spatial support per output pixel.
+        bb_pix_bfsf = transform.pol2cart(1, pix_colat, pix_lon)  # Bluebild critical support points
+        # TODO/NB: to modify for SS remove above line
 
-# 3. Interpolation: Part I.
-# Due to the high Nyquist rate in astronomy and large pixel count in the images,
-# it is advantageous to do sparse interpolation. Doing so requires first
-# computing the interpolation kernel's spatial support per output pixel.
-bb_pix_bfsf = transform.pol2cart(1, pix_colat, pix_lon)  # Bluebild critical support points
-# TODO/NB: to modify for SS remove above line
+        interpolator_ps = pyclop.MappedDistanceMatrix(samples1=pix_bfsf.reshape(3, -1).transpose(), # output res
+                                                   samples2=bb_pix_bfsf.reshape(3, -1).transpose(), # input res
+                                                   function=dirichlet_kernel,
+                                                   mode='zonal', operator_type='sparse', max_distance=10 * nodal_width,
+                                                   #eps=1e-1,
+                                                   )
 
-interpolator_ps = pyclop.MappedDistanceMatrix(samples1=pix_bfsf.reshape(3, -1).transpose(), # output res
-                                           samples2=bb_pix_bfsf.reshape(3, -1).transpose(), # input res
-                                           function=dirichlet_kernel,
-                                           mode='zonal', operator_type='sparse', max_distance=10 * nodal_width,
-                                           #eps=1e-1,
-                                           )
+        with job.Parallel(backend='loky', n_jobs=-1, verbose=True) as parallel:
+            interpolated_maps_ps = parallel(job.delayed(interpolator_ps)
+                                         (I_lsq_eq_ps.data.reshape(N_level, -1)[n])
+                                         for n in range(N_level))
 
-with job.Parallel(backend='loky', n_jobs=-1, verbose=True) as parallel:
-    interpolated_maps_ps = parallel(job.delayed(interpolator_ps)
-                                 (I_lsq_eq_ps.data.reshape(N_level, -1)[n])
-                                 for n in range(N_level))
-
-f_interp_ps = np.stack(interpolated_maps_ps, axis=0).reshape((N_level,) + pix_bfsf.shape[1:])
-f_interp_ps = f_interp_ps / (dev.nyquist_rate(wl) + 1)
-f_interp_ps = np.clip(f_interp_ps, 0, None)
+        f_interp_ps = np.stack(interpolated_maps_ps, axis=0).reshape((N_level,) + pix_bfsf.shape[1:])
+        f_interp_ps = f_interp_ps / (dev.nyquist_rate(wl) + 1)
+        f_interp_ps = np.clip(f_interp_ps, 0, None)
 
 
 #============================================================================================
@@ -306,25 +345,40 @@ t2 = tt.time()
 print(f'Elapsed time: {t2 - t1} seconds.')
 print(f'Bootes Field: {sky_model.intensity.size} sources (simulated), LOFAR: {N_station} stations, FoV: {np.round(FoV * 180/np.pi)} degrees.\n'
       f'Run time {np.floor(t2 - t1)} seconds.')
-fig, ax = plt.subplots(ncols=3, nrows = 2, figsize=(16, 8))
-I_lsq_eq_ss.draw(catalog=sky_model.xyz.T, ax=ax[0,0], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
-ax[0,0].set_title('Standard Synthesis')
+if do_spherical_interpolation:
+    fig, ax = plt.subplots(ncols=3, nrows = 2, figsize=(16, 8))
+else:
+    fig, ax = plt.subplots(ncols=3, nrows = 1, figsize=(16, 8))
+ax = ax.flatten()
+I_lsq_eq_ss.draw(catalog=sky_model.xyz.T, ax=ax[0], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
+ax[0].set_title('Standard Synthesis')
 
-I_lsq_eq_ss_interp = s2image.Image(f_interp_ss, pix_xyz_interp)
-I_lsq_eq_ss_interp.draw(catalog=sky_model.xyz.T, ax=ax[1,0], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
-ax[0,1].set_title('Interpolated Standard Synthesis')
+I_lsq_eq_ps.draw(catalog=sky_model.xyz.T, ax=ax[1], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
+ax[1].set_title('Periodic Synthesis')
 
-I_lsq_eq_ps.draw(catalog=sky_model.xyz.T, ax=ax[0,1], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
-ax[0,1].set_title('Periodic Synthesis')
+I_lsq_eq_nufft.draw(catalog=sky_model.xyz.T, ax=ax[2], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
+ax[2].set_title('NUFFT')
 
-I_lsq_eq_ps_interp = s2image.Image(f_interp_ps, pix_xyz_interp)
-I_lsq_eq_ps_interp.draw(catalog=sky_model.xyz.T, ax=ax[1,1], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
-ax[1,1].set_title('Interpolated Periodic Synthesis')
 
-I_lsq_eq_nufft.draw(catalog=sky_model.xyz.T, ax=ax[0,2], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
-ax[0,2].set_title('NUFFT')
+if do_spherical_interpolation:
+    I_lsq_eq_ss_interp = s2image.Image(f_interp_ss, pix_xyz_interp)
+    I_lsq_eq_ss_interp.draw(catalog=sky_model.xyz.T, ax=ax[3], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
+    ax[3].set_title('Interpolated Standard Synthesis')
+    if do_periodic_synthesis:
+        I_lsq_eq_ps_interp = s2image.Image(f_interp_ps, pix_xyz_interp)
+        I_lsq_eq_ps_interp.draw(catalog=sky_model.xyz.T, ax=ax[4], data_kwargs=dict(cmap='cubehelix'), show_gridlines=False)
+        ax[4].set_title('Interpolated Periodic Synthesis')
+        np.save("bluebild_ps_img", f_interp_ps)
+    plt.savefig("test_bluebild2")
 
-plt.savefig("%sdata/outputs/test_bluebild2" %((str(Path.home())+'/'))
+
+    np.save("bluebild_ss_img", f_interp_ss)
+    np.save("bluebild_nufft_img", I_lsq_eq_nufft.data)
+
+else:
+    plt.savefig("%sdata/outputs/test_bluebild_planes" %((str(Path.home())+'/')))
 t.print_summary()
+np.save("bluebild_np_grid", pix_xyz)
 
 #===
+t.print_summary()
