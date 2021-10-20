@@ -86,7 +86,7 @@ uvw_frame = np.stack((u_dir, v_dir, w_dir), axis=-1)
 
 # Imaging grid
 lim = np.sin(FoV / 2)
-N_pix = 512
+N_pix = 256
 pix_slice = np.linspace(-lim, lim, N_pix)
 Lpix, Mpix = np.meshgrid(pix_slice, pix_slice)
 Jpix = np.sqrt(1 - Lpix ** 2 - Mpix ** 2)  # No -1 if r on the sphere !
@@ -146,9 +146,19 @@ for t in ProgressBar(time[0:25]):
     S_corrected = (W @ ((V @ np.diag(D)) @ V.transpose().conj())) @ W.transpose().conj()
     gram_corrected_visibilities.append(S_corrected)
 
-UVW_baselines = np.stack(UVW_baselines, axis=0).reshape(-1, 3)
+UVW_baselines = np.stack(UVW_baselines, axis=0)
 ICRS_baselines = np.stack(ICRS_baselines, axis=0).reshape(-1, 3)
 gram_corrected_visibilities = np.stack(gram_corrected_visibilities, axis=0).reshape(-1)
+
+# UVW_baselines = UVW_baselines.reshape((UVW_baselines.shape[0], -1, 3))
+#
+# plt.figure()
+# colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+# for i in range(0, UVW_baselines.shape[1], 10):
+#     plt.plot(UVW_baselines[:,i, 0] * 2 * lim / N_pix, UVW_baselines[:,i, 1] * 2 * lim / N_pix, color=colors[0], linewidth=0.01)
+# plt.xlim(-np.pi, np.pi)
+# plt.ylim(-np.pi, np.pi)
+
 
 # fig = plt.figure()
 # # ax = Axes3D(fig)
@@ -161,6 +171,7 @@ gram_corrected_visibilities = np.stack(gram_corrected_visibilities, axis=0).resh
 # plt.xlabel('u')
 # plt.ylabel('v')
 
+UVW_baselines=UVW_baselines.reshape(-1,3)
 w_correction = np.exp(1j * UVW_baselines[:, -1])
 gram_corrected_visibilities *= w_correction
 scalingx = 2 * lim / N_pix
@@ -218,4 +229,13 @@ I_lsq_eq.draw(catalog=sky_model.xyz.T, ax=ax, data_kwargs=dict(cmap='cubehelix')
 ax.set_title(f'Bluebild Least-squares, sensitivity-corrected image (NUFFT)\n'
              f'Bootes Field: {sky_model.intensity.size} sources (simulated), LOFAR: {N_station} stations, FoV: {np.round(FoV * 180/np.pi)} degrees.\n'
              f'Run time {np.floor(t2 - t1)} seconds.')
+
 plt.savefig("test_nufft")
+
+
+gaussian=np.exp(-(Lpix ** 2 + Mpix ** 2)/(4*lim))
+gridded_visibilities=np.sqrt(np.abs(np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(gaussian*bb_image)))))
+gridded_visibilities[int(gridded_visibilities.shape[0]/2)-2:int(gridded_visibilities.shape[0]/2)+2, int(gridded_visibilities.shape[1]/2)-2:int(gridded_visibilities.shape[1]/2)+2]=0
+plt.figure()
+plt.imshow(np.flipud(gridded_visibilities), cmap='cubehelix')
+

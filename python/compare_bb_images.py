@@ -56,9 +56,9 @@ grid = np.load("bluebild_np_grid.npy")
 data_nu = np.sum(data_nu, axis=0)
 data_ss = np.sum(data_ss, axis=0)
 data_ps = np.sum(data_ps, axis=0)
-data_nu /= np.max(data_nu)
-data_ss /= np.max(data_ss)
-data_ps /= np.max(data_ps)
+#data_nu /= np.max(data_nu)
+#data_ss /= np.max(data_ss)
+#data_ps /= np.max(data_ps)
 
 img_nu = s2image.Image(data_nu, grid)
 
@@ -75,8 +75,8 @@ def draw(data, a, title):
 draw(data_nu, ax[0], 'NUFFT')
 draw(data_ss, ax[1], 'Standard Synthesis')
 draw(data_ps, ax[2], 'Periodic Synthesis')
-draw(data_ss/np.max(data_ss)-data_nu/np.max(data_nu), ax[3], 'SS-NUFFT')
-draw(data_ss/np.max(data_ss)-data_ps/np.max(data_ps), ax[4], 'SS-PS')
+draw(data_ss-data_nu, ax[3], 'SS-NUFFT')
+draw(data_ss-data_ps, ax[4], 'SS-PS')
 
 ax[0].scatter(source_y, source_x, s=40, facecolors='none', edgecolors='r')
 ax[1].scatter(source_y, source_x, s=40, facecolors='none', edgecolors='r')
