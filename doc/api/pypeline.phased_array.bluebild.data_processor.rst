@@ -16,6 +16,7 @@ pypeline.phased\_array.bluebild.data\_processor
       DataProcessorBlock
       IntensityFieldDataProcessorBlock
       SensitivityFieldDataProcessorBlock
+      VirtualVisibilitiesDataProcessingBlock
    
    
 

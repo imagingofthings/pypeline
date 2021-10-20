@@ -30,6 +30,7 @@ import pycsou.linop as pyclop
 from imot_tools.math.func import SphericalDirichlet
 import joblib as job
 
+
 # Instrument
 N_station = 12
 ms_file = "/Users/mmjasime/Documents/Datasets/RX42_SB100-109.2ch10s.ms"
@@ -185,4 +186,6 @@ f_interp = (f_interp  # We need to transpose axes due to the FORTRAN
             .reshape(N_level, N_cl_lon, N_cl_lat)  # indexing conventions of the FITS standard.
             .transpose(0, 2, 1))
 I_lsq_eq_interp = s2image.WCSImage(f_interp, cl_WCS)
+
 I_lsq_eq_interp.to_fits('toothbrush-image-bb.fits')
+

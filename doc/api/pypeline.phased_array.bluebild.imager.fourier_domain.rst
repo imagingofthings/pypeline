@@ -14,6 +14,7 @@ pypeline.phased\_array.bluebild.imager.fourier\_domain
    .. autosummary::
    
       Fourier_IMFS_Block
+      NUFFT_IMFS_Block
    
    
 
