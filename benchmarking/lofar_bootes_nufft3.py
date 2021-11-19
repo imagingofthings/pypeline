@@ -86,7 +86,7 @@ for t in ProgressBar(time[::200]):
 
 N_eig, c_centroid = I_est.infer_parameters()
 """
-N_eig, c_centroid = N_level, list(range(N_level))
+N_eig, c_centroid = N_level, np.zeros(N_level) #list(range(N_level))
 
 # Imaging
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
