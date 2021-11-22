@@ -159,7 +159,7 @@ print(sensitivity_image.shape)
 print((lsq_image / sensitivity_image).shape)
 print(nufft_imager._synthesizer.xyz_grid.shape)
 
-I_lsq_eq = s2image.Image(lsq_image / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
+I_lsq_eq = s2image.Image(lsq_image.squeeze() / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
 #I_sqrt_eq = s2image.Image(sqrt_image / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
 #np.save('%sbluebild_nufft_img' %path_out, I_lsq_eq.data)
 np.save('%sD_nufft_Nsrc%d_Nlvl%d' %(path_out, N_src, N_level), D.reshape(-1, 1, 1))
