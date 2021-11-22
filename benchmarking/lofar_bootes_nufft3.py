@@ -41,7 +41,7 @@ from matplotlib import colors
 # Observation
 obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
 field_center = coord.SkyCoord(ra=218 * u.deg, dec=34.5 * u.deg, frame="icrs")
-FoV, frequency = np.deg2rad(5), 145e6
+FoV, frequency = np.deg2rad(1), 145e6
 wl = constants.speed_of_light / frequency
 
 # Instrument
@@ -55,8 +55,8 @@ gram = bb_gr.GramBlock()
 T_integration = 8
 #sky_model = source.from_tgss_catalog(field_center, FoV, N_src=40)
 path_out = '/users/mibianco/data/user_catalog/'
-#mock_catalog = np.array([[218.00001, 34.500001, 1e6]])
-mock_catalog = np.array([[216.9, 32.8, 87.5], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
+mock_catalog = np.array([[218.00001, 34.500001, 1e6]])
+#mock_catalog = np.array([[216.9, 32.8, 87.5], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
 N_src = mock_catalog.shape[0]
 sky_model = source.user_defined_catalog(field_center, FoV, catalog_user=mock_catalog)
 vis = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=30)
@@ -83,9 +83,9 @@ for t in ProgressBar(time[::200]):
     G = gram(XYZ, W, wl)
     S = vis(XYZ, W, wl)
     I_est.collect(S, G)
-
 N_eig, c_centroid = I_est.infer_parameters()
 """
+
 N_eig, c_centroid = N_level, np.zeros(N_level) #list(range(N_level))
 
 # Imaging
@@ -102,6 +102,7 @@ for t in ProgressBar(time[::time_slice]):
     S = vis(XYZ, W, wl)
     G = gram(XYZ, W, wl)
     D, V, c_idx = I_dp(S, G)
+    c_idx = list(range(N_level))        # bypass centroids
     S_corrected = IV_dp(D, V, W, c_idx)
     gram_corrected_visibilities.append(S_corrected)
 

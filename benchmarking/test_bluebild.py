@@ -169,7 +169,7 @@ t.end_time("Estimate intensity field parameters")
 _, px_grid_nufft = nufft_make_grids(FoV=FoV, grid_size=N_pix, field_center=field_center)    # get nufft grid sampling (copyed by pypeline/phased_array/bluebild/field_synthesizer/fourier_domain.py : self._make_grid())
 
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
-IV_dp = bb_dp.VirtualVisibilitiesDataProcessingBlock(N_eig, filters=('lsq',)) #'sqrt'))
+IV_dp = bb_dp.VirtualVisibilitiesDataProcessingBlock(N_eig, filters=('lsq','sqrt'))
 I_mfs_ps = bb_fd.Fourier_IMFS_Block(wl, pix_colat, pix_lon, N_FS, T_kernel, R, N_level, N_bits)
 #I_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid, N_level, N_bits)
 I_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid_nufft, N_level, N_bits)
@@ -216,7 +216,7 @@ gram_corrected_visibilities = np.stack(gram_corrected_visibilities, axis=-3).res
 nufft_imager = bb_im.NUFFT_IMFS_Block(wl=wl, UVW=UVW_baselines.T, grid_size=N_pix, FoV=FoV,
                                       field_center=field_center, eps=eps, w_term=w_term,
                                       n_trans=np.prod(gram_corrected_visibilities.shape[:-1]), precision=precision)
-#lsq_image, sqrt_image = nufft_imager(gram_corrected_visibilities)
+lsq_image, sqrt_image = nufft_imager(gram_corrected_visibilities)
 #lsq_image = nufft_imager(gram_corrected_visibilities)
 #============================================================================================
 

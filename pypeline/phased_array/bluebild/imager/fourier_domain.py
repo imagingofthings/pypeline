@@ -317,7 +317,6 @@ class NUFFT_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             (M, N_pix) field statistics. Output is also stored in private attribute ``self._statistics``.
         """
         V_shape = V.shape[:-1]
-        print('V_shape:', V_shape)
         self._statistics = self._synthesizer(V).reshape(V_shape + self._synthesizer.xyz_grid.shape[1:])
         return self._statistics
 
