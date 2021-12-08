@@ -170,6 +170,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
     def __call__(self, V, XYZ, W):
         """
         Compute instantaneous field statistics.
+
         Parameters
         ----------
         V : :py:class:`~numpy.ndarray`
