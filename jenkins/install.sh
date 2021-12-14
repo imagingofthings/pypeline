@@ -25,6 +25,12 @@ conda env list
 
 
 ENV_NAME=pype-111
+
+# The first time, the env was created with:
+# conda create --name=$ENV_NAME --channel=defaults --channel=conda-forge --file=./jenkins/new_conda_requirements.txt --yes
+# then env was exported to ./conda_environments/pype-111.yml used below
+# should be used as such to reproduce the same environment
+
 # Create conda environment
 # (step only required to create the environment)
 #conda remove --name $ENV_NAME --all --yes
@@ -42,8 +48,6 @@ pip --version
 
 which python
 python -V
-
-
 
 
 # Install non-conda packages
@@ -90,8 +94,6 @@ make python
 cd ..
 
 # Install pypeline locally in editable mode
-#pip install --no-deps -e .
-pwd
 pip install --no-deps -e .
 
 
