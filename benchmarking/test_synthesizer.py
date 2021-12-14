@@ -15,11 +15,10 @@ import pypeline.phased_array.bluebild.data_processor as bb_dp
 import pypeline.phased_array.data_gen.source as source
 import pypeline.phased_array.data_gen.statistics as statistics
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth
-#import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain_optimized as synth_test
+import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain_optimized as synth_test
 import timing
 import dummy_synthesis 
 from dummy_synthesis import RandomDataGen, synthesize, synthesize_stack
-
 
 class SimulatedDataGen():
     def __init__(self, wl):
@@ -105,37 +104,27 @@ if __name__ == "__main__":
     synthesizer.set_timer(timer,)
 
     # a copy of the Standard Synthesis Kernel that will be used for testing
-    #synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, pix, precision)
-    #synthesizer_test.set_timer(timer, "Test ")
+    synthesizer_test = synth_test.SpatialFieldSynthesizerOptimizedBlock(wl, pix, precision)
+    synthesizer_test.set_timer(timer, "Test ")
 
     # iterate though timesteps
     # increase the range to run through more calls
     for t in range(1,100):
-
         (V, XYZ, W) = data.getVXYZW(t)
-
-        if t % 10 == 0:
-            print("t = {0}".format(t))
+        print("t = {0}".format(t))
 
 
         #do some copying for inputs which get modified by the synthesizer
-        #V1 = np.copy(V) 
-        #XYZ1 = np.copy(XYZ) 
-        #V2 = np.copy(V)
-        #XYZ2 = np.copy(XYZ) 
+        V1 = np.copy(V) 
+        XYZ1 = np.copy(XYZ) 
+        V2 = np.copy(V)
+        XYZ2 = np.copy(XYZ) 
         
         # call the Bluebild Standard Synthesis Kernel
         stat_bbss = synthesizer(V,XYZ,W)
-        
-        #eo call opt ss kernel
-        #stat_bbss_gpu = synthesizer_test(V1, XYZ1, W)
-
-        #print("Difference in results between standard & optimized synthesizers:", np.average(stat_bbss_gpu - stat_bbss))
-
 
         # call the dummy synthesis kernal
-        '''
-        stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
+        '''stat_dum  = dummy_synthesis.synthesize(pix,V1,XYZ1,W, wl)
 
         # call an alternate dummy synthesis kernel which reshapes the matrices
         stat_sdum = dummy_synthesis.synthesize_reshape(pix,V2,XYZ2,W, wl)
@@ -145,6 +134,5 @@ if __name__ == "__main__":
 
         print("Difference in results between dummy & optimized synthesizers:", np.average( stat_dum - stat_bbss))
         print("Avg diff between dummy & dummy reshape synthesizers:", np.average( stat_dum - stat_sdum))
-        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))
-        '''
+        print("Avg diff between dummy & ZGEMM synthesizers:", np.max( np.abs(stat_dum - stat_zdum)))'''
     print(timer.summary())
