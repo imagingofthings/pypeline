@@ -1,16 +1,17 @@
-import os, sys, timing, argparse
+import os, sys, argparse
 import numpy as np
 import scipy.sparse as sparse
 import nvtx
 import time
 from functools import partial
-
 import imot_tools.math.sphere.transform as transform
+import imot_tools.util.argcheck as chk
+sys.path.append('./benchmarking')
 import dummy_synthesis 
 from dummy_synthesis import synthesize, synthesize_stack
 from data_gen_utils import RandomDataGen, SimulatedDataGen, RealDataGen
+import timing
 
-import imot_tools.util.argcheck as chk
 
 #EO: make it a cl arg
 np.random.seed(1234)

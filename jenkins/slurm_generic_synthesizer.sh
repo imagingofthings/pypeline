@@ -96,7 +96,7 @@ ARG_TEST_DIR="--outdir ${TEST_DIR}"
 
 
 # Script to be run
-PY_SCRIPT="./benchmarking/generic_synthesizer.py"
+PY_SCRIPT="./jenkins/generic_synthesizer.py"
 echo "PY_SCRIPT = $PY_SCRIPT"
 echo; echo
 

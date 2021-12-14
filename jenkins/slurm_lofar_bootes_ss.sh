@@ -70,7 +70,7 @@ fi
 ARG_TEST_DIR="--outdir ${TEST_DIR}"
 
 # Script to be run
-PY_SCRIPT="./examples/simulation/lofar_bootes_ss.py"
+PY_SCRIPT="./jenkins/lofar_bootes_ss.py"
 echo "PY_SCRIPT = $PY_SCRIPT"; echo
 
 
