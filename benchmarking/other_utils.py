@@ -2,10 +2,13 @@ import numpy as np
 import typing as typ
 import pypeline.util.frame as frame
 
-def rad_average(data, bin_size=1):
+def rad_average(data, cen_x=None, cen_y=None, bin_size=1):
     # Image center
-    cen_x = data.shape[1]//2
-    cen_y = data.shape[0]//2
+    if(cen_x==None and cen_y==None):
+        cen_x = data.shape[1]//2
+        cen_y = data.shape[0]//2
+    else:
+        pass
 
     # Find radial distances
     [X, Y] = np.meshgrid(np.arange(data.shape[1]) - cen_x, np.arange(data.shape[0]) - cen_y)

@@ -415,13 +415,22 @@ class LofarMeasurementSet(MeasurementSet):
             # - ELEMENT_FLAG: True/False value for each (station, antenna, polarization) pair.
             #                 If any of the polarization flags is True for a given antenna, then the
             #                 antenna can be discarded from that station.
-            query = f"select ANTENNA_ID, POSITION, ELEMENT_OFFSET, ELEMENT_FLAG from {self._msf}::LOFAR_ANTENNA_FIELD"
+            """
+                MB: this notation creates some problem with LoSiTo as not all MS variables are loaded (e.g.: self.field_center)
+            query = f"select ANTENNA_ID, FIELD, POSITION, ELEMENT_OFFSET, ELEMENT_FLAG from {self._msf}::LOFAR_ANTENNA_FIELD"
             table = ct.taql(query)
 
             station_id = table.getcol("ANTENNA_ID")
             station_mean = table.getcol("POSITION")
             antenna_offset = table.getcol("ELEMENT_OFFSET")
             antenna_flag = table.getcol("ELEMENT_FLAG")
+            """
+            table = ct.table(self._msf, ack=False, readonly=True)
+
+            station_id = table.LOFAR_ANTENNA_FIELD.getcol('ANTENNA_ID')
+            station_mean = table.LOFAR_ANTENNA_FIELD.getcol('POSITION')
+            antenna_offset = table.LOFAR_ANTENNA_FIELD.getcol('ELEMENT_OFFSET')
+            antenna_flag = table.LOFAR_ANTENNA_FIELD.getcol('ELEMENT_FLAG')
 
             # Form DataFrame that holds all antennas, then filter out flagged antennas.
             N_station, N_antenna, _ = antenna_offset.shape

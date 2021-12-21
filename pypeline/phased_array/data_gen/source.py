@@ -228,27 +228,7 @@ def user_defined_catalog(direction, FoV, catalog_user, save_catalog=False):
     if N_src <= 0:
         raise ValueError("Parameter[N_src] must be positive.")
 
-    if catalog_user.shape[1] == 2:
-        disk_path = pathlib.Path.home() / ".pypeline" / "catalog" / "TGSSADR1_7sigma_catalog.tsv"
-        if not disk_path.exists():
-            # Download catalog from web.
-            catalog_dir = disk_path.parent
-            if not catalog_dir.exists():
-                catalog_dir.mkdir(parents=True)
-
-            web_path = "http://tgssadr.strw.leidenuniv.nl/catalogs/TGSSADR1_7sigma_catalog.tsv"
-            print(f"Downloading catalog from {web_path}")
-            with urllib.request.urlopen(web_path) as response:
-                with disk_path.open(mode="wb") as f:
-                    shutil.copyfileobj(response, f)
-
-        # Read catalog from disk path
-        catalog_full = pd.read_csv(disk_path, sep="\t")
-        
-        # N_scr most luminous sources from the TGSS catalog (in mJy) 
-        I = (np.sort(catalog_full.loc[:, "Total_flux"].values * 1e-3)[::-1])[:N_src]
-    else:
-        I = catalog_user.loc[:, "Total_flux"].values * 1e-3
+    I = catalog_user.loc[:, "Total_flux"].values * 1e-3
 
     lat = np.deg2rad(catalog_user.loc[:, "DEC"].values)
     lon = np.deg2rad(catalog_user.loc[:, "RA"].values)
@@ -260,6 +240,8 @@ def user_defined_catalog(direction, FoV, catalog_user, save_catalog=False):
 
     if mask.sum() < N_src:
         raise ValueError("There are less than Parameter[N_src] sources in the field.")
+    else:
+        print('Number of sources in FoV:', mask.sum())
 
     I_region, xyz_region = I[mask], xyz[:, mask]
     idx = np.argsort(I_region)[-N_src:]

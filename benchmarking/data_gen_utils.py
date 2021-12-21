@@ -176,7 +176,6 @@ class SimulatedDataGen():
 #################################################################################
 class RealDataGen():
     def __init__(self, ms_file, N_level = 4, N_station = 24):
-        #24
         self.N_level = N_level
         self.ms = measurement_set.LofarMeasurementSet(ms_file, N_station)
         self.gram = bb_gr.GramBlock()
@@ -187,7 +186,6 @@ class RealDataGen():
         self.wl = constants.speed_of_light / frequency.to_value(u.Hz)
         self.obs_start, self.obs_end = self.ms.time["TIME"][[0, -1]]
         self.R = self.ms.instrument.icrs2bfsf_rot(self.obs_start, self.obs_end)
-        self.sky_model = source.from_tgss_catalog(self.ms.field_center, self.FoV, N_src=4)
 
         # Instrument        
         _, _, self.px_colat_periodic, self.px_lon_periodic = grid.equal_angle(
@@ -207,7 +205,11 @@ class RealDataGen():
         self.i = 0
         self.N_FS, self.T_kernel = self.ms.instrument.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.obs_end), np.deg2rad(10)
 
-        self.estimateParams()
+        #self.estimateParams()         # bypass the clustering estimation
+        N_eig, c_centroid = self.N_level, list(range(self.N_level))
+
+        self.I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
+        self.S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
 
     def estimateParams(self):
         # Intensity Field Parameter Estimation
@@ -231,6 +233,7 @@ class RealDataGen():
 
     def getPixGrid(self):
         return self.pix_grid
+        
     def getVXYZWD(self, i):
         t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
 
@@ -241,6 +244,7 @@ class RealDataGen():
         D, V, c_idx = self.I_dp(S, G)
 
         return (V,XYZ.data, W.data,D)
+        
     def getInputs(self, i):
         t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
 
