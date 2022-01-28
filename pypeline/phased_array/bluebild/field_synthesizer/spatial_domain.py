@@ -172,6 +172,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         """
         Compute instantaneous field statistics.
+
         Parameters
         ----------
         V : :py:class:`~numpy.ndarray`
