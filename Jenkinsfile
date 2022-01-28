@@ -49,6 +49,16 @@ pipeline {
             }
         }
 
+        stage('Doc') {
+            environment {
+                DOC_DIR  = "${env.OUT_DIR}/doc"
+            }
+            steps {
+                sh "mkdir -pv ${env.DOC_DIR}"
+                sh 'sh ./jenkins/build_documentation.sh'                
+            }
+        }
+
         // vtune hpc-performance needs to run on debug node!
 
         stage('Standard CPU') {
