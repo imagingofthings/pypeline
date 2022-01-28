@@ -11,6 +11,7 @@ set -e
 
 module load gcc
 module load fftw
+module load cuda/11.0.2;
 module list
 
 CONDA_ENV=pype-111
