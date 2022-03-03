@@ -51,9 +51,12 @@ python -V
 
 
 # Install non-conda packages
-pip install cupy-cuda110
+pip install pbr
+pip install scikit-build
+
 exit 0
 
+pip install cupy-cuda110
 pip install cupy-cuda111
 pip install pycsou --no-deps
 pip install pyFFS --no-deps
