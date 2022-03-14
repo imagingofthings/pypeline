@@ -39,8 +39,8 @@ pipeline {
 
                 // Run the installation script (conda + env + non-conda deps + ref sol)
                 // 
-                //sh 'echo REMINDER: installation \\(./jenkins/install.sh\\) disabled'
-                sh 'sh ./jenkins/install.sh'
+                sh 'echo REMINDER: installation \\(./jenkins/install.sh\\) disabled'
+                //sh 'sh ./jenkins/install.sh'
 
                 // Cleanup of aborted runs
                 //
@@ -60,6 +60,41 @@ pipeline {
         }
 
         // vtune hpc-performance needs to run on debug node!
+
+        stage('lofar_bootes_nufft3_cpp_cpu') {
+            environment {
+                TEST_DIR   = "${env.OUT_DIR}/lofar_bootes_nufft3_cpp_cpu"
+                CUPY_PYFFS = "0"
+                BLUEBILD_GPU = "OFF"
+            }
+            steps {
+                sh "mkdir -pv ${env.TEST_DIR}"
+                sh "srun --partition debug --time 00-00:30:00 --qos ${QOS} --gres gpu:1 --mem 40G --cpus-per-task 1 -o ${env.TEST_DIR}/slurm-%j.out ./jenkins/slurm_lofar_bootes_nufft3_cpp_data_proc.sh"
+            }
+        }
+
+        stage('lofar_bootes_nufft3_cpp_gpu') {
+            environment {
+                TEST_DIR   = "${env.OUT_DIR}/lofar_bootes_nufft3_cpp_gpu"
+                CUPY_PYFFS = "0"
+                BLUEBILD_GPU = "CUDA"
+            }
+            steps {
+                sh "mkdir -pv ${env.TEST_DIR}"
+                sh "srun --partition debug --time 00-00:30:00 --qos ${QOS} --gres gpu:1 --mem 40G --cpus-per-task 1 -o ${env.TEST_DIR}/slurm-%j.out ./jenkins/slurm_lofar_bootes_nufft3_cpp_data_proc.sh"
+            }
+        }
+
+        stage('lofar_bootes_nufft3') {
+            environment {
+                TEST_DIR   = "${env.OUT_DIR}/lofar_bootes_nufft3"
+                CUPY_PYFFS = "0"
+            }
+            steps {
+                sh "mkdir -pv ${env.TEST_DIR}"
+                sh "srun --partition debug --time 00-00:30:00 --qos ${QOS} --gres gpu:1 --mem 40G --cpus-per-task 1 -o ${env.TEST_DIR}/slurm-%j.out ./jenkins/slurm_lofar_bootes_nufft3.sh"
+            }
+        }
 
         stage('Standard CPU') {
             environment {
@@ -100,17 +135,6 @@ pipeline {
             steps {
                 sh "mkdir -pv ${env.TEST_DIR}"
                 sh "srun --partition debug --time 00-00:30:00 --qos ${QOS} --gres gpu:1 --mem 40G --cpus-per-task 1 -o ${env.TEST_DIR}/slurm-%j.out ./jenkins/slurm_lofar_bootes_ss.sh"
-            }
-        }
-
-        stage('lofar_bootes_nufft3') {
-            environment {
-                TEST_DIR   = "${env.OUT_DIR}/lofar_bootes_nufft3"
-                CUPY_PYFFS = "0"
-            }
-            steps {
-                sh "mkdir -pv ${env.TEST_DIR}"
-                sh "srun --partition debug --time 00-00:30:00 --qos ${QOS} --gres gpu:1 --mem 40G --cpus-per-task 1 -o ${env.TEST_DIR}/slurm-%j.out ./jenkins/slurm_lofar_bootes_nufft3.sh"
             }
         }
 

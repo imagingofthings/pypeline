@@ -49,13 +49,23 @@ pip --version
 which python
 python -V
 
+# Installing c++ port of data processing classes
+#
+module load gcc cuda/11.0 fftw cmake openblas
+pwd
+ls -l
+cd src/bluebild
+pwd
+pip install --no-deps .     ## install bluebild
+cd -
+pip install --no-deps -e .  ## install pypeline in editable mode (not necessary for Jenkins but mimics normal installation)
+
+exit 0
+
 
 # Install non-conda packages
 pip install pbr
 pip install scikit-build
-
-exit 0
-
 pip install cupy-cuda110
 pip install cupy-cuda111
 pip install pycsou --no-deps
