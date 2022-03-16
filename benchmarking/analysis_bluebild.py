@@ -389,15 +389,14 @@ def Plot_Complete(I_clean, I_dirty, I_ss, I_nufft, D_ss, D_nufft):
 #============================================================================================
 
 #path = '/users/mibianco/data/user_catalog/'
-#path = '/users/mibianco/data/test_PSF/'
-path = '/users/mibianco/data/lofar/'
+path = '/users/mibianco/data/psf/'
+#path = '/users/mibianco/data/lofar/'
 
-cname = 'lofar30MHz153'
-I_lsq_eq_ss_interp_data = np.load('%sI_ss_%s.npy' %(path, cname))    # first level only
+cname = 'BL_Nlvl%d_Nsrc%d' %(4, 1)
+#cname = 'lofar30MHz153'
+I_lsq_eq_ss_interp_data = np.load('%sI_ss_%s.npy' %(path, cname))
 I_lsq_eq_nufft_data = np.load('%sI_nufft_%s.npy' %(path, cname))
 D_eig = np.load('%sD_%s.npy' %(path, cname))
-#D_ss = np.load('%sD_ss_ps_Nsrc%d_Nlvl%d.npy' %(path, N_src, N_level))
-#D_nufft = np.load('%sD_nufft_Nsrc%d_Nlvl%d.npy' %(path, N_src, N_level))
 print(I_lsq_eq_nufft_data.shape, I_lsq_eq_ss_interp_data.shape, D_eig.shape)
 
 #I_lsq_eq_ss_interp_data = np.load('%sI_lsq_eq_ss_interp_Nsrc%d_Nlvl%d.npy' %(path, N_src, N_level))    # first level only
@@ -409,7 +408,7 @@ print(I_lsq_eq_nufft_data.shape, I_lsq_eq_ss_interp_data.shape, D_eig.shape)
 
 # Plot results ==========================================================================
 #Plot_PSF_profile(I_ss=I_lsq_eq_ss_interp_data, I_nufft=I_lsq_eq_nufft_data)
-#plt.savefig("%stest_PSFprofile" %path, bbox_inches='tight')
+#plt.savefig("%spsf" %path, bbox_inches='tight')
 
 #Plot_PSF_profile(I_ss=norm_I_lsq_eq_ss_interp_data, I_nufft=norm_I_lsq_eq_nufft_data)
 #plt.savefig("%stest_normPSFprofile" %path, bbox_inches='tight')
@@ -423,11 +422,11 @@ print(I_lsq_eq_nufft_data.shape, I_lsq_eq_ss_interp_data.shape, D_eig.shape)
 #draw_levels(I_ss=I_lsq_eq_ss_interp_data, I_ps=I_lsq_eq_ps_interp_data, I_nufft=I_lsq_eq_nufft_data)
 #plt.savefig("%stest_Nsrc%d_Nlvl%d.png" %(path, N_src, N_level), bbox_inches='tight')
 
-Plot_Complete(I_clean=path+'RADIO30MHz153.fits', I_dirty=path+'lofar30MHz153-dirty.fits', I_ss=I_lsq_eq_ss_interp_data, I_nufft=I_lsq_eq_nufft_data, D_ss=D_eig, D_nufft=D_eig)
-plt.savefig("%s_complete.png" %(path+cname), bbox_inches='tight')
+#Plot_Complete(I_clean=path+'RADIO30MHz153.fits', I_dirty=path+'lofar30MHz153-dirty.fits', I_ss=I_lsq_eq_ss_interp_data, I_nufft=I_lsq_eq_nufft_data, D_ss=D_eig, D_nufft=D_eig)
+#plt.savefig("%s_complete.png" %(path+cname), bbox_inches='tight')
 
-#Plot_Levels(I_ss=I_lsq_eq_ss_interp_data, I_nufft=I_lsq_eq_nufft_data, D_ss=D_ss, D_nufft=D_nufft)
-#plt.savefig("%slevels_%s.png" %(path, cname), bbox_inches='tight')
+Plot_Levels(I_ss=I_lsq_eq_ss_interp_data, I_nufft=I_lsq_eq_nufft_data, D_ss=D_eig, D_nufft=D_eig)
+plt.savefig("%slevels_%s.png" %(path, cname), bbox_inches='tight')
 
 #mock_catalog = np.array([[216.9, 32.8, 1e6], [218.2, 34.8, 1e6], [218.8, 32.8, 1e6], [217.8, 32.4, 1e6]]) 
 #Plot_Merge_Levels(sky_mod=mock_catalog, I_ss=I_lsq_eq_ss_interp_data, I_ps=I_lsq_eq_ps_interp_data, I_nufft=I_lsq_eq_nufft_data, D_ss=D_ss, D_nufft=D_nufft)

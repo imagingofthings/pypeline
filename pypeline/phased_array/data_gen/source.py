@@ -221,8 +221,13 @@ def user_defined_catalog(direction, FoV, catalog_user, save_catalog=False):
     if FoV <= 0:
         raise ValueError("Parameter[FoV] must be positive.")
 
-    catalog_user = pd.DataFrame(catalog_user, index=range(catalog_user.shape[0]), columns=['RA', 'DEC', 'Total_flux'])
-    N_src = catalog_user.shape[0]
+    N_src = catalog_user.ndim
+    if(N_src == 1):
+        catalog_user = pd.DataFrame(catalog_user[np.newaxis, ...], index=range(catalog_user.ndim), columns=['RA', 'DEC', 'Total_flux'])
+    else:
+        catalog_user = pd.DataFrame(catalog_user, index=range(catalog_user.shape[0]), columns=['RA', 'DEC', 'Total_flux'])
+        N_src = catalog_user.shape[0]
+    
     if save_catalog: catalog_user.to_csv('user_catalog_Nsrc%d.csv' %N_src)
     
     if N_src <= 0:
