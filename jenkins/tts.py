@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 import getopt
 import math
+from pathlib import Path
+
 import monitoring
 
 
@@ -54,8 +56,9 @@ def stats_n_plots(plot, dir, builds, lastb, fstat):
     #names = [font_manager.FontProperties(fname=fname).get_name() for fname in flist]
     #print(names)
 
-    fstats = open(fstat, 'w')
-    print(f"Writing statistics to file {fstat}")
+    if plot['w']:
+        fstats = open(fstat, 'w')
+        print(f"Writing statistics to file {fstat}")
 
     plt.subplots(figsize=(11.7, 8.3))
 
@@ -106,11 +109,12 @@ def stats_n_plots(plot, dir, builds, lastb, fstat):
                     if lastb_rt > threshold:
                         msg += f"  _WARNING_  last build ({lastb}) significantly slower: {lastb_rt:.2f} > {threshold:.2f} ({mean_sw:.3f} + 3 x {std_sw:.3f})"
 
-        fstats.write(msg + "\n")
+        if plot['w']:
+            fstats.write(msg + "\n")
         print(msg)
         
-                
-    fstats.close()
+    if plot['w']:
+        fstats.close()
 
     plt.xlabel("Jenkins build number")
     plt.ylabel("time [sec]")
@@ -150,10 +154,11 @@ if __name__ == "__main__":
         'E' : Solutions['LBN3cgt']
     }
 
+    # Set 'w' to True for the whole solution (so that all solutions are written)
     plots = (
-        {'filename': 'tts_all.png',     'sols': Solutions},
-        {'filename': 'tts_nufft3i.png', 'sols': nufft3i},
-        {'filename': 'tts_nufft3t.png', 'sols': nufft3t}
+        {'filename': 'tts_all.png',     'sols': Solutions, 'w': True},
+        {'filename': 'tts_nufft3i.png', 'sols': nufft3i,   'w': False},
+        {'filename': 'tts_nufft3t.png', 'sols': nufft3t,   'w': False}
     )
     
     for plot_ in plots:
