@@ -463,9 +463,9 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         self._FoV = FoV
         self._field_center = field_center
         if(w_term and type(grid_size) != int):
-            self.lmn_grid = grid_size       # pass a grid instead of calculating it
             uvw_frame = frame.uvw_basis(self._field_center)
-            self.xyz_grid = np.tensordot(uvw_frame, self.lmn_grid, axes=1)
+            self.xyz_grid = grid_size       # pass a grid instead of calculating it
+            self.lmn_grid = np.tensordot(np.linalg.inv(uvw_frame), self.xyz_grid, axes=1)
         else:
             self._grid_size = grid_size
             self.lmn_grid, self.xyz_grid = self._make_grids()
@@ -485,12 +485,9 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
                                              np.linalg.norm(self._UVW, ord=np.infty, axis=-1) / np.pi +
                                              np.log(1 / eps) + 1)
         else:
-            warnings.warn('Setting the parameter w_term to False can result in a loss of accuracy for large FoVs!',
-                          UserWarning)
-            scaling = (2 * np.sin(self._FoV / 2) / self._grid_size).astype(
-                self._precision_mappings[self._precision]['real'])
-            self._prephasing = np.exp(1j * self._UVW[-1]).squeeze().astype(
-                self._precision_mappings[self._precision]['complex'])
+            warnings.warn('Setting the parameter w_term to False can result in a loss of accuracy for large FoVs!', UserWarning)
+            scaling = (2 * np.sin(self._FoV / 2) / self._grid_size).astype(self._precision_mappings[self._precision]['real'])
+            self._prephasing = np.exp(1j * self._UVW[-1]).squeeze().astype(self._precision_mappings[self._precision]['complex'])
             self._plan = finufft.Plan(nufft_type=1, n_modes_or_dim=(self._grid_size, self._grid_size),
                                       eps=eps, isign=1, n_trans=n_trans,
                                       dtype=self._precision_mappings[self._precision]['dtype'])
