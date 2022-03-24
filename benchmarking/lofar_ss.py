@@ -30,8 +30,8 @@ time_slice = 100
 N_station = 60
 N_level = 4
 
-fname_prefix = 'lofar30MHz1'
-path_out = './'
+fname_prefix = 'lofar30MHz398'
+path_out = '/users/mibianco/data/lofar/%s/' %fname_prefix
 path_in = '/project/c31/%s/' %fname_prefix
 fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
 data_column="MODEL_DATA"
