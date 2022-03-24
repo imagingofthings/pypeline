@@ -30,10 +30,11 @@ time_slice = 100
 N_station = 60
 N_level = 4
 
-path_out = '/users/mibianco/data/lofar/lofar30MHz1/'
 fname_prefix = 'lofar30MHz1'
+path_out = './'
 path_in = '/project/c31/%s/' %fname_prefix
-fname = '%slofar30MHz1_t201806301100_SBL153.MS' %path_in
+fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
+data_column="MODEL_DATA"
 
 t.start_time("Set up data")
 # Measurement Set
@@ -80,7 +81,7 @@ t.start_time("Estimate intensity field parameters")
 """
 I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
 for i_t, ti in enumerate(ProgressBar(time)):
-    tobs, f, S = next(data.ms.visibilities(channel_id=[data.channel_id], time_id=slice(i_t, i_t+1, None), column="DATA"))
+    tobs, f, S = next(data.ms.visibilities(channel_id=[data.channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz) #self.wl
     XYZ = ms.instrument(tobs)
     W = ms.beamformer(XYZ, wl)
@@ -107,7 +108,7 @@ UVW_baselines = []
 gram_corrected_visibilities = []
 for i_t, ti in enumerate(ProgressBar(time)):
     t.start_time("Synthesis: prep input matrices & fPCA")
-    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column="DATA"))
+    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz)
     XYZ = ms.instrument(tobs)
     W = ms.beamformer(XYZ, wl)
@@ -155,7 +156,7 @@ SV_dp = bb_dp.VirtualVisibilitiesDataProcessingBlock(N_eig, filters=('lsq',))
 sensitivity_coeffs = []
 
 for i_t, ti in enumerate(ProgressBar(time)):
-    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column="DATA"))
+    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz)
     XYZ = ms.instrument(tobs)
 
