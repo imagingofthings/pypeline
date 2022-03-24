@@ -49,6 +49,10 @@ pip --version
 which python
 python -V
 
+pip install bluebild-tools
+
+exit 0
+
 # Installing c++ port of data processing classes
 #
 module load gcc cuda/11.0 fftw cmake openblas
