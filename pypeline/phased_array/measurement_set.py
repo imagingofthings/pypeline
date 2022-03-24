@@ -416,7 +416,6 @@ class LofarMeasurementSet(MeasurementSet):
             #                 If any of the polarization flags is True for a given antenna, then the
             #                 antenna can be discarded from that station.
             """
-                MB: this notation creates some problem with LoSiTo as not all MS variables are loaded (e.g.: self.field_center)
             query = f"select ANTENNA_ID, FIELD, POSITION, ELEMENT_OFFSET, ELEMENT_FLAG from {self._msf}::LOFAR_ANTENNA_FIELD"
             table = ct.taql(query)
 

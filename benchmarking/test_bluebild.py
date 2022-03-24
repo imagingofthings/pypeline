@@ -36,13 +36,13 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 t = Timer()
 
 gpu = True
-time_slice = 125
+time_slice = 100
 timeslice = slice(None,None,time_slice)
 
-N_station = 24 # 60
+N_station = 60
 N_pix = 512
 
-N_level = 10
+N_level = 4
 N_src = None
 
 #path_out = '/users/mibianco/data/user_catalog/'
@@ -52,10 +52,10 @@ N_src = None
 #fname_prefix = 'HTR_Nlvl%d_Nsrc%d' %(N_level, N_src)
 #fname_prefix = 'psf'
 
-path_out = '/users/mibianco/data/lofar_test/'
+path_out = '/users/mibianco/data/lofar/lofar30MHz1/'
 fname_prefix = 'lofar30MHz1'
-path_in = '/users/mibianco/data/lofar/%s/' %fname_prefix
-fname = '%slofar30MHz_t201806301100_SBL153.MS' %path_in
+path_in = '/project/c31/%s/' %fname_prefix
+fname = '%slofar30MHz1_t201806301100_SBL153.MS' %path_in
 
 """
 path_out = '/users/mibianco/data/test_gauss4/'
@@ -103,7 +103,7 @@ elif('ms' in fname.lower()):
 
     # Observation
     #FoV = np.deg2rad(5)
-    FoV = np.deg2rad(1.111111111)
+    FoV = np.deg2rad((2000*2.*u.arcsec).to(u.deg).value)
     field_center = ms.field_center
     time = ms.time['TIME']
 
@@ -146,7 +146,7 @@ print('''You are running bluebild on file: %s
          %d timesteps
          %d stations
          clustering into %d levels
-         The output grid will be %dx%d = %d pixels''' %(fname, len(time[timeslice]), N_station, N_level, px_grid.shape[1],  px_grid.shape[2],  px_grid.shape[1]* px_grid.shape[2]))
+         The output grid will be %dx%d = %d pixels''' %(fname, len(time[:time_slice]), N_station, N_level, px_grid.shape[1],  px_grid.shape[2],  px_grid.shape[1]* px_grid.shape[2]))
 
 ### Intensity Field =================================================
 # Parameter Estimation

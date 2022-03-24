@@ -1,8 +1,8 @@
 # #############################################################################
-# lofar_nufft.py
+# lofar_ss.py
 # ==================
 # Author : Sepand KASHANI [kashani.sepand@gmail.com] (modified by Michele)
-# Simulated LOFAR imaging with Bluebild (NUFFT).
+# Simulated LOFAR imaging with Bluebild (Standard).
 # #############################################################################
 
 from tqdm import tqdm as ProgressBar
@@ -12,8 +12,8 @@ import numpy as np
 import cupy as cp
 import scipy.constants as constants
 
-from pypeline.phased_array.bluebild import data_processor as bb_dp, gram as bb_gr
-from pypeline.phased_array.bluebild.imager import spatial_domain as bb_sd, fourier_domain as bb_im
+from pypeline.phased_array.bluebild import gram as bb_gr, data_processor as bb_dp, parameter_estimator as bb_pe
+from pypeline.phased_array.bluebild.imager import spatial_domain as bb_sd
 from timing import Timer
 
 from pypeline.phased_array import measurement_set
@@ -30,10 +30,11 @@ time_slice = 100
 N_station = 60
 N_level = 4
 
-path_out = '/users/mibianco/data/lofar/lofar30MHz1/'
-fname_prefix = 'lofar30MHz1'
+fname_prefix = 'lofar30MHz398'
+path_out = '/users/mibianco/data/lofar/%s/' %fname_prefix
 path_in = '/project/c31/%s/' %fname_prefix
-fname = '%slofar30MHz1_t201806301100_SBL153.MS' %path_in
+fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
+data_column="MODEL_DATA"
 
 t.start_time("Set up data")
 # Measurement Set
@@ -52,12 +53,11 @@ gram = bb_gr.GramBlock()
 
 # Imaging
 eps = 1e-3
-w_term = True
 precision = 'single'
 N_bits = 32
 
-### NUFFT imaging parameters ===========================================================
-cl_WCS = ifits.wcs('%s%s-psf.fits' %(path_in, fname_prefix))
+### Imaging parameters ===========================================================
+cl_WCS = ifits.wcs('%s-image.fits' %(path_in+fname_prefix))
 cl_WCS = cl_WCS.sub(['celestial']) 
 #cl_WCS = cl_WCS.slice((slice(None, None, 10), slice(None, None, 10)))  # downsample, too high res!
 px_grid = ifits.pix_grid(cl_WCS)  # (3, N_cl_lon, N_cl_lat) ICRS reference frame
@@ -75,19 +75,17 @@ print('''You are running bluebild on file: %s
 
 ### Intensity Field =================================================
 # Parameter Estimation
-
 t.start_time("Estimate intensity field parameters")
 """
 I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
 for i_t, ti in enumerate(ProgressBar(time)):
-    tobs, f, S = next(data.ms.visibilities(channel_id=[data.channel_id], time_id=slice(i_t, i_t+1, None), column="DATA"))
+    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz) #self.wl
     XYZ = ms.instrument(tobs)
     W = ms.beamformer(XYZ, wl)
     S, _ = measurement_set.filter_data(S, W)
     
     G = gram(XYZ, W, wl)
-
     I_est.collect(S, G)
 N_eig, c_centroid = I_est.infer_parameters()
 print(N_eig, c_centroid)
@@ -99,39 +97,41 @@ t.end_time("Estimate intensity field parameters")
 #### Imaging
 ####################################################################
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
-IV_dp = bb_dp.VirtualVisibilitiesDataProcessingBlock(N_eig, filters=('lsq','sqrt'))
-
 I_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid, N_level, N_bits)
 
 UVW_baselines = []
-gram_corrected_visibilities = []
 for i_t, ti in enumerate(ProgressBar(time)):
     t.start_time("Synthesis: prep input matrices & fPCA")
-    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column="DATA"))
+
+    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz)
     XYZ = ms.instrument(tobs)
     W = ms.beamformer(XYZ, wl)
     S, _ = measurement_set.filter_data(S, W)
-
+    
     G = gram(XYZ, W, wl)
     D, V, c_idx = I_dp(S, G)
     c_idx = list(range(N_level))        # bypass c_idx
     t.end_time("Synthesis: prep input matrices & fPCA")
     
-    t.start_time("NUFFT Synthesis")
+    t.start_time("Standard Synthesis")
+    if(gpu):
+        XYZ_gpu = cp.asarray(XYZ.data)
+        W_gpu  = cp.asarray(W.data.toarray())
+        V_gpu  = cp.asarray(V)
+        _ = I_mfs_ss(D, V_gpu, XYZ_gpu, W_gpu, c_idx)
+    else:
+        _ = I_mfs_ss(D, V, XYZ.data, W.data, c_idx)
+
+    # compute UVcoverage
     UVW_baselines_t = ms.instrument.baselines(ti, uvw=True, field_center=field_center)
     UVW_baselines.append(UVW_baselines_t)
-    S_corrected = IV_dp(D, V, W, c_idx)
-    gram_corrected_visibilities.append(S_corrected)
-    t.end_time("NUFFT Synthesis")
+    t.end_time("Standard Synthesis")
 
 UVW_baselines = np.stack(UVW_baselines, axis=0).reshape(-1, 3)
-gram_corrected_visibilities = np.stack(gram_corrected_visibilities, axis=-3).reshape(*S_corrected.shape[:2], -1)
 
-# NUFFT Synthesis
-nufft_imager = bb_im.NUFFT_IMFS_Block(wl=wl, UVW=UVW_baselines.T, grid_size=px_grid, FoV=FoV, field_center=field_center, eps=eps, w_term=w_term, n_trans=np.prod(gram_corrected_visibilities.shape[:-1]), precision=precision)
-#nufft_imager = bb_im.NUFFT_IMFS_Block(wl=wl, UVW=UVW_baselines.T, grid_size=N_pix, FoV=FoV, field_center=field_center, eps=eps, w_term=w_term, n_trans=np.prod(gram_corrected_visibilities.shape[:-1]), precision=precision)
-lsq_image, sqrt_image = nufft_imager(gram_corrected_visibilities)
+I_std_ss, I_lsq_ss = I_mfs_ss.as_image()
+
 #============================================================================================
 
 ### Sensitivity Field =========================================================
@@ -151,14 +151,13 @@ t.end_time("Estimate sensitivity field parameters")
 
 # Imaging
 S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
-SV_dp = bb_dp.VirtualVisibilitiesDataProcessingBlock(N_eig, filters=('lsq',))
-sensitivity_coeffs = []
+S_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid, 1, N_bits)
 
 for i_t, ti in enumerate(ProgressBar(time)):
-    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column="DATA"))
+    tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz)
     XYZ = ms.instrument(tobs)
-
+    
     W = ms.beamformer(XYZ, wl)
     G = gram(XYZ, W, wl)
     D, V = S_dp(G)
@@ -167,26 +166,24 @@ for i_t, ti in enumerate(ProgressBar(time)):
         XYZ_gpu = cp.asarray(XYZ.data)
         W_gpu  = cp.asarray(W.data.toarray())
         V_gpu  = cp.asarray(V)
+        _ = S_mfs_ss(D, V_gpu, XYZ_gpu, W_gpu, cluster_idx=np.zeros(N_eig, dtype=int))
+    else:
+        _ = S_mfs_ss(D, V, XYZ, W, cluster_idx=np.zeros(N_eig, dtype=int))
 
-    S_sensitivity = SV_dp(D, V, W, cluster_idx=np.zeros(N_eig, dtype=int))  # (W @ ((V @ np.diag(D)) @ V.transpose().conj())) @ W.transpose().conj()
-    sensitivity_coeffs.append(S_sensitivity)
 
+# Save eigen-values
 np.save('%sD_%s' %(path_out, fname_prefix), D.reshape(-1, 1, 1))
 
-sensitivity_coeffs = np.stack(sensitivity_coeffs, axis=0).reshape(-1)
-nufft_imager = bb_im.NUFFT_IMFS_Block(wl=wl, UVW=UVW_baselines.T, grid_size=N_pix, FoV=FoV,
-                                      field_center=field_center, eps=eps, w_term=w_term,
-                                      n_trans=1, precision=precision)
-sensitivity_image = nufft_imager(sensitivity_coeffs)
+_, S_ss = S_mfs_ss.as_image()
 
-#I_sqrt_eq_nufft = s2image.Image(sqrt_image / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
-I_lsq_eq_nufft = s2image.Image(lsq_image / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
+# Image Gridding
+I_lsq_eq_ss = s2image.Image(I_lsq_ss.data / S_ss.data, I_lsq_ss.grid)
 
-# Save eigen-vectors for NUFFT
-#np.save('%sI_lsq_eq_nufft_Nsrc%d_Nlvl%d' %(path_out, N_src, N_level), I_lsq_eq_nufft.data)
-np.save('%sI_nufft_%s' %(path_out, fname_prefix), I_lsq_eq_nufft.data)
+# Save eigen-vectors for Standard Synthesis
+np.save('%sI_ss_%s' %(path_out, fname_prefix), I_lsq_eq_ss.data)
 
-# Interpolate image to MS grid-frame for NUFFT
-f_interp = (I_lsq_eq_nufft.data.reshape(N_level, N_cl_lon, N_cl_lat).transpose(0, 2, 1))
+# Interpolate image to MS grid-frame for Standard Synthesis
+f_interp = (I_lsq_eq_ss.data.reshape(N_level, N_cl_lon, N_cl_lat).transpose(0, 2, 1))
 I_lsq_eq_interp = s2image.WCSImage(f_interp, cl_WCS)
-I_lsq_eq_interp.to_fits('%sI_nufft_%s.fits' %(path_out, fname_prefix))
+I_lsq_eq_interp.to_fits('%sI_ss_%s.fits' %(path_out, fname_prefix))
+
