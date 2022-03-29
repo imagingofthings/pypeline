@@ -14,12 +14,17 @@ if(POLICY CMP0022)
 	cmake_policy(SET CMP0022 NEW)
 endif()
 
-# set default build type to RELEASE
+# set default build type to RELEASE if not defined in corresponding environment variable
+if(DEFINED ENV{CMAKE_BUILD_TYPE})
+    message(STATUS "Will set CMAKE_BUILD_TYPE to $ENV{CMAKE_BUILD_TYPE}")
+    set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
+endif()
+message(STATUS "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
 		"Debug" "Release" "MinSizeRel" "RelWithDebInfo"
-		)
+	)
 endif()
 
 # set language and standard
@@ -103,6 +108,7 @@ if(BLUEBILD_ROCM)
 endif()
 
 set(BLA_SIZEOF_INTEGER 4) # 32 bit interface to blas / lapack
+
 # BLAS
 find_package(BLAS REQUIRED)
 if(NOT TARGET BLAS::BLAS)
@@ -151,6 +157,11 @@ configure_file(include/bluebild/config.h.in ${PROJECT_BINARY_DIR}/bluebild/confi
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_BINARY_DIR})
+if(DEFINED ENV{MARLA_ROOT})
+    list(APPEND BLUEBILD_INCLUDE_DIRS $ENV{MARLA_ROOT}/include)
+else()
+    message(FATAL_ERROR "ENV{MARLA_ROOT} not defined. Must point to your local installation of Marla (https://gitlab.com/ursache/marla.git, branch \"dev\")")
+endif()
 
 #############################################################################
 # All include dirs and definitions must be set before sub-directory is added!

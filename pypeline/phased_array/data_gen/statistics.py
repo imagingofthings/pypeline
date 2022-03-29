@@ -53,7 +53,7 @@ class VisibilityMatrix(array.LabeledMatrix):
             data=chk.accept_any(chk.has_reals, chk.has_complex), beam_idx=beamforming.is_beam_index
         )
     )
-    def __init__(self, data, beam_idx):
+    def __init__(self, data, beam_idx, dtype=None):
         """
         Parameters
         ----------
@@ -62,7 +62,7 @@ class VisibilityMatrix(array.LabeledMatrix):
         beam_idx
             (N_beam,) index.
         """
-        data = np.array(data, copy=False)
+        data = np.array(data, copy=False, dtype=dtype)
         N_beam = len(beam_idx)
 
         if not chk.has_shape((N_beam, N_beam))(data):
@@ -87,7 +87,7 @@ class VisibilityGeneratorBlock(core.Block):
             SNR=chk.is_real,
         )
     )
-    def __init__(self, sky_model, T, fs, SNR):
+    def __init__(self, sky_model, T, fs, SNR, dtype=None):
         """
         Parameters
         ----------
@@ -104,6 +104,7 @@ class VisibilityGeneratorBlock(core.Block):
         self._N_sample = int(T * fs) + 1
         self._SNR = 10 ** (SNR / 10)
         self._sky_model = sky_model
+        self._dtype = dtype
 
     @chk.check(
         dict(
@@ -175,12 +176,10 @@ class VisibilityGeneratorBlock(core.Block):
         if not XYZ.is_consistent_with(W, axes=[0, 0]):
             raise ValueError("Parameters[XYZ, W] are inconsistent.")
 
-        A = np.exp((1j * 2 * np.pi / wl) * (self._sky_model.xyz @ XYZ.data.T))
-        S_sky = (W.data.conj().T @ (A.conj().T * self._sky_model.intensity)) @ (A @ W.data)
-
+        A = np.exp((1j * 2 * np.pi / wl) * (self._sky_model.xyz @ XYZ.data.T)).astype(dtype=self._dtype)
+        S_sky = (W.data.conj().T @ (A.conj().T * self._sky_model.intensity.astype(self._dtype))) @ (A @ W.data)        
         noise_var = np.sum(self._sky_model.intensity) / (2 * self._SNR)
         S_noise = W.data.conj().T @ (noise_var * W.data)
-
         wishart = stat.Wishart(V=S_sky + S_noise, n=self._N_sample)
         S = wishart()[0] / self._N_sample
-        return VisibilityMatrix(data=S, beam_idx=W.index[1])
+        return VisibilityMatrix(data=S, beam_idx=W.index[1], dtype=self._dtype)

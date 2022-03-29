@@ -146,12 +146,15 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             self._cp = np.complex128
         else:
             raise ValueError("Parameter[precision] must be 32 or 64.")
+        
+        assert pix_grid.dtype == self._fp, f'pix_grid {pix_grid.dtype} not of expected type {self._fp}'
 
         if N_level <= 0:
             raise ValueError("Parameter[N_level] must be positive.")
         self._N_level = N_level
 
         self._synthesizer = ssd.SpatialFieldSynthesizerBlock(wl, pix_grid, precision)
+        
         self.timer = None
 
     def set_timer(self, t):
@@ -196,10 +199,16 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             (2, N_level, N_px) field statistics.
         """
         self.mark("Imager call")
-        D = D.astype(self._fp, copy=False)
+        
+        assert D.dtype   == self._fp, f'D {D.dtype} not of expected type {self._fp}'
+        assert V.dtype   == self._cp, f'V {V.dtype} not of expected type {self._cp}'
+        assert XYZ.dtype == self._fp, f'XYZ {XYZ.dtype} not of expected type {self._fp}'
+        assert W.dtype   == self._cp, f'W {W.dtype} not of expected type {self._cp}'
 
         self.mark("Image synthesis")
         stat_std = self._synthesizer(V, XYZ, W)
+        
+        assert stat_std.dtype == self._fp, f'stat_std {stat_std.dtype} not of expected type {self._fp}'
 
         # get result from GPU
         if (type(stat_std) != np.ndarray):
@@ -211,7 +220,6 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         self.unmark("Image synthesis")
         stat_lsq = stat_std * D.reshape(-1, 1, 1)
-        #stat_lsq = stat_std * D.reshape(-1, 1)
 
         stat = np.stack([stat_std, stat_lsq], axis=0)
         self.mark("Image cluster layers")

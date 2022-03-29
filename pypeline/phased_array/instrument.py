@@ -61,8 +61,8 @@ def is_antenna_index(x):
     return False
 
 
-def _as_InstrumentGeometry(df):
-    XYZ = InstrumentGeometry(xyz=df.values, ant_idx=df.index)
+def _as_InstrumentGeometry(df, dtype=None):
+    XYZ = InstrumentGeometry(xyz=df.values, ant_idx=df.index, dtype=dtype)
     return XYZ
 
 
@@ -101,7 +101,7 @@ class InstrumentGeometry(array.LabeledMatrix):
     """
 
     @chk.check(dict(xyz=chk.has_reals, ant_idx=is_antenna_index))
-    def __init__(self, xyz, ant_idx):
+    def __init__(self, xyz, ant_idx, dtype=None):
         """
         Parameters
         ----------
@@ -110,7 +110,8 @@ class InstrumentGeometry(array.LabeledMatrix):
         ant_idx : :py:class:`~pandas.MultiIndex`
             (N_antenna,) index.
         """
-        xyz = np.array(xyz, copy=False)
+        self._dtype = dtype
+        xyz = np.array(xyz, dtype=dtype, copy=False)
         N_antenna = len(xyz)
         if not chk.has_shape((N_antenna, 3))(xyz):
             raise ValueError("Parameter[xyz] must be a (N_antenna, 3) array.")
@@ -129,7 +130,7 @@ class InstrumentGeometry(array.LabeledMatrix):
         :py:class:`~pandas.DataFrame`
             (N_antenna, 3) view of coordinates.
         """
-        df = pd.DataFrame(data=self.data, index=self.index[0], columns=self.index[1].values)
+        df = pd.DataFrame(data=self.data, index=self.index[0], columns=self.index[1].values, dtype=self._dtype)
         return df
 
     @chk.check("title", chk.is_instance(str))
@@ -227,7 +228,7 @@ class InstrumentGeometryBlock(core.Block):
     @chk.check(
         dict(XYZ=chk.is_instance(InstrumentGeometry), N_station=chk.allow_None(chk.is_integer))
     )
-    def __init__(self, XYZ, N_station=None):
+    def __init__(self, XYZ, N_station=None, dtype=None):
         """
         Parameters
         ----------
@@ -313,7 +314,7 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
     @chk.check(
         dict(XYZ=chk.is_instance(InstrumentGeometry), N_station=chk.allow_None(chk.is_integer))
     )
-    def __init__(self, XYZ, N_station=None):
+    def __init__(self, XYZ, N_station=None, dtype=None):
         """
         Parameters
         ----------
@@ -326,7 +327,8 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
             Setting `N_station` limits the number of stations to those that appear first in `XYZ`
             when sorted by STATION_ID.
         """
-        super().__init__(XYZ, N_station)
+        self._dtype = dtype
+        super().__init__(XYZ, N_station, dtype)
 
     @chk.check("time", chk.is_instance(time.Time))
     def __call__(self, time):
@@ -381,7 +383,7 @@ class EarthBoundInstrumentGeometryBlock(InstrumentGeometryBlock):
         icrs_layout = pd.DataFrame(
             data=icrs_position.T, index=self._layout.index, columns=("X", "Y", "Z")
         )
-        return _as_InstrumentGeometry(icrs_layout)
+        return _as_InstrumentGeometry(icrs_layout, self._dtype)
 
     def baselines(self, t: time.Time, uvw: bool = False,
                   field_center: typ.Optional[coord.SkyCoord] = None) -> np.ndarray:
@@ -547,7 +549,7 @@ class LofarBlock(EarthBoundInstrumentGeometryBlock):
     """
 
     @chk.check(dict(N_station=chk.allow_None(chk.is_integer), station_only=chk.is_boolean))
-    def __init__(self, N_station=None, station_only=False):
+    def __init__(self, N_station=None, station_only=False, dtype=None):
         """
         Parameters
         ----------
@@ -561,10 +563,10 @@ class LofarBlock(EarthBoundInstrumentGeometryBlock):
         station_only : bool
             If :py:obj:`True`, model LOFAR stations as single-element antennas. (Default = False)
         """
-        XYZ = self._get_geometry(station_only)
-        super().__init__(XYZ, N_station)
+        XYZ = self._get_geometry(station_only, dtype)
+        super().__init__(XYZ, N_station, dtype)
 
-    def _get_geometry(self, station_only):
+    def _get_geometry(self, station_only, dtype):
         """
         Load instrument geometry.
 
@@ -585,7 +587,7 @@ class LofarBlock(EarthBoundInstrumentGeometryBlock):
                 [station_id, [0]], names=["STATION_ID", "ANTENNA_ID"]
             )
 
-        XYZ = _as_InstrumentGeometry(itrs_geom)
+        XYZ = _as_InstrumentGeometry(itrs_geom, dtype)
         return XYZ
 
 

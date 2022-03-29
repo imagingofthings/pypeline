@@ -1,15 +1,18 @@
 set(BLUEBILD_SOURCE_FILES
 	eigensolver.cpp
 	gram_matrix.cpp
-	intensitiy_field_data.cpp
+	intensity_field_data.cpp
 	sensitivity_field_data.cpp
 	nufft_3d3.cpp
+    standard_synthesizer.cpp
 	context.cpp
 	host/eigensolver_host.cpp
 	host/gram_matrix_host.cpp
 	host/sensitivity_field_data_host.cpp
 	host/intensity_field_data_host.cpp
 	host/nufft_3d3_host.cpp
+    host/gemmexp.cpp
+    host/standard_synthesizer_host.cpp
 	)
 
 if(BLUEBILD_CUDA OR BLUEBILD_ROCM)
@@ -66,6 +69,13 @@ endmacro()
 
 bluebild_create_library(bluebild)
 set_target_properties(bluebild PROPERTIES VISIBILITY_INLINES_HIDDEN TRUE CXX_VISIBILITY_PRESET hidden)
+
+
+# OpenMP
+find_package(OpenMP REQUIRED)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bluebild PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 if(BLUEBILD_BUILD_TESTS)
 	# create library with default visibility if tests are build, to allow linking to internal symbols

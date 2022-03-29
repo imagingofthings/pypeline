@@ -25,16 +25,20 @@ from astropy.utils.exceptions import AstropyWarning
 warnings.filterwarnings('ignore', category=UserWarning, append=True)
 warnings.simplefilter('ignore', category=AstropyWarning)
 
+import matplotlib.pyplot as plt
+
+
+
 t = Timer()
 xp = bbt_cupy.cupy if use_cupy else np
 
-time_slice = 100
+time_slice = 10
 N_station = 60
 N_level = 4
 
 fname_prefix = 'lofar30MHz1'
 path_out = './'
-path_in = '/project/c31/%s/' %fname_prefix
+path_in = '/work/ska/%s/' %fname_prefix
 fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
 data_column="MODEL_DATA"
 
@@ -173,6 +177,13 @@ _, S_ss = S_mfs_ss.as_image()
 
 # Image Gridding
 I_lsq_eq_ss = s2image.Image(I_lsq_ss.data / S_ss.data, I_lsq_ss.grid)
+
+fig, ax = plt.subplots(ncols=2)
+I_lsq_eq_ss.draw(ax=ax[1])
+ax[1].set_title("Bluebild Least-Squares Image")
+fig.savefig("test_ss.png")
+fig.show()
+plt.show()
 
 # Save eigen-vectors for Standard Synthesis
 np.save('%sI_ss_%s' %(path_out, fname_prefix), I_lsq_eq_ss.data)
