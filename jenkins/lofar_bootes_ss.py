@@ -27,6 +27,7 @@ import pypeline.phased_array.bluebild.parameter_estimator as bb_pe
 import pypeline.phased_array.data_gen.source as source
 import pypeline.phased_array.data_gen.statistics as statistics
 import pypeline.phased_array.instrument as instrument
+from pypeline.util import frame
 import time as tt
 
 
@@ -78,16 +79,24 @@ time = obs_start + (T_integration * u.s) * np.arange(3595)
 print(time.size)
 
 # Imaging
+N_pix = 512
 N_level = 3 #4
 N_bits = 32 # 32
 time_slice = 200 #36 #25
+"""
 _, _, px_colat, px_lon = grid.equal_angle(
     N=dev.nyquist_rate(wl), direction=field_center.cartesian.xyz.value, FoV=FoV
 )
-
 px_grid = transform.pol2cart(1, px_colat, px_lon)
 print("px_grid=",px_grid.shape)
-
+"""
+lim = np.sin(FoV / 2)
+grid_slice = np.linspace(-lim, lim, N_pix)
+l_grid, m_grid = np.meshgrid(grid_slice, grid_slice)
+n_grid = np.sqrt(1 - l_grid ** 2 - m_grid ** 2)  # No -1 if r on the sphere !
+lmn_grid = np.stack((l_grid, m_grid, n_grid), axis=0)
+uvw_frame = frame.uvw_basis(field_center)
+px_grid = np.tensordot(uvw_frame, lmn_grid, axes=1)
 #sys.exit(0)
 
 t1 = tt.time()
