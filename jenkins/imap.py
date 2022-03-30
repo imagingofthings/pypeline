@@ -190,6 +190,8 @@ if __name__ == "__main__":
     # Comparing pairs of solutions
     compare_one_solution_to_another(Solutions, 'LBN3cct', args.last_build, 'LBN3cgt', args.last_build)
     compare_one_solution_to_another(Solutions, 'LBN3cct', args.last_build, 'LBN3t',   args.last_build)
+    compare_one_solution_to_another(Solutions, 'LBSSt', args.last_build,   'LBN3t',   args.last_build)
+    compare_one_solution_to_another(Solutions, 'LBSSt', args.last_build,   'LBN3cgt', args.last_build)
     #compare_one_solution_to_another('LBN3cct', args.last_build, 'LBSSt',  args.last_build)
 
 

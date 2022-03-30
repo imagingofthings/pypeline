@@ -98,7 +98,7 @@ ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)
 # Parameter Estimation
 ifpe_s = tt.time()
 I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
-for t in time[::200]:
+for t in time[::time_slice]:
     XYZ = dev(t)
     W = mb(XYZ, wl)
     G = GramMatrix(data=ctx.gram_matrix(XYZ.data, W.data, wl), beam_idx=W.index[1])
@@ -156,7 +156,7 @@ print(f"#@#IFIM {ifim_e-ifim_s:.3f} sec")
 # Parameter Estimation
 sfpe_s = tt.time()
 S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
-for t in time[::200]:
+for t in time[::time_slice]:
     XYZ = dev(t)
     W = mb(XYZ, wl)
     G = GramMatrix(data=ctx.gram_matrix(XYZ.data, W.data, wl), beam_idx=W.index[1])
