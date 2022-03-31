@@ -7,9 +7,10 @@
 
 from tqdm import tqdm as ProgressBar
 import astropy.units as u
+import astropy.time as atime
+
 from imot_tools.io import fits as ifits, s2image
-import numpy as np
-import cupy as cp
+import numpy as np, cupy as cp, os
 import scipy.constants as constants
 
 from pypeline.phased_array.bluebild import gram as bb_gr, data_processor as bb_dp, parameter_estimator as bb_pe
@@ -26,13 +27,21 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 t = Timer()
 
 gpu = True
-time_slice = 100
+time_slice = 4
 N_station = 60
 N_level = 4
 
 fname_prefix = 'lofar30MHz1'
-path_out = '/users/mibianco/data/lofar/%s/' %fname_prefix
-path_in = '/project/c31/%s/' %fname_prefix
+int_time = 8
+freq_band = 'LB'
+
+#path_out = '/users/mibianco/data/lofar/%s/' %fname_prefix
+path_out = '/users/mibianco/data/lofar/%s_%dhr_%s/' %(fname_prefix, int_time, freq_band)
+try:
+    os.makedir(path_out)
+except:
+    print()
+path_in = '/project/c31/%s/LB_%dhr/' %(fname_prefix, int_time)
 fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
 data_column="MODEL_DATA"
 
@@ -46,15 +55,19 @@ wl = constants.speed_of_light / frequency.to_value(u.Hz)
 # Observation
 FoV = np.deg2rad((2000*2.*u.arcsec).to(u.deg).value)
 field_center = ms.field_center
-time = ms.time['TIME'][:time_slice]
+time = ms.time['TIME'][slice(None,None,time_slice)]  #[:time_slice] #
 
 # Instrument
+dev = ms.instrument
+mb = ms.beamformer
 gram = bb_gr.GramBlock()
 
 # Imaging
 eps = 1e-3
 precision = 'single'
 N_bits = 32
+
+
 
 ### Imaging parameters ===========================================================
 cl_WCS = ifits.wcs('%s-image.fits' %(path_in+fname_prefix))
@@ -81,8 +94,8 @@ I_est = bb_pe.IntensityFieldParameterEstimator(N_level, sigma=0.95)
 for i_t, ti in enumerate(ProgressBar(time)):
     tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz) #self.wl
-    XYZ = ms.instrument(tobs)
-    W = ms.beamformer(XYZ, wl)
+    XYZ = dev(tobs)
+    W = mb(XYZ, wl)
     S, _ = measurement_set.filter_data(S, W)
     
     G = gram(XYZ, W, wl)
@@ -99,14 +112,14 @@ t.end_time("Estimate intensity field parameters")
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
 I_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid, N_level, N_bits)
 
-UVW_baselines = []
+#UVW_baselines = []
 for i_t, ti in enumerate(ProgressBar(time)):
     t.start_time("Synthesis: prep input matrices & fPCA")
 
     tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz)
-    XYZ = ms.instrument(tobs)
-    W = ms.beamformer(XYZ, wl)
+    XYZ = dev(tobs)
+    W = mb(XYZ, wl)
     S, _ = measurement_set.filter_data(S, W)
     
     G = gram(XYZ, W, wl)
@@ -124,11 +137,11 @@ for i_t, ti in enumerate(ProgressBar(time)):
         _ = I_mfs_ss(D, V, XYZ.data, W.data, c_idx)
 
     # compute UVcoverage
-    UVW_baselines_t = ms.instrument.baselines(ti, uvw=True, field_center=field_center)
-    UVW_baselines.append(UVW_baselines_t)
+    #UVW_baselines_t = dev.baselines(ti, uvw=True, field_center=field_center)
+    #UVW_baselines.append(UVW_baselines_t)
     t.end_time("Standard Synthesis")
 
-UVW_baselines = np.stack(UVW_baselines, axis=0).reshape(-1, 3)
+#UVW_baselines = np.stack(UVW_baselines, axis=0).reshape(-1, 3)
 
 I_std_ss, I_lsq_ss = I_mfs_ss.as_image()
 
@@ -140,8 +153,8 @@ t.start_time("Estimate sensitivity field parameters")
 # Parameter Estimation
 S_est = bb_pe.SensitivityFieldParameterEstimator(sigma=0.95)
 for ti in ProgressBar(time):
-    XYZ = ms.instrument(ti)
-    W = ms.beamformer(XYZ, wl)
+    XYZ = dev(ti)
+    W = mb(XYZ, wl)
     G = gram(XYZ, W, wl)
     S_est.collect(G)
 N_eig, c_centroid = I_est.infer_parameters()
@@ -156,9 +169,9 @@ S_mfs_ss = bb_sd.Spatial_IMFS_Block(wl, px_grid, 1, N_bits)
 for i_t, ti in enumerate(ProgressBar(time)):
     tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
     wl = constants.speed_of_light / f.to_value(u.Hz)
-    XYZ = ms.instrument(tobs)
+    XYZ = dev(tobs)
     
-    W = ms.beamformer(XYZ, wl)
+    W = mb(XYZ, wl)
     G = gram(XYZ, W, wl)
     D, V = S_dp(G)
 
