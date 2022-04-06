@@ -7,7 +7,7 @@ echo REF_DIR = $REF_DIR
 
 
 # 06/04/2022: New reference for LBSSi/t solutions as grid was changed
-if [ 1 == 1 ]; then
+if [ 1 == 0 ]; then
     REF_SOL=${WORK_DIR}/${GIT_BRANCH}/2022-03-30T07-03-54Z_34/
     [ -d $REF_SOL ] || (echo "Error: reference directory $REF_SOL not found." && exit 1)
     echo REF_SOL = $REF_SOL
