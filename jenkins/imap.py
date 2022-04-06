@@ -26,7 +26,8 @@ def check_images_shapes(img1, img2):
         sys.exit(1)
 
 def check_grids_definitions(grd1, grd2):
-    if not np.array_equal(grd1, grd2):
+    #if not np.array_equal(grd1, grd2):
+    if not np.isclose(grd1, grd2, atol=1e-6).any():
         print(f"Fatal  : Grids from both solutions must be the same.")
         sys.exit(1)
 
@@ -121,7 +122,7 @@ def compare_one_solution_to_another(Solutions, sol1_name, build1, sol2_name, bui
     sol1 = Solutions[sol1_name]
     sol2 = Solutions[sol2_name]
 
-    print(f"Comparing [{sol1.label} / {build1}] to [{sol2.label} / {build2}]")
+    print(f"\nComparing [{sol1.label} / {build1}] to [{sol2.label} / {build2}]")
     builds = monitoring.scan(args.input_directory, args.ignore_up_to)
     file_isol1 = os.path.join(args.input_directory, builds.get(build1)[2], sol1.directory, sol1.filename)
     file_gsol1 = os.path.join(args.input_directory, builds.get(build1)[2], sol1.directory, sol1.gridname)
@@ -183,17 +184,17 @@ if __name__ == "__main__":
     plots = (
         {'sols': sols},
     )
-    
+
     # Generating maps and stats of last build vs reference
     for plot_ in plots:
         plot(plot_, args)
+
     # Comparing pairs of solutions
     compare_one_solution_to_another(Solutions, 'LBN3cct', args.last_build, 'LBN3cgt', args.last_build)
     compare_one_solution_to_another(Solutions, 'LBN3cct', args.last_build, 'LBN3t',   args.last_build)
     compare_one_solution_to_another(Solutions, 'LBSSt', args.last_build,   'LBN3t',   args.last_build)
     compare_one_solution_to_another(Solutions, 'LBSSt', args.last_build,   'LBN3cgt', args.last_build)
     #compare_one_solution_to_another('LBN3cct', args.last_build, 'LBSSt',  args.last_build)
-
 
 
 # To test locally
