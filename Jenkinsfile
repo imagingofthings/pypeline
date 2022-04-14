@@ -22,7 +22,7 @@ pipeline {
         // To compile C++ port of bluebild
         FINUFFT_ROOT    = "${env.WORKSPACE}/finufft"
         CUFINUFFT_ROOT  = "${env.WORKSPACE}/cufinufft"
-        LD_LYBRARY_PATH = "${env.LD_LIBRARY_PATH}:${env.FINUFFT_ROOT}/lib:${env.FINUFFT_ROOT}/lib"
+        LD_LIBRARY_PATH = "${env.LD_LIBRARY_PATH}:${env.FINUFFT_ROOT}/lib:${env.FINUFFT_ROOT}/lib"
     }
 
     stages {
