@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-
+set -x
 
 #echo "Warning: early exit. Re-enable if a new installation is required."
 #exit 0
@@ -53,8 +53,12 @@ python -V
 # -----------------------------------
 module load gcc cuda/11.0 fftw cmake openblas
 pwd
+ls -l
+[ -d cufinufft ] && rm -rf ./cufinufft
 git clone https://github.com/AdhocMan/cufinufft.git
 cd cufinufft
+pwd
+git branch
 git fetch all
 git checkout t3_d3
 git branch
