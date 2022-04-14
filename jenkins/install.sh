@@ -49,7 +49,44 @@ pip --version
 which python
 python -V
 
-pip install bluebild-tools
+# Install CUFINUFFT from Simon's fork
+# -----------------------------------
+module load gcc cuda/11.0 fftw cmake openblas
+pwd
+git clone https://github.com/AdhocMan/cufinufft.git
+cd cufinufft
+git fetch all
+git checkout t3_d3
+git branch
+echo "CXXFLAGS  += -g" > make.inc
+echo "NVCCFLAGS += -g" >> make.inc
+cat make.inc
+make all -j
+cd ..
+module purge
+
+
+# Install FINUFTT
+# Note: GCC 8 not recommended, but fftw not available for GCC 9...
+#       EO: I did not observe any perf degradation when comparing GCC 8 and 9
+#----------------------------------------------------------------------------
+module load gcc cuda/11.0 fftw cmake openblas
+pwd
+if [ -d finufft ]; then
+    echo "A finufft directory already exits. Will clean, pull, and recompile."
+    cd finufft
+    make clean
+    git pull
+else
+    git clone https://github.com/flatironinstitute/finufft.git
+    cd finufft
+fi
+# Only if you want to have debug symbol/info included in bin
+echo "CXXFLAGS += -g -DFFTW_PLAN_SAFE" > make.inc
+make test -j
+###make perftest
+make python
+cd ..
 
 exit 0
 
@@ -64,8 +101,14 @@ pip install --no-deps .     ## install bluebild
 cd -
 pip install --no-deps -e .  ## install pypeline in editable mode (not necessary for Jenkins but mimics normal installation)
 
+
+
+
 exit 0
 
+pip install bluebild-tools
+
+exit 0
 
 # Install non-conda packages
 pip install pbr
@@ -91,24 +134,6 @@ fi
 pip install --no-deps .
 cd ..
 
-# Install FINUFTT (CPU) from source
-# !!! GCC 8 not recommended !!! but fftw not available for GCC 9...
-module load gcc fftw
-if [ -d finufft ]; then
-    echo "A finufft directory already exits. Will clean, pull, and recompile."
-    cd finufft
-    make clean
-    git pull
-else
-    git clone https://github.com/flatironinstitute/finufft.git
-    cd finufft
-fi
-# Only if you want to have debug symbol/info included in bin
-echo "CXXFLAGS += -g -DFFTW_PLAN_SAFE" > make.inc
-make test -j
-###make perftest
-make python
-cd ..
 
 # Install pypeline locally in editable mode
 pip install --no-deps -e .
