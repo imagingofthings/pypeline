@@ -59,7 +59,7 @@ git clone https://github.com/AdhocMan/cufinufft.git
 cd cufinufft
 pwd
 git branch
-git fetch all
+git fetch --all
 git checkout t3_d3
 git branch
 echo "CXXFLAGS  += -g" > make.inc
