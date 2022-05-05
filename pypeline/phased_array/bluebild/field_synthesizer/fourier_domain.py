@@ -486,7 +486,7 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
                                double=dict(complex=np.complex128, real=np.float64, dtype='float64'))
 
     def __init__(self, wl: float, grid_size: int, FoV: float, field_center: aspy.SkyCoord,
-                 eps: float = 1e-3, n_trans: int = 1, precision: str = 'double', bluebild_ctx = None):
+                 eps: float = 1e-3, n_trans: int = 1, precision: str = 'double', ctx = None):
         r"""
 
         Parameters
@@ -505,15 +505,15 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             Number of simultaneous NUFFT transforms.
         precision: str
             Whether to use ``'single'`` or ``'double'`` precision.
-        bluebild_ctx: :py:class:`~bluebild.Context`
-            Bluebuild context. If provided, will use bluebild module provided nufft.
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, the bluebild library will be used for computation.
         """
         self._wl = wl
         self._eps = eps
         self._precision = precision
         self._FoV = FoV
         self._field_center = field_center
-        self._ctx = bluebild_ctx
+        self._ctx = ctx
         if type(grid_size) != int:
             uvw_frame = frame.uvw_basis(self._field_center)
             self.xyz_grid = grid_size       # pass a grid instead of calculating it

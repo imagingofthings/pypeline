@@ -53,7 +53,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
     """
 
     @chk.check(dict(N_eig=chk.is_integer, cluster_centroids=chk.has_reals))
-    def __init__(self, N_eig, cluster_centroids):
+    def __init__(self, N_eig, cluster_centroids, ctx=None):
         """
         Parameters
         ----------
@@ -61,6 +61,8 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
             Number of eigenpairs to output after PCA decomposition.
         cluster_centroids : array-like(float)
             Intensity centroids for energy-level clustering.
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, will use bluebild module for computation.
 
         Notes
         -----
@@ -75,6 +77,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
         super().__init__()
         self._N_eig = N_eig
         self._cluster_centroids = np.array(cluster_centroids, copy=False)
+        self._ctx = ctx
 
     @chk.check(
         dict(
@@ -84,7 +87,7 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
             wl=chk.is_real,
         )
     )
-    def __call__(self, S, XYZ, W, wl, ctx=None):
+    def __call__(self, S, XYZ, W, wl):
         """
         fPCA decomposition and data formatting for
         :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
@@ -101,8 +104,6 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
             (N_antenna, N_beam) synthesis beamweights.
         wl : float
             Wavelength [m] at which to compute the Gram.
-        ctx: :py:class:`~bluebild.Context`
-            Bluebuild context. If provided, will use bluebild module for computation.
 
         Returns
         -------
@@ -174,8 +175,8 @@ class IntensityFieldDataProcessorBlock(DataProcessorBlock):
         else:
             S, W = S.data, W.data
 
-        if ctx is not None:
-            D, V, cluster_idx = ctx.intensity_field_data(self._N_eig, np.array(XYZ.data, order='F'), np.array(W.data, order='F'),
+        if self._ctx is not None:
+            D, V, cluster_idx = self._ctx.intensity_field_data(self._N_eig, np.array(XYZ.data, order='F'), np.array(W.data, order='F'),
                     wl, S, self._cluster_centroids)
         else:
             G = gram.GramBlock().compute(XYZ.data, W, wl)
@@ -206,12 +207,14 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
     """
 
     @chk.check("N_eig", chk.is_integer)
-    def __init__(self, N_eig):
+    def __init__(self, N_eig, ctx=None):
         """
         Parameters
         ----------
         N_eig : int
             Number of eigenpairs to output after PCA decomposition.
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, will use bluebild module for computation.
 
         Notes
         -----
@@ -225,6 +228,7 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
 
         super().__init__()
         self._N_eig = N_eig
+        self._ctx = ctx
 
     @chk.check(
         dict(
@@ -233,7 +237,7 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
             wl=chk.is_real,
         )
     )
-    def __call__(self, XYZ, W, wl, ctx=None):
+    def __call__(self, XYZ, W, wl):
         """
         fPCA decomposition and data formatting for
         :py:class:`~pypeline.phased_array.bluebild.field_synthesizer.FieldSynthesizerBlock` objects.
@@ -246,8 +250,6 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
             (N_antenna, N_beam) synthesis beamweights.
         wl : float
             Wavelength [m] at which to compute the Gram.
-        ctx: :py:class:`~bluebild.Context`
-            Bluebuild context. If provided, will use bluebild module for computation.
 
         Returns
         -------
@@ -295,8 +297,8 @@ class SensitivityFieldDataProcessorBlock(DataProcessorBlock):
            array([9.2e-05, 9.4e-05])
         """
 
-        if ctx is not None:
-            return ctx.sensitivity_field_data(self._N_eig, np.array(XYZ.data, order='F'), np.array(W.data, order='F'), wl)
+        if self._ctx is not None:
+            return self._ctx.sensitivity_field_data(self._N_eig, np.array(XYZ.data, order='F'), np.array(W.data, order='F'), wl)
         else:
             G = gram.GramBlock()(XYZ, W, wl)
             N_beam = len(G.data)

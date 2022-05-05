@@ -273,7 +273,7 @@ class NUFFT_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
     def __init__(self, wl: float, grid_size: int, FoV: float, field_center: aspy.SkyCoord,
                  eps: float = 1e-3, n_trans: int = 1, precision: str = 'double', max_collect_bytes = 2 * 10**9,
-                 bluebild_ctx = None):
+                 ctx = None):
         r"""
 
         Parameters
@@ -292,20 +292,20 @@ class NUFFT_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             Number of simultaneous NUFFT transforms.
         precision: str
             Whether to use ``'single'`` or ``'double'`` precision.
-        bluebild_ctx: :py:class:`~bluebild.Context`
-            Bluebuild context. If provided, will use bluebild module provided nufft.
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, the bluebild library will be used for computation.
         """
         self._synthesizer = psd.NUFFTFieldSynthesizerBlock(wl=wl, grid_size=grid_size, FoV=FoV,
                                                            field_center=field_center, eps=eps,
                                                            n_trans=n_trans, precision=precision,
-                                                           bluebild_ctx=bluebild_ctx)
+                                                           ctx=ctx)
         self._V_collection = []
         self._UVW_collection = []
         self._nbytes = 0
         self._max_colllect_bytes = max_collect_bytes
         super(NUFFT_IMFS_Block, self).__init__()
 
-    def __call__(self, UVW: np.ndarray, V: np.ndarray) -> np.ndarray:
+    def collect(self, UVW: np.ndarray, V: np.ndarray) -> np.ndarray:
         r"""
         Image a set of (virtual) visibilities.
 

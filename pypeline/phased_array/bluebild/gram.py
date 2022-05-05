@@ -75,11 +75,16 @@ class GramBlock(core.Block):
     Compute Gram matrices.
     """
 
-    def __init__(self):
+    def __init__(self, ctx=None):
         """
+        Parameters
+        ----------
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, will use bluebild module for computation.
 
         """
         super().__init__()
+        self._ctx=ctx
 
     @chk.check(
         dict(
@@ -88,7 +93,7 @@ class GramBlock(core.Block):
             wl=chk.is_real,
         )
     )
-    def __call__(self, XYZ, W, wl, ctx=None):
+    def __call__(self, XYZ, W, wl):
         """
         Compute Gram matrix.
 
@@ -100,8 +105,6 @@ class GramBlock(core.Block):
             (N_antenna, N_beam) synthesis beamweights.
         wl : float
             Wavelength [m] at which to compute the Gram.
-        ctx: :py:class:`~bluebild.Context`
-            Bluebuild context. If provided, will use bluebild module for computation.
 
         Returns
         -------
@@ -146,10 +149,10 @@ class GramBlock(core.Block):
         if not XYZ.is_consistent_with(W, axes=[0, 0]):
             raise ValueError("Parameters[XYZ, W] are inconsistent.")
 
-        return GramMatrix(data=self.compute(XYZ.data, W.data, wl, ctx), beam_idx=W.index[1])
+        return GramMatrix(data=self.compute(XYZ.data, W.data, wl), beam_idx=W.index[1])
 
 
-    def compute(self, XYZ, W, wl, ctx=None):
+    def compute(self, XYZ, W, wl):
         """
         Compute Gram matrix as numpy array.
 
@@ -161,16 +164,14 @@ class GramBlock(core.Block):
             (N_antenna, N_beam) synthesis beamweights.
         wl : float
             Wavelength [m] at which to compute the Gram.
-        ctx: :py:class:`~bluebild.Context`
-            Bluebuild context. If provided, will use bluebild module for computation.
 
         Returns
         -------
         :py:class:`~numpy.ndarray`
             (N_beam, N_beam) Gram matrix.
         """
-        if ctx is not None:
-            return ctx.gram_matrix(np.array(XYZ.data, order='F'), np.array(W.data, order='F'), wl)
+        if self._ctx is not None:
+            return self._ctx.gram_matrix(np.array(XYZ.data, order='F'), np.array(W.data, order='F'), wl)
         else:
             N_antenna = XYZ.shape[0]
             baseline = linalg.norm(
