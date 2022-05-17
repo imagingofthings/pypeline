@@ -57,6 +57,7 @@ function install_ninja {
     cd $NINJA_DIR
     wget https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-linux.zip
     unzip ninja-linux.zip
+    cd -
 }
 
 
