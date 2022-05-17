@@ -27,6 +27,11 @@ import finufft
 import astropy.coordinates as aspy
 
 
+try:
+    import bluebild
+except ImportError:
+    pass
+
 class FourierFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
     """
     Field synthesizer based on PeriodicSynthesis.
@@ -480,16 +485,14 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
     _precision_mappings = dict(single=dict(complex=np.complex64, real=np.float32, dtype='float32'),
                                double=dict(complex=np.complex128, real=np.float64, dtype='float64'))
 
-    def __init__(self, wl: float, UVW: np.ndarray, grid_size: int, FoV: float, field_center: aspy.SkyCoord,
-                 eps: float = 1e-6, w_term: bool = True, n_trans: int = 1, precision: str = 'double'):
+    def __init__(self, wl: float, grid_size: int, FoV: float, field_center: aspy.SkyCoord,
+                 eps: float = 1e-3, n_trans: int = 1, precision: str = 'double', ctx = None):
         r"""
 
         Parameters
         ----------
         wl: float
             Observation wavelength.
-        UVW: np.ndarray
-            (3, N_uvw) UVW coordinates expressed in the local UVW frame.
         grid_size: int
             Size of the output imaging grid across each dimension.
         FoV: float
@@ -498,19 +501,20 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             Center of the field of view for defining the local UVW frame.
         eps: float
             Relative tolerance of the NUFFT.
-        w_term: bool
-            Neglects the ``w_term`` (do not use for large FoV!).
         n_trans: int
             Number of simultaneous NUFFT transforms.
         precision: str
             Whether to use ``'single'`` or ``'double'`` precision.
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, the bluebild library will be used for computation.
         """
+        self._wl = wl
+        self._eps = eps
         self._precision = precision
-        UVW = np.array(UVW, copy=False)
-        self._UVW = (2 * np.pi * UVW.reshape(3, -1) / wl).astype(self._precision_mappings[self._precision]['real'])
         self._FoV = FoV
         self._field_center = field_center
-        if(w_term and type(grid_size) != int):
+        self._ctx = ctx
+        if type(grid_size) != int:
             uvw_frame = frame.uvw_basis(self._field_center)
             self.xyz_grid = grid_size       # pass a grid instead of calculating it
             self.lmn_grid = np.tensordot(np.linalg.inv(uvw_frame), self.xyz_grid, axes=1)
@@ -520,29 +524,9 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self._lmn_grid = self.lmn_grid.reshape(3, -1).astype(self._precision_mappings[self._precision]['real'])
         self._n_trans = n_trans
-        if w_term:
-            grid_center = self._lmn_grid.mean(axis=-1)
-            self._lmn_grid -= grid_center[:, None]
-            self._prephasing = np.exp(1j * np.sum(grid_center[:, None] * self._UVW, axis=0)).squeeze().astype(
-                self._precision_mappings[self._precision]['complex'])
-            self._plan = finufft.Plan(nufft_type=3, n_modes_or_dim=3, eps=eps, isign=1, n_trans=n_trans,
-                                      dtype=self._precision_mappings[self._precision]['dtype'])
-            self._plan.setpts(x=self._UVW[0], y=self._UVW[1], z=self._UVW[-1],
-                              s=self._lmn_grid[0], t=self._lmn_grid[1], u=self._lmn_grid[-1])
-            self._inner_fft_sizes = np.floor(4 * np.linalg.norm(self._lmn_grid, ord=np.infty, axis=-1) * \
-                                             np.linalg.norm(self._UVW, ord=np.infty, axis=-1) / np.pi +
-                                             np.log(1 / eps) + 1)
-        else:
-            warnings.warn('Setting the parameter w_term to False can result in a loss of accuracy for large FoVs!',
-                          UserWarning)
-            scaling = (2 * np.sin(self._FoV / 2) / self._grid_size).astype(
-                self._precision_mappings[self._precision]['real'])
-            self._prephasing = np.exp(1j * self._UVW[-1]).squeeze().astype(
-                self._precision_mappings[self._precision]['complex'])
-            self._plan = finufft.Plan(nufft_type=1, n_modes_or_dim=(self._grid_size, self._grid_size),
-                                      eps=eps, isign=1, n_trans=n_trans,
-                                      dtype=self._precision_mappings[self._precision]['dtype'])
-            self._plan.setpts(x=scaling * self._UVW[1], y=scaling * self._UVW[0])
+        self._grid_center = self._lmn_grid.mean(axis=-1)
+        self._lmn_grid -= self._grid_center[:, None]
+
         super(NUFFTFieldSynthesizerBlock, self).__init__()
 
     def _make_grids(self) -> typ.Tuple[np.ndarray, np.ndarray]:
@@ -563,12 +547,14 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         xyz_grid = np.tensordot(uvw_frame, lmn_grid, axes=1)
         return lmn_grid, xyz_grid
 
-    def __call__(self, V: np.ndarray) -> np.ndarray:
+    def __call__(self, UVW: np.ndarray, V: np.ndarray) -> np.ndarray:
         r"""
         Synthesize a set of virtual visibilities.
 
         Parameters
         ----------
+        UVW: np.ndarray
+            (3, N_uvw) UVW coordinates expressed in the local UVW frame.
         V: np.ndarray
             (M, N_uvw) stack of virtual visibilities to synthesize. If the ``n_trans`` parameter of the NUFFT plan is
              different from zero, then one must have ``M==n_trans``. In which case, the ``M`` NUFFTs are computed in parallel
@@ -578,21 +564,36 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         field: np.ndarray
             (M, N_pix) field values.
         """
+        UVW = np.array(UVW, copy=False)
+        UVW = (2 * np.pi * UVW.reshape(3, -1) / self._wl).astype(self._precision_mappings[self._precision]['real'])
         V = np.array(V, copy=False).squeeze().astype(self._precision_mappings[self._precision]['complex'])
+
+        prephasing = np.exp(1j * np.sum(self._grid_center[:, None] * UVW, axis=0)).squeeze().astype(
+            self._precision_mappings[self._precision]['complex'])
+
+        if self._ctx is not None:
+            plan = bluebild.Nufft3d3(1, self._eps, self._n_trans, UVW[0], UVW[1], UVW[2],
+                    self._lmn_grid[0], self._lmn_grid[1], self._lmn_grid[-1], self._ctx)
+        else:
+            plan = finufft.Plan(nufft_type=3, n_modes_or_dim=3, eps=self._eps, isign=1, n_trans=self._n_trans,
+                                dtype=self._precision_mappings[self._precision]['dtype'])
+            plan.setpts(x=UVW[0], y=UVW[1], z=UVW[-1],
+                        s=self._lmn_grid[0], t=self._lmn_grid[1], u=self._lmn_grid[-1])
+
         if V.ndim > 1:
-            V = V.reshape(-1, self._UVW.shape[-1])
-            self._prephasing = self._prephasing[None, :]
-            V *= self._prephasing
+            V = V.reshape(-1, UVW.shape[-1])
+            prephasing = prephasing[None, :]
+            V *= prephasing
             if self._n_trans == 1:  # NUFFT are evaluated sequentially
                 out = []
                 for n in range(V.shape[0]):
-                    out.append(np.real(self._plan.execute(V[n])))
+                    out.append(np.real(plan.execute(V[n])))
                 out = np.stack(out, axis=0)
             else:
-                out = np.real(self._plan.execute(
+                out = np.real(plan.execute(
                     V))  # NUFFT are evaluated in parallel (not clear if multi-threaded or multi-processed?)
         else:
-            out = np.real(self._plan.execute(V * self._prephasing))
+            out = np.real(plan.execute(V * prephasing))
         return out
 
     def synthesize(self, V: np.ndarray) -> np.ndarray:
