@@ -57,9 +57,9 @@ export NINJA_DIR=$PWD/ninja
 export FINUFFT_ROOT=$PWD/finufft
 export CUFINUFFT_ROOT=$PWD/cufinufft
 export PATH=$NINJA_DIR:$FINUFFT_ROOT:$CUFINUFFT_ROOT:$PATH
-echo "PATH=\n$PATH"
+echo "PATH = $PATH"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FINUFFT_ROOT/lib:$CUFINUFFT_ROOT/lib
-echo "LD_LIBRARY_PATH=\n$LD_LIBRARY_PATH"
+echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
 echo
 
 # Function to install FINUFTT
@@ -131,8 +131,8 @@ function install_bluebild {
 # Actions list
 # ------------
 #install_ninja
-#install_cufinufft
-#install_finufft
+install_finufft
+install_cufinufft
 install_bluebild
 
 exit 0
