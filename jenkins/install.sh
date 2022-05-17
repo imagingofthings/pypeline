@@ -51,7 +51,11 @@ python -V
 
 NINJA_DIR=./ninja
 [ -d $NINJA_DIR ] || mkdir -pv $NINJA_DIR
+cd $NINJA_DIR
+NINJA_DIR=`pwd`
 export PATH=$NINJA_DIR:$PATH
+cd -
+
 
 function install_ninja {
     cd $NINJA_DIR
