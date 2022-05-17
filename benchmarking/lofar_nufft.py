@@ -148,6 +148,7 @@ S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
 SV_dp = bb_dp.VirtualVisibilitiesDataProcessingBlock(N_eig, filters=('lsq',))
 nufft_imager = bb_im.NUFFT_IMFS_Block(wl=wl, grid_size=N_pix, FoV=FoV,
                                       field_center=field_center, eps=eps,
+                                      n_trans=1, precision=precision)
 
 for i_t, ti in enumerate(ProgressBar(time)):
     tobs, f, S = next(ms.visibilities(channel_id=[channel_id], time_id=slice(i_t, i_t+1, None), column=data_column))
