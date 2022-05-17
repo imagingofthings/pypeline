@@ -49,6 +49,25 @@ pip --version
 which python
 python -V
 
+
+# Function to installing c++ port of data processing classes
+function install_bluebild {
+    module load gcc cuda/11.0 fftw cmake openblas
+    pwd
+    ls -l
+    cd src/bluebild
+    pwd
+    pip install --no-deps .     ## install bluebild
+    cd -
+    pip install --no-deps -e .  ## install pypeline in editable mode (not necessary for Jenkins but mimics normal installation)
+}
+
+# Actions list
+# ------------
+install_bluebild
+
+exit 0
+
 # Install CUFINUFFT from Simon's fork
 # -----------------------------------
 module load gcc cuda/11.0 fftw cmake openblas
@@ -91,22 +110,6 @@ make test -j
 ###make perftest
 make python
 cd ..
-
-exit 0
-
-# Installing c++ port of data processing classes
-#
-module load gcc cuda/11.0 fftw cmake openblas
-pwd
-ls -l
-cd src/bluebild
-pwd
-pip install --no-deps .     ## install bluebild
-cd -
-pip install --no-deps -e .  ## install pypeline in editable mode (not necessary for Jenkins but mimics normal installation)
-
-
-
 
 exit 0
 
