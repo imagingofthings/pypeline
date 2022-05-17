@@ -57,7 +57,7 @@ export NINJA_DIR=$PWD/ninja
 export FINUFFT_DIR=$PWD/finufft
 export CUFINUFFT_DIR=$PWD/cufinufft
 export PATH=$NINJA_DIR:$FINUFFT_DIR:$CUFINUFFT_DIR:$PATH
-
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FINUFFT_DIR/lib:$CUFINUFFT_DIR/lib
 
 # Function to install FINUFTT
 # Note: GCC 8 not recommended, but fftw not available for GCC 9...
