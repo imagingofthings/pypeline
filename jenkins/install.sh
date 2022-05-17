@@ -50,6 +50,13 @@ which python
 python -V
 
 
+function install_ninja {
+    git clone git://github.com/ninja-build/ninja.git && cd ninja
+    git checkout release
+    cd -
+}
+
+
 # Function to installing c++ port of data processing classes
 function install_bluebild {
     module load gcc cuda/11.0 fftw cmake openblas
@@ -64,6 +71,8 @@ function install_bluebild {
 
 # Actions list
 # ------------
+install_ninja
+export PATH=$PATH:./ninja
 install_bluebild
 
 exit 0
