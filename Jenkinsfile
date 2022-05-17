@@ -128,8 +128,9 @@ pipeline {
 
         stage('lofar_bootes_nufft_small_fov') {
             environment {
-                TEST_DIR  = "${env.OUT_DIR}/lofar_bootes_nufft_small_fov"
-                MUST_CUPY = "-1"
+                TEST_DIR     = "${env.OUT_DIR}/lofar_bootes_nufft_small_fov"
+                MUST_CUPY    = "-1"
+                BLUEBILD_GPU = "OFF"
             }
             steps {
                 sh "mkdir -pv ${env.TEST_DIR}"
