@@ -49,11 +49,14 @@ pip --version
 which python
 python -V
 
+NINJA_DIR=./ninja
+[ -d $NINJA_DIR ] || mkdir -pv $NINJA_DIR
+export PATH=$NINJA_DIR:$PATH
 
 function install_ninja {
-    git clone git://github.com/ninja-build/ninja.git && cd ninja
-    git checkout release
-    cd -
+    cd $NINJA_DIR
+    wget https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-linux.zip
+    unzip ninja-linux.zip
 }
 
 
@@ -72,7 +75,6 @@ function install_bluebild {
 # Actions list
 # ------------
 install_ninja
-export PATH=$PATH:./ninja
 install_bluebild
 
 exit 0
