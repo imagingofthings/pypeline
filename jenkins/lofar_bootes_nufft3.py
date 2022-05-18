@@ -153,6 +153,7 @@ nufft_imager = bb_im.NUFFT_IMFS_Block(wl=wl, grid_size=N_pix, FoV=FoV,
                                       n_trans=1, precision=precision)
 for t in time[::time_slice]:
     XYZ = dev(t)
+    UVW_baselines_t = dev.baselines(t, uvw=True, field_center=field_center)
     W = mb(XYZ, wl)
     D, V = S_dp(XYZ, W, wl)
     S_sensitivity = SV_dp(D, V, W, cluster_idx=np.zeros(N_eig, dtype=int))
