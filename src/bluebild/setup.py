@@ -8,6 +8,7 @@ with open(str(current_dir) + '/VERSION') as f:
     version = f.readline().strip()
 
 bluebild_gpu = str(os.getenv('BLUEBILD_GPU', 'CUDA'))
+bluebild_cmake_args = str(os.getenv('BLUEBILD_CMAKE_ARGS', '')).split()
 
 setup(
     name="bluebild",
@@ -18,5 +19,5 @@ setup(
     cmake_install_dir="python", # must match package dir name. Otherwise, installed libraries are seen as independent data
     include_package_data=True,
     python_requires=">=3.6",
-    cmake_args=['-DBLUEBILD_GPU=' + bluebild_gpu, '-DBUILD_SHARED_LIBS=ON', '-DBLUEBILD_INSTALL=PYTHON'],
+    cmake_args=['-DBLUEBILD_GPU=' + bluebild_gpu, '-DBUILD_SHARED_LIBS=ON', '-DBLUEBILD_INSTALL=PYTHON' ]+bluebild_cmake_args,
 )
