@@ -33,7 +33,6 @@ import imot_tools.io.plot as implt
 import time as tt
 
 import matplotlib
-matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)

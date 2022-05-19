@@ -123,7 +123,7 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/BLUEBILDTargets.cmake
 )
 
 # installation commands
-if(BLUEBILD_INSTALL)
+if(BLUEBILD_INSTALL STREQUAL "LIB")
 	install(TARGETS bluebild DESTINATION ${CMAKE_INSTALL_LIBDIR} EXPORT BLUEBILDTargets)
 	install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/bluebild DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.f90")
 	install(FILES ${PROJECT_BINARY_DIR}/bluebild/config.h "${PROJECT_BINARY_DIR}/bluebild/bluebild_export.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bluebild)
