@@ -133,7 +133,7 @@ function install_bluebild {
 #install_ninja
 #install_finufft
 #install_cufinufft
-#install_bluebild
+install_bluebild
 
 exit 0
 
