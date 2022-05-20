@@ -130,7 +130,7 @@ function install_bluebild {
 
 # Actions list
 # ------------
-install_ninja
+#install_ninja
 #install_finufft
 #install_cufinufft
 install_bluebild
