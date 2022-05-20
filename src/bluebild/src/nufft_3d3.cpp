@@ -1,4 +1,5 @@
 #include <complex>
+#include <optional>
 
 #include "bluebild/config.h"
 #include "bluebild/exceptions.hpp"
