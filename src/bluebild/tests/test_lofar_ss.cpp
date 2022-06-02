@@ -156,7 +156,7 @@ protected:
     char buffer[50];
     sprintf(buffer, "Got rmse = %.5e", rmse);
     if (std::is_same<ValueType, double>::value) {
-      ASSERT_TRUE(rmse < 1.0E-10) << buffer;
+      ASSERT_TRUE(rmse < 1.0E-8) << buffer;
     } else if (std::is_same<ValueType, float>::value) {
       ASSERT_TRUE(rmse < 1.0E-3) <<  buffer;
     }

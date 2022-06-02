@@ -103,6 +103,7 @@ auto standard_synthesizer_host(ContextInternal& ctx,
     
 #pragma omp parallel for
     for (std::size_t i = 0; i<Nw; i++) {
+
         size_t idx_g  = i * Nh * Nc;
         size_t idx_p  = i * Nh * Na;
         size_t idx_pw = i * Nh * Nb;
@@ -116,7 +117,7 @@ auto standard_synthesizer_host(ContextInternal& ctx,
                     &p[idx_p], Na,
                     {0, 0},
                     &pw[idx_pw], Nb);
-        
+
         blas::gemm(CblasColMajor, CblasTrans, CblasNoTrans,
                     Ne, Nh, Nb, {1, 0},
                     v, Nb,

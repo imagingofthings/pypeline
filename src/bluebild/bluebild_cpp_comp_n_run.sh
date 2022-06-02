@@ -3,6 +3,7 @@
 #SBATCH --mem 0
 #SBATCH --exclusive
 #SBATCH --time 03:00:00
+#SBATCH --partition build
 
 set -e
 set +x
@@ -12,13 +13,14 @@ export MARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf"
 
 WIPE_BUILD=0
 RUN_PYTHON=1
-RUN_TESTS=0
+RUN_TESTS=1
 RUN_ADVISOR=0
 RUN_VTUNE=0
-FILTER=32
+FILTER="" #32
+GCC_VERS=9
 
-for COMPILER in GCC ICC; do
-#for COMPILER in ICC; do
+#for COMPILER in GCC ICC; do
+for COMPILER in GCC; do
 
     echo; echo
     echo "@@@@@ RUNNING WITH $COMPILER"
@@ -37,7 +39,14 @@ for COMPILER in GCC ICC; do
     if [ $BLUEBILD_GPU == "OFF" ]; then
         if [ $COMPILER == "GCC" ]; then
             #module load gcc openblas/0.3.10-openmp cmake fftw
-            module load gcc openblas cmake fftw
+            if [ $GCC_VERS == 8 ]; then
+                module load gcc openblas/0.3.10-openmp cmake fftw
+            elif [ $GCC_VERS == 9 ]; then
+                module load gcc/9.3.0 mvapich2 openblas/0.3.10-openmp cmake fftw
+            else
+                echo "Fatal. Unknown GCC version $GCC_VERS"
+                exit 1
+            fi
         elif [ $COMPILER == "ICC" ]; then
             module load intel intel-mkl cmake fftw
         else
@@ -46,7 +55,15 @@ for COMPILER in GCC ICC; do
         fi
     else # assumes cuda for now
         if [ $COMPILER == "GCC" ]; then
-            module load gcc cuda/11.0 openblas cmake fftw
+            if [ $GCC_VERS == 8 ]; then
+                module load gcc cuda/11.0 openblas/0.3.10-openmp cmake fftw
+            elif [ $GCC_VERS == 9 ]; then
+                echo "gcc9"
+                module load gcc/9.3.0-cuda mvapich2 cuda/11.0 openblas/0.3.10-openmp cmake fftw
+            else
+                echo "Fatal. Unknown GCC version $GCC_VERS"
+                exit 1
+            fi
         elif [ $COMPILER == "ICC" ]; then
             module load intel cuda/11.0 intel-mkl cmake fftw
         else
@@ -58,8 +75,9 @@ for COMPILER in GCC ICC; do
 
     source ~/miniconda3/etc/profile.d/conda.sh
     conda activate pype-111
+    echo "CONDA_PREFIX = $CONDA_PREFIX"
 
-    pip show bluebild
+    pip show bluebild || echo "bluebild package not found (expected :-))"
 
 
     export PROJECT_DIR=~/SKA/epfl-radio-astro/
@@ -69,35 +87,90 @@ for COMPILER in GCC ICC; do
     [ -d $CUFINUFFT_ROOT ] || (echo "CUFINUFFT_ROOT >>$CUFINUFFT_ROOT<< not found" && exit 1)
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FINUFFT_ROOT/lib:$CUFINUFFT_ROOT/lib
 
-    CMAKE_BUILD_DIR=build_$COMPILER
+    CMAKE_BUILD_DIR=.
 
-    # Watch out
-    if [ $WIPE_BUILD == 1 ]; then
-        echo ./$CMAKE_BUILD_DIR
-        [ -d ./$CMAKE_BUILD_DIR ] && rm -rf ./$CMAKE_BUILD_DIR
-    fi
+    ##CMAKE_BUILD_DIR=build_$COMPILER
+    ## Watch out
+    ##if [ $WIPE_BUILD == 1 ]; then
+    ##    echo ./$CMAKE_BUILD_DIR
+    ##    [ -d ./$CMAKE_BUILD_DIR ] && rm -rf ./$CMAKE_BUILD_DIR
+    ##fi
 
     if module is-loaded intel; then
         export LD_PRELOAD=${LD_PRELOAD}:$MKLROOT/lib/intel64/libmkl_def.so:$MKLROOT/lib/intel64/libmkl_avx2.so:$MKLROOT/lib/intel64/libmkl_core.so:$MKLROOT/lib/intel64/libmkl_intel_lp64.so:$MKLROOT/lib/intel64/libmkl_intel_thread.so
         export LD_PRELOAD=${LD_PRELOAD}:$INTEL_MKL_ROOT/lib/intel64/libiomp5.so
-        #echo "LD_PRELOAD = $LD_PRELOAD"
-    else
-        #export LD_LIBRARY_PATH=$OPENBLAS_ROOT/lib/libopenblas.so:$LD_LIBRARY_PATH
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/lib64/libpthread.so.0
-        #echo "No export for GCC"
-        #export INTEL_ROOT=/ssoft/spack/arvine/v1/opt/spack/linux-rhel7-haswell/gcc-4.8.5/intel-19.0.5-wvfmqbnhon3gjhmctxz4bfs6z7udbgix
-        #export LD_LIBRARY_PATH=$INTEL_ROOT/lib/intel64/:$LD_LIBRARY_PATH
-        #export LD_PRELOAD=$INTEL_ROOT/lib/intel64/libintlc.so.5:$INTEL_ROOT/lib/intel64/libsvml.so
     fi
 
-    cmake -S. -B$CMAKE_BUILD_DIR
-    cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1
+    if [ 1 == 0 ]; then
+        cmake -S. -B$CMAKE_BUILD_DIR
+        cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1
+    else
+        if [ 1 == 1 ]; then
+            [ -f ./CMakeCache.txt ]    && rm    ./CMakeCache.txt
+            [ -d ./CMakeFiles ]        && rm -r ./CMakeFiles/
+            [ -d ./src/CMakeFiles ]    && rm -r ./src/CMakeFiles/
+            [ -d ./python/CMakeFiles ] && rm -r ./python/CMakeFiles
+        fi
+        cmake .
+        make
+    fi
+    echo
+    echo "### Transfering files to correct location"
+    cp -v ./python/bluebild/__init__.py ./bluebild/
+    cp -v ./python/bluebild/pybluebild.cpython*.so ./bluebild/
+
+    if [ 1 == 0 ]; then
+        echo; echo;
+        echo "### Finding bluebild library"
+        echo
+        echo "@@@ libbluebild.so in $CONDA_PREFIX:"
+        find $CONDA_PREFIX -name libbluebild.so -printf "%TY-%Tm-%Td %TH:%TM:%.2TS  %p\n"
+        echo;
+        echo "@@@ libbluebild.so in pypeline:"
+        find ../..         -name libbluebild.so -printf "%TY-%Tm-%Td %TH:%TM:%.2TS  %p\n"
+        echo
+        if [ 1 == 0 ]; then
+            echo "### Checking bluebild.egg-link"
+            echo
+            BB_EGGLINK=`find $CONDA_PREFIX -name bluebild.egg-link`
+            echo "BB_EGGLINK = $BB_EGGLINK"
+            ls -l $BB_EGGLINK
+            
+            exit 0
+            
+            SRC_PATH=`sed -n '1p' $BB_EGGLINK`
+            echo "SRC_PATH = $SRC_PATH"
+            find $SRC_PATH -name libbluebild.so -printf "%TY-%Tm-%Td %TH:%TM:%.2TS  %p\n"
+            OLD=`find $SRC_PATH -name libbluebild.so | sed -n '1p'`
+            echo "OLD = $OLD"
+            ls -l $OLD
+            NEW=./$CMAKE_BUILD_DIR/src/libbluebild.so
+            echo "NEW = $NEW"
+            ls -l $NEW
+            
+            #cp -pv $NEW $OLD
+        fi
+    fi
 
     echo
     PYTHON=`which python`
     echo PYTHON=$PYTHON
     $PYTHON -V
     echo
+
+    #echo "@@@ Running python import bluebild"
+    #$PYTHON -c "import bluebild"
+
+    #echo "@@@ Running python import bluebild"
+    #cd ../..
+    #export PYTHONPATH=/home/orliac/SKA/epfl-radio-astro/pypeline/src/bluebild/python
+    #strace -o trace_output.txt $PYTHON -c "import bluebild; print(bluebild.__file__)" #ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)"
+    #echo "==="
+    #cd -
+
+    #exit 0
+
+    export PYTHONPATH=/home/orliac/SKA/epfl-radio-astro/pypeline/src/bluebild
 
     PY_SCRIPT=../../examples/simulation/lofar_bootes_ss_cpp.py
 
@@ -110,6 +183,7 @@ for COMPILER in GCC ICC; do
     if [ $RUN_PYTHON == 1 ]; then
         FIRST=1
         for NTHREADS in 1 #2 4 8 16 32 36
+        #for NTHREADS in 36
         do
             export OMP_NUM_THREADS=$NTHREADS
             #time $PYTHON $PY_SCRIPT
@@ -117,23 +191,27 @@ for COMPILER in GCC ICC; do
             if [ $FIRST == 1 ]; then
                 cp -v ./lofar_ss_32.json ./tests/data
                 cp -v ./lofar_ss_64.json ./tests/data
-                FIRST=2
+                FIRST=0
             fi
         done
     fi
 
 
-    TEST_SS=$CMAKE_BUILD_DIR/tests/run_ss_tests
+    TEST_SS=$CMAKE_BUILD_DIR/tests/run_tests
 
     if [ $RUN_TESTS == 1 ]; then
-        $TEST_SS --gtest_filter=*$FILTER
+        OMP_NUM_THREADS=40 $TEST_SS --gtest_filter=*$FILTER
         #exit 0
         echo
     fi
 
     # Output directory for Intel profiling
     SCRATCH=/scratch/$USER
-    [ `hostname` == 'izar' ] && SCRATCH=/scratch/izar/$USER
+    regex="^i[0-9][0-9]$"
+    myhost=`hostname`
+    if [[ "$myhost" == "izar" || "$myhost" =~ "$regex" ]]; then
+        SCRATCH=/scratch/izar/$USER
+    fi
     TEST_DIR=$SCRATCH/css-cpp/test01/$COMPILER
     [ -d $TEST_DIR ] && rm -r $TEST_DIR
     mkdir -p $TEST_DIR

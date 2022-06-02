@@ -27,15 +27,14 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 
 t = Timer()
 
-time_slice = 10
-N_station = 60
+time_slice = 100
+N_station = 24
 N_level = 4
 
 fname_prefix = 'lofar30MHz1'
 path_out = './'
-path_in = '/work/ska/%s/' %fname_prefix
+path_in = '/project/c31/%s/' %fname_prefix
 fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
-
 data_column="MODEL_DATA"
 
 t.start_time("Set up data")

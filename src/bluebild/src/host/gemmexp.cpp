@@ -26,10 +26,6 @@ auto gemmexp(const std::size_t M,
 
     T sin_, cos_;
 
-    //std::cout << std::is_same_v<T, std::int64_t> << '\n';
-    //std::cout << std::is_same_v<T, std::float_t> << '\n';
-    //std::cout << std::is_same_v<T, std::double_t> << '\n';
-
     const T zero = 0.0;
 
     std::size_t idx_c = 0;
@@ -58,30 +54,10 @@ auto gemmexp(const std::size_t M,
                     std::complex<T> cim_part(zero, im_part);
                     C[idx_c + i] = std::exp(cim_part);
 #endif                    
-                    //C[idx_c + i] = std::complex<T>(0.0, im_part);
                 }
             }
         }
     }
-
-    //EO: revisit for GCC
-    /*
-#pragma vector always
-    for (std::size_t i=0; i<M*N; i++) {
-        C[i] = std::exp(C[i]);
-    }
-    */
-    /*
-    for (std::size_t i=0; i<M*N-(M*N)%4; i+=4) {
-        C[i]   =  std::exp(C[i]);
-        C[i+1] =  std::exp(C[i+1]);
-        C[i+2] =  std::exp(C[i+2]);
-        C[i+3] =  std::exp(C[i+3]);
-    }
-    for (std::size_t i=M*N-(M*N)%4; i<M*N; i++) {
-        C[i]   =  std::exp(C[i]);
-    }
-    */
 }
 
 template auto gemmexp<float>(const std::size_t M,

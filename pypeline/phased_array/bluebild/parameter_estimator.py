@@ -139,7 +139,7 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
     """
 
     @chk.check(dict(N_level=chk.is_integer, sigma=chk.is_real))
-    def __init__(self, N_level, sigma, dtype=None):
+    def __init__(self, N_level, sigma):
         """
         Parameters
         ----------
@@ -150,8 +150,6 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
         """
         super().__init__()
 
-        self._dtype = dtype
-        
         if N_level <= 0:
             raise ValueError("Parameter[N_level] must be positive.")
         self._N_level = N_level
@@ -196,8 +194,8 @@ class IntensityFieldParameterEstimator(ParameterEstimator):
         """
         N_data = len(self._visibilities)
         N_beam = N_eig_max = self._visibilities[0].shape[0]
-        
-        D_all = np.zeros((N_data, N_eig_max), dtype=self._dtype)
+
+        D_all = np.zeros((N_data, N_eig_max))
         for i, (S, G) in enumerate(zip(self._visibilities, self._grams)):
             # Remove broken BEAM_IDs
             broken_row_id = np.flatnonzero(

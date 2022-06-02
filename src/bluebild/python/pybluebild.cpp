@@ -46,6 +46,35 @@ auto check_2d_array(const py::array_t<T, STYLE> &a,
 }
 
 template <typename T>
+auto call_standard_synthesizer(Context &ctx,
+                               const py::array_t<T, py::array::f_style> &d,
+                               const py::array_t<std::complex<T>, py::array::f_style> &v,
+                               const py::array_t<T, py::array::f_style> &xyz,
+                               const py::array_t<std::complex<T>, py::array::f_style> &w,
+                               const py::array_t<std::size_t, py::array::f_style> &c_idx,
+                               const long Nl,
+                               const py::array_t<T, py::array::f_style> &grid,
+                               const T wl,
+                               const long Na, const long Nb, const long Nc, const long Ne,
+                               const long Nh, const long Nw,
+                               py::array_t<T, py::array::f_style> &stats_std,
+                               py::array_t<T, py::array::f_style> &stats_lsq,
+                               py::array_t<T, py::array::f_style> &stats_std_cum,
+                               py::array_t<T, py::array::f_style> &stats_lsq_cum
+                               ) {
+    standard_synthesizer(ctx,
+                         d.data(0), v.data(0), xyz.data(0), w.data(0), c_idx.data(0),
+                         safe_cast<int>(Nl), grid.data(0), wl,
+                         safe_cast<int>(Na), safe_cast<int>(Nb), safe_cast<int>(Nc),
+                         safe_cast<int>(Ne), safe_cast<int>(Nh), safe_cast<int>(Nw),
+                         stats_std.mutable_data(0), stats_lsq.mutable_data(0),
+                         stats_std_cum.mutable_data(0), stats_lsq_cum.mutable_data(0));
+
+    return std::make_tuple(stats_std, stats_lsq);
+}
+
+
+template <typename T>
 auto call_gram_matrix(Context &ctx,
                       const py::array_t<T, py::array::f_style> &xyz,
                       const py::array_t<std::complex<T>, py::array::f_style> &w,
@@ -235,6 +264,58 @@ PYBIND11_MODULE(pybluebild, m) {
       .def(pybind11::init<BluebildProcessingUnit>(),
            pybind11::arg("pu").noconvert())
       .def("processing_unit", &Context::processing_unit)
+      .def(
+          "standard_synthesizer",
+          [](Context &ctx,
+             const py::array_t<float, py::array::f_style> &d,
+             const py::array_t<std::complex<float>, py::array::f_style> &v,
+             const py::array_t<float, py::array::f_style> &xyz,
+             const py::array_t<std::complex<float>, py::array::f_style> &w,
+             const py::array_t<std::size_t, py::array::f_style> &c_idx,
+             const long Nl,
+             const py::array_t<float, py::array::f_style> &grid,
+             const float wl,
+             const long Na, const long Nb, const long Nc, const long Ne,
+             const long Nh, const long Nw,
+             py::array_t<float, py::array::f_style> &stats_std,
+             py::array_t<float, py::array::f_style> &stats_lsq,
+             py::array_t<float, py::array::f_style> &stats_std_cum,
+             py::array_t<float, py::array::f_style> &stats_lsq_cum) {
+              return call_standard_synthesizer(ctx, d, v, xyz, w, c_idx, Nl, grid, wl,
+                                               Na, Nb, Nc, Ne, Nh, Nw,
+                                               stats_std, stats_lsq, stats_std_cum, stats_lsq_cum);},
+          pybind11::arg("D"), pybind11::arg("V"), pybind11::arg("XYZ"), pybind11::arg("W"),
+          pybind11::arg("c_idx"), pybind11::arg("Nl"), pybind11::arg("grid"), pybind11::arg("wl"),
+          pybind11::arg("Na"), pybind11::arg("Nb"), pybind11::arg("Nc"),
+          pybind11::arg("Ne"), pybind11::arg("Nh"), pybind11::arg("Nw"),
+          pybind11::arg("stats_std"), pybind11::arg("stats_lsq"),
+          pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
+      .def(
+           "standard_synthesizer",
+          [](Context &ctx,
+             const py::array_t<double, py::array::f_style> &d,
+             const py::array_t<std::complex<double>, py::array::f_style> &v,
+             const py::array_t<double, py::array::f_style> &xyz,
+             const py::array_t<std::complex<double>, py::array::f_style> &w,
+             const py::array_t<std::size_t, py::array::f_style> &c_idx,
+             const long Nl,
+             const py::array_t<double, py::array::f_style> &grid,
+             const double wl,
+             const long Na, const long Nb, const long Nc, const long Ne,
+             const long Nh, const long Nw,
+             py::array_t<double, py::array::f_style> &stats_std,
+             py::array_t<double, py::array::f_style> &stats_lsq,
+             py::array_t<double, py::array::f_style> &stats_std_cum,
+             py::array_t<double, py::array::f_style> &stats_lsq_cum) {
+               return call_standard_synthesizer(ctx, d, v, xyz, w, c_idx, Nl, grid, wl,
+                                                Na, Nb, Nc, Ne, Nh, Nw,
+                                                stats_std, stats_lsq, stats_std_cum, stats_lsq_cum);},
+           pybind11::arg("D"), pybind11::arg("V"), pybind11::arg("XYZ"), pybind11::arg("W"),
+           pybind11::arg("c_idx"), pybind11::arg("Nl"), pybind11::arg("grid"), pybind11::arg("wl"),
+           pybind11::arg("Na"), pybind11::arg("Nb"), pybind11::arg("Nc"),
+           pybind11::arg("Ne"), pybind11::arg("Nh"), pybind11::arg("Nw"),
+           pybind11::arg("stats_std"), pybind11::arg("stats_lsq"),
+           pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
       .def(
           "gram_matrix",
           [](Context &ctx,

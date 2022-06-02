@@ -146,17 +146,19 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         if precision == 32:
             self._fp = np.float32
             self._cp = np.complex64
+            self._wl = np.float32(wl)
         elif precision == 64:
             self._fp = np.float64
             self._cp = np.complex128
+            self._wl = np.float64(wl)
         else:
             raise ValueError("Parameter[precision] must be 32 or 64.")
 
-        self._wl = wl
-
         if not ((pix_grid.ndim == 3) and (len(pix_grid) == 3)):
             raise ValueError("Parameter[pix_grid] must have dimensions (3, N_height, N_width).")
-        self._grid = pix_grid / linalg.norm(pix_grid, axis=0)
+
+        self._grid = (pix_grid / linalg.norm(pix_grid, axis=0)).astype(self._fp)
+        
         
     # needed to remove this check for GPU/CPU flexibility
     # TODO: add back in...
@@ -205,6 +207,11 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
 
+        # TODO: move precision control outside of the call
+        XYZ = XYZ.astype(self._fp, copy=False)
+        V = V.astype(self._cp, copy=False)
+        W = W.astype(self._cp, copy=False)
+
         self.mark(self.timer_tag + "Synthesizer call")
 
         N_antenna, N_beam = W.shape
@@ -215,7 +222,7 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             XYZ = xp.asarray(XYZ)
 
         XYZ = XYZ - XYZ.mean(axis=0)
-
+        
         E = xp.zeros((N_eig, N_height, N_width), dtype=self._cp)
 
         a = 1j * 2 * np.pi / self._wl

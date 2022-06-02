@@ -76,7 +76,7 @@ def _as_BeamWeights(df):
         "phased_array.beamforming", "bw_max_sparsity_ratio"
     )
 
-    W = np.zeros(shape=(N_antenna, N_beam), dtype=df.dtypes["W"])
+    W = np.zeros(shape=(N_antenna, N_beam), dtype=complex)
     W[data.ROW_ID.values, data.COL_ID.values] = data.W.values
 
     ant_idx = pd.MultiIndex.from_arrays(
@@ -216,7 +216,7 @@ class MatchedBeamformerBlock(BeamformerBlock):
     """
 
     @chk.check("beam_config", is_mb_beam_config)
-    def __init__(self, beam_config, dtype=None):
+    def __init__(self, beam_config):
         """
         Parameters
         ----------
@@ -226,7 +226,6 @@ class MatchedBeamformerBlock(BeamformerBlock):
         """
         super().__init__()
 
-        self._dtype = dtype
         N_info = len(beam_config)
         station_id = [None] * N_info
         beam_id = [None] * N_info
@@ -234,7 +233,7 @@ class MatchedBeamformerBlock(BeamformerBlock):
         for i, (s_id, b_id, f_dir) in enumerate(beam_config):
             station_id[i] = s_id
             beam_id[i] = b_id
-            focus_dir[i] = f_dir.transform_to("icrs").cartesian.xyz.value.astype(dtype, copy=False)
+            focus_dir[i] = f_dir.transform_to("icrs").cartesian.xyz.value
 
         station_id = np.array(station_id)
         beam_id = np.array(beam_id)
@@ -314,9 +313,6 @@ class MatchedBeamformerBlock(BeamformerBlock):
         W = np.exp((-1j * 2 * np.pi) * similarity)
 
         df = pd.DataFrame(
-            dict(STATION_ID=data.STATION_ID,
-                 ANTENNA_ID=data.ANTENNA_ID,
-                 BEAM_ID=data.BEAM_ID,
-                 W=W)
+            dict(STATION_ID=data.STATION_ID, ANTENNA_ID=data.ANTENNA_ID, BEAM_ID=data.BEAM_ID, W=W)
         )
         return _as_BeamWeights(df)

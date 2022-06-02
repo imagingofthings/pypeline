@@ -317,8 +317,8 @@ BLUEBILD_EXPORT BluebildError bluebild_nufft3d3_execute_d(BluebildNufft3d3 plan,
  * Standard Synthesizer in single precision.
  */
 BLUEBILD_EXPORT BluebildError bluebild_standard_synthesizer_s(
-    BluebildContext ctx, const float* d, const void* v, const float*  xyz,
-    const void* w, const size_t* c_idx, const int Nl, const float*  grid,
+    BluebildContext ctx, const float* d, const void* v, const float* xyz,
+    const void* w, const size_t* c_idx, const int Nl, const float* grid,
     const float wl, const int Na, const int Nb, const int Nc, const int Ne,
     const int Nh, const int Nw, float* stats_std, float* stats_lsq, 
     float* stats_std_cum, float* stats_lsq_cum);
