@@ -17,6 +17,7 @@
 namespace bluebild {
 
 template <typename T, typename U>
+static
 void cluster_layers(const T*  __restrict__ unlayered_stats,
                     const size_t Nw, const size_t Nh, const size_t Ne, const size_t Nl,
                     const U* __restrict__ c_idx,
@@ -37,6 +38,7 @@ void cluster_layers(const T*  __restrict__ unlayered_stats,
 }
 
 template <typename T>
+static
 void accumulate_statistics(const T* __restrict__ stats_epoch, T* __restrict__ stats_cum, const size_t N) {
 #pragma omp parallel for simd
     for (size_t i=0; i<N; i++) {
@@ -45,6 +47,7 @@ void accumulate_statistics(const T* __restrict__ stats_epoch, T* __restrict__ st
 }
 
 template <typename T>
+static
 void mean_center(T* __restrict__ xyz, const T* __restrict__ xyz_, const size_t N) {
     auto sum_x = 0.0;
     auto sum_y = 0.0;
