@@ -14,12 +14,7 @@ if(POLICY CMP0022)
 	cmake_policy(SET CMP0022 NEW)
 endif()
 
-# set default build type to RELEASE if not defined in corresponding environment variable
-if(DEFINED ENV{CMAKE_BUILD_TYPE})
-    message(STATUS "Will set CMAKE_BUILD_TYPE to $ENV{CMAKE_BUILD_TYPE}")
-    set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
-endif()
-message(STATUS "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}")
+# set default build type to RELEASE
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
