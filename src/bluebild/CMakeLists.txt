@@ -32,7 +32,7 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # Options
-option(BLUEBILD_BUILD_TESTS "Build tests" ON)
+option(BLUEBILD_BUILD_TESTS "Build tests" OFF)
 option(BLUEBILD_PYTHON "Build python module" ON)
 option(BLUEBILD_PYBIND11_DOWNLOAD "Download pybind11 instead of looking for installation" OFF)
 
