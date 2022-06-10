@@ -38,7 +38,6 @@ import bluebild
 
 ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)
 
-
 # Observation
 obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
 field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
@@ -47,8 +46,8 @@ wl = constants.speed_of_light / frequency
 first_time = True
 N_threads = int(os.environ.get('OMP_NUM_THREADS', '1'))
 
-for N_bits in 32, 64:
-#for N_bits in 32,:
+#for N_bits in 32, 64:
+for N_bits in 32,:
 
     print("### N_bits =", N_bits)
 
@@ -68,10 +67,10 @@ for N_bits in 32, 64:
     vis  = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=np.inf)
     vis2 = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, SNR=np.inf)
     time = obs_start + (T_integration * u.s) * np.arange(3595)
-    time_slice = 2000 #2000
+    time_slice = 4000 #2000
 
     # Imaging
-    N_levels = 8 #24
+    N_levels = 4 #24
 
     _, _, px_colat, px_lon = grid.equal_angle(N=dev.nyquist_rate(wl) * 2,
     #_, _, px_colat, px_lon = grid.equal_angle(N=int(dev.nyquist_rate(wl) / 16) + 1,
@@ -212,6 +211,7 @@ for N_bits in 32, 64:
     _, S = S_mfs.as_image()
 
 
+    """
     # Plot Results ================================================================
     fig, ax = plt.subplots(nrows=2, ncols=2)
 
@@ -235,3 +235,4 @@ for N_bits in 32, 64:
     fig.savefig("test.png")
     fig.show()
     plt.show()
+    """

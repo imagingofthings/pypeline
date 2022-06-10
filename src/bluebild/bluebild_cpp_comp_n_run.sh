@@ -8,16 +8,18 @@
 set -e
 set +x
 
-export BLUEBILD_GPU=OFF
+export BLUEBILD_GPU=CUDA
+
 export MARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf"
 
-WIPE_BUILD=0
+WIPE_BUILD_DIR=0
 RUN_PYTHON=1
-RUN_TESTS=1
+RUN_TESTS=0
 RUN_ADVISOR=0
 RUN_VTUNE=0
 FILTER="" #32
 GCC_VERS=9
+
 
 #for COMPILER in GCC ICC; do
 for COMPILER in GCC; do
@@ -87,37 +89,43 @@ for COMPILER in GCC; do
     [ -d $CUFINUFFT_ROOT ] || (echo "CUFINUFFT_ROOT >>$CUFINUFFT_ROOT<< not found" && exit 1)
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FINUFFT_ROOT/lib:$CUFINUFFT_ROOT/lib
 
-    CMAKE_BUILD_DIR=.
-
-    ##CMAKE_BUILD_DIR=build_$COMPILER
-    ## Watch out
-    ##if [ $WIPE_BUILD == 1 ]; then
-    ##    echo ./$CMAKE_BUILD_DIR
-    ##    [ -d ./$CMAKE_BUILD_DIR ] && rm -rf ./$CMAKE_BUILD_DIR
-    ##fi
+    #CMAKE_BUILD_DIR=.
+    CMAKE_BUILD_DIR=build_$COMPILER
+    
+    # Watch out!
+    if [ $WIPE_BUILD_DIR == 1 ]; then
+        echo "Wiping off ./$CMAKE_BUILD_DIR..."
+        [ -d ./$CMAKE_BUILD_DIR ] && rm -rf ./$CMAKE_BUILD_DIR
+    fi
 
     if module is-loaded intel; then
         export LD_PRELOAD=${LD_PRELOAD}:$MKLROOT/lib/intel64/libmkl_def.so:$MKLROOT/lib/intel64/libmkl_avx2.so:$MKLROOT/lib/intel64/libmkl_core.so:$MKLROOT/lib/intel64/libmkl_intel_lp64.so:$MKLROOT/lib/intel64/libmkl_intel_thread.so
         export LD_PRELOAD=${LD_PRELOAD}:$INTEL_MKL_ROOT/lib/intel64/libiomp5.so
     fi
 
-    if [ 1 == 0 ]; then
-        cmake -S. -B$CMAKE_BUILD_DIR
+    if [ 1 == 1 ]; then
+        cmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU
         cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1
     else
         if [ 1 == 1 ]; then
-            [ -f ./CMakeCache.txt ]    && rm    ./CMakeCache.txt
-            [ -d ./CMakeFiles ]        && rm -r ./CMakeFiles/
-            [ -d ./src/CMakeFiles ]    && rm -r ./src/CMakeFiles/
-            [ -d ./python/CMakeFiles ] && rm -r ./python/CMakeFiles
+            declare -a files_to_del=(
+                "./Makefile" "./cmake_install.cmake" "./BLUEBILD*.cmake" "./CMakeCache.txt"
+                "./python/Makefile" "./python/cmake_install.cmake"
+                "./src/Makefile" "./src/cmake_install.cmake"
+                "./tests/Makefile" "./tests/cmake_install.cmake")
+            for todel in "${files_to_del[@]}"; do
+                [ -f $todel ] && rm $todel 
+            done
+            declare -a dirs_to_del=(
+                "./CMakeFiles" "./tests/CMakeFiles/" "./python/CMakeFiles" "./_deps")
+            for todel in "${dirs_to_del[@]}"; do
+                [ -d $todel ] && rm -rf $todel 
+            done
+            exit 0
         fi
         cmake .
         make
     fi
-    echo
-    echo "### Transfering files to correct location"
-    cp -v ./python/bluebild/__init__.py ./bluebild/
-    cp -v ./python/bluebild/pybluebild.cpython*.so ./bluebild/
 
     if [ 1 == 0 ]; then
         echo; echo;
@@ -158,19 +166,13 @@ for COMPILER in GCC; do
     $PYTHON -V
     echo
 
-    #echo "@@@ Running python import bluebild"
-    #$PYTHON -c "import bluebild"
-
-    #echo "@@@ Running python import bluebild"
-    #cd ../..
-    #export PYTHONPATH=/home/orliac/SKA/epfl-radio-astro/pypeline/src/bluebild/python
+    echo "@@@ Running python import bluebild"
+    export PYTHONPATH=/home/orliac/SKA/epfl-radio-astro/pypeline/src/bluebild/build_GCC/python/
+    cd ../..
+    $PYTHON -c "import bluebild"
     #strace -o trace_output.txt $PYTHON -c "import bluebild; print(bluebild.__file__)" #ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)"
-    #echo "==="
-    #cd -
+    cd -
 
-    #exit 0
-
-    export PYTHONPATH=/home/orliac/SKA/epfl-radio-astro/pypeline/src/bluebild
 
     PY_SCRIPT=../../examples/simulation/lofar_bootes_ss_cpp.py
 
@@ -207,9 +209,9 @@ for COMPILER in GCC; do
 
     # Output directory for Intel profiling
     SCRATCH=/scratch/$USER
-    regex="^i[0-9][0-9]$"
+    regex="^i[:digit:][:digit]$"
     myhost=`hostname`
-    if [[ "$myhost" == "izar" || "$myhost" =~ "$regex" ]]; then
+    if [[ "$myhost" == "izar" || $myhost =~ [^i:digit::digit:$] ]]; then
         SCRATCH=/scratch/izar/$USER
     fi
     TEST_DIR=$SCRATCH/css-cpp/test01/$COMPILER
