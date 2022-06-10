@@ -13,79 +13,79 @@
 
 namespace bluebild {
 
-    template <typename T>
-    BLUEBILD_EXPORT auto standard_synthesizer(Context &ctx,
-                              const T* d,
-                              const std::complex<T>* v,
-                              const T* xyz,
-                              const std::complex<T>* w,
-                              const size_t* c_idx,
-                              const int Nl,
-                              const T* grid,
-                              const T wl,
-                              const int Na,
-                              const int Nb,
-                              const int Nc,
-                              const int Ne,
-                              const int Nh,
-                              const int Nw,
-                              T* stats_std,
-                              T* stats_lsq,
-                              T* stats_std_cum,
-                              T* stats_lsq_cum) -> void {
-        auto &ctxInternal = *InternalContextAccessor::get(ctx);
-        if(ctx.processing_unit() == BLUEBILD_PU_GPU) {
+template <typename T>
+BLUEBILD_EXPORT auto standard_synthesizer(Context &ctx,
+                                          const T* d,
+                                          const std::complex<T>* v,
+                                          const T* xyz,
+                                          const std::complex<T>* w,
+                                          const size_t* c_idx,
+                                          const int Nl,
+                                          const T* grid,
+                                          const T wl,
+                                          const int Na,
+                                          const int Nb,
+                                          const int Nc,
+                                          const int Ne,
+                                          const int Nh,
+                                          const int Nw,
+                                          T* stats_std,
+                                          T* stats_lsq,
+                                          T* stats_std_cum,
+                                          T* stats_lsq_cum) -> void {
+    auto &ctxInternal = *InternalContextAccessor::get(ctx);
+    if(ctx.processing_unit() == BLUEBILD_PU_GPU) {
 #if defined(BLUEBILD_CUDA) || defined(BLUEBILD_ROCM)
-            //FILL_ME
+        //FILL_ME
 #else
-            throw GPUSupportError();
+        throw GPUSupportError();
 #endif
-        } else {
-            standard_synthesizer_host<T>(ctxInternal, d, v, xyz, w, c_idx, Nl, grid, wl,
-                                         Na, Nb, Nc, Ne, Nh, Nw,
-                                         stats_std, stats_lsq, stats_std_cum, stats_lsq_cum);
-        }   
-    }
+    } else {
+        standard_synthesizer_host<T>(ctxInternal, d, v, xyz, w, c_idx, Nl, grid, wl,
+                                     Na, Nb, Nc, Ne, Nh, Nw,
+                                     stats_std, stats_lsq, stats_std_cum, stats_lsq_cum);
+    }   
+}
 
 template auto standard_synthesizer(Context &ctx,
-                              const float* d,
-                              const std::complex<float>* v,
-                              const float* xyz,
-                              const std::complex<float>* w,
-                              const size_t* c_idx,
-                              const int Nl,
-                              const float* grid,
-                              const float wl,
-                              const int Na,
-                              const int Nb,
-                              const int Nc,
-                              const int Ne,
-                              const int Nh,
-                              const int Nw,
-                              float* stats_std,
-                              float* stats_lsq,
-                              float* stats_std_cum,
-                              float* stats_lsq_cum) -> void;
+                                   const float* d,
+                                   const std::complex<float>* v,
+                                   const float* xyz,
+                                   const std::complex<float>* w,
+                                   const size_t* c_idx,
+                                   const int Nl,
+                                   const float* grid,
+                                   const float wl,
+                                   const int Na,
+                                   const int Nb,
+                                   const int Nc,
+                                   const int Ne,
+                                   const int Nh,
+                                   const int Nw,
+                                   float* stats_std,
+                                   float* stats_lsq,
+                                   float* stats_std_cum,
+                                   float* stats_lsq_cum) -> void;
 
 template auto standard_synthesizer(Context &ctx,
-                              const double* d,
-                              const std::complex<double>* v,
-                              const double* xyz,
-                              const std::complex<double>* w,
-                              const size_t* c_idx,
-                              const int Nl,
-                              const double* grid,
-                              const double wl,
-                              const int Na,
-                              const int Nb,
-                              const int Nc,
-                              const int Ne,
-                              const int Nh,
-                              const int Nw,
-                              double* stats_std,
-                              double* stats_lsq,
-                              double* stats_std_cum,
-                              double* stats_lsq_cum) -> void;
+                                   const double* d,
+                                   const std::complex<double>* v,
+                                   const double* xyz,
+                                   const std::complex<double>* w,
+                                   const size_t* c_idx,
+                                   const int Nl,
+                                   const double* grid,
+                                   const double wl,
+                                   const int Na,
+                                   const int Nb,
+                                   const int Nc,
+                                   const int Ne,
+                                   const int Nh,
+                                   const int Nw,
+                                   double* stats_std,
+                                   double* stats_lsq,
+                                   double* stats_std_cum,
+                                   double* stats_lsq_cum) -> void;
 
 extern "C" {
 BLUEBILD_EXPORT BluebildError bluebild_standard_synthesizer_s(BluebildContext ctx,
