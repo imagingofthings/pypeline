@@ -155,11 +155,9 @@ configure_file(include/bluebild/config.h.in ${PROJECT_BINARY_DIR}/bluebild/confi
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_BINARY_DIR})
-if(DEFINED ENV{MARLA_ROOT})
-    list(APPEND BLUEBILD_INCLUDE_DIRS $ENV{MARLA_ROOT}/include)
-else()
-    message(FATAL_ERROR "ENV{MARLA_ROOT} not defined. Must point to your local installation of Marla (https://gitlab.com/ursache/marla.git, branch \"dev\")")
-endif()
+
+find_package(Marla REQUIRED)
+list(APPEND BLUEBILD_EXTERNAL_LIBS Marla::Marla)
 
 #############################################################################
 # All include dirs and definitions must be set before sub-directory is added!
