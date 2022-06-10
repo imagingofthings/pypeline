@@ -13,7 +13,6 @@ import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse as sparse
 import sys
-import nvtx
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
 import imot_tools.util.argcheck as chk
@@ -236,29 +235,23 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         self.mark(self.timer_tag + "Synthesizer matmuls")
 
         for i in range(N_width):
-            with nvtx.annotate(message="s_d/pix", color="grey"):
-                pix = xp.asarray(self._grid[:,:,i])
+            pix = xp.asarray(self._grid[:,:,i])
             assert pix.dtype == self._fp
-            with nvtx.annotate(message="s_d/b", color="green"):
-                b  = xp.matmul(XYZ, pix)
+            b  = xp.matmul(XYZ, pix)
             assert b.dtype == self._fp
-            with nvtx.annotate(message="s_d/P", color="yellow"):
-                P  = xp.exp(a*b)
+            P  = xp.exp(a*b)
             assert P. dtype == self._cp
-            with nvtx.annotate(message="s_d/PW", color="cyan"):
-                if xp == np and (isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix)):
-                    PW = W.T @ P
-                else:
-                    PW = xp.matmul(W.T, P)
+            if xp == np and (isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix)):
+                PW = W.T @ P
+            else:
+                PW = xp.matmul(W.T, P)
             assert PW.dtype == self._cp
-            with nvtx.annotate(message="s_d/E", color="chocolate"):
-                E[:,:,i]  = xp.matmul(V.T, PW)
+            E[:,:,i]  = xp.matmul(V.T, PW)
             assert E.dtype == self._cp
 
         self.unmark(self.timer_tag + "Synthesizer matmuls")
 
-        with nvtx.annotate(message="s_d/I", color="lavender"):
-            I = E.real ** 2 + E.imag ** 2
+        I = E.real ** 2 + E.imag ** 2
         assert I.dtype == self._fp
 
         self.unmark(self.timer_tag + "Synthesizer call")
