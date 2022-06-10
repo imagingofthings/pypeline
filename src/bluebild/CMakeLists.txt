@@ -129,11 +129,14 @@ find_package(FFTW REQUIRED)
 find_package(FFTWF REQUIRED)
 list(APPEND BLUEBILD_EXTERNAL_LIBS FFTW::FFTW FFTWF::FFTWF)
 
-
 if(BLUEBILD_CUDA OR BLUEBILD_ROCM)
 	find_package(CUFINUFFT REQUIRED)
 	list(APPEND BLUEBILD_EXTERNAL_LIBS CUFINUFFT::cufinufft)
 endif()
+
+# OpenMP
+find_package(OpenMP REQUIRED)
+list(APPEND BLUEBILD_EXTERNAL_LIBS OpenMP::OpenMP_CXX)
 
 # check if C api is available for blas and lapack
 # include(CheckCXXSymbolExists)
