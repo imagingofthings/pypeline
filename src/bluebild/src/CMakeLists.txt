@@ -70,13 +70,6 @@ endmacro()
 bluebild_create_library(bluebild)
 set_target_properties(bluebild PROPERTIES VISIBILITY_INLINES_HIDDEN TRUE CXX_VISIBILITY_PRESET hidden)
 
-
-# OpenMP
-find_package(OpenMP REQUIRED)
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(bluebild PUBLIC OpenMP::OpenMP_CXX)
-endif()
-
 if(BLUEBILD_BUILD_TESTS)
 	# create library with default visibility if tests are build, to allow linking to internal symbols
 	bluebild_create_library(bluebild_test)

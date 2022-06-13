@@ -10,9 +10,7 @@ set +x
 
 export BLUEBILD_GPU=CUDA
 
-export MARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf"
-
-WIPE_BUILD_DIR=0
+WIPE_BUILD_DIR=1
 RUN_PYTHON=1
 RUN_TESTS=0
 RUN_ADVISOR=0
@@ -27,9 +25,6 @@ for COMPILER in GCC; do
     echo; echo
     echo "@@@@@ RUNNING WITH $COMPILER"
     echo
-
-    # Set this one to disable autoset of default build type in CMake
-    export CMAKE_BUILD_TYPE="ANYTHING" 
 
     if   [ $COMPILER == "GCC" ]; then
         export CXXFLAGS="-g -DNDEBUG -fPIC -m64 -Ofast -fopenmp -pedantic -ffast-math  -march=skylake-avx512 -mprefer-vector-width=512 -ftree-vectorize -funsafe-math-optimizations -lm"
@@ -104,7 +99,7 @@ for COMPILER in GCC; do
     fi
 
     if [ 1 == 1 ]; then
-        cmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU
+        cmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf"
         cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1
     else
         if [ 1 == 1 ]; then

@@ -14,12 +14,7 @@ if(POLICY CMP0022)
 	cmake_policy(SET CMP0022 NEW)
 endif()
 
-# set default build type to RELEASE if not defined in corresponding environment variable
-if(DEFINED ENV{CMAKE_BUILD_TYPE})
-    message(STATUS "Will set CMAKE_BUILD_TYPE to $ENV{CMAKE_BUILD_TYPE}")
-    set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
-endif()
-message(STATUS "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}")
+# set default build type to RELEASE
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
@@ -37,7 +32,7 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # Options
-option(BLUEBILD_BUILD_TESTS "Build tests" ON)
+option(BLUEBILD_BUILD_TESTS "Build tests" OFF)
 option(BLUEBILD_PYTHON "Build python module" ON)
 option(BLUEBILD_PYBIND11_DOWNLOAD "Download pybind11 instead of looking for installation" OFF)
 
@@ -134,11 +129,14 @@ find_package(FFTW REQUIRED)
 find_package(FFTWF REQUIRED)
 list(APPEND BLUEBILD_EXTERNAL_LIBS FFTW::FFTW FFTWF::FFTWF)
 
-
 if(BLUEBILD_CUDA OR BLUEBILD_ROCM)
 	find_package(CUFINUFFT REQUIRED)
 	list(APPEND BLUEBILD_EXTERNAL_LIBS CUFINUFFT::cufinufft)
 endif()
+
+# OpenMP
+find_package(OpenMP REQUIRED)
+list(APPEND BLUEBILD_EXTERNAL_LIBS OpenMP::OpenMP_CXX)
 
 # check if C api is available for blas and lapack
 # include(CheckCXXSymbolExists)
@@ -157,11 +155,9 @@ configure_file(include/bluebild/config.h.in ${PROJECT_BINARY_DIR}/bluebild/confi
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_BINARY_DIR})
-if(DEFINED ENV{MARLA_ROOT})
-    list(APPEND BLUEBILD_INCLUDE_DIRS $ENV{MARLA_ROOT}/include)
-else()
-    message(FATAL_ERROR "ENV{MARLA_ROOT} not defined. Must point to your local installation of Marla (https://gitlab.com/ursache/marla.git, branch \"dev\")")
-endif()
+
+find_package(Marla REQUIRED)
+list(APPEND BLUEBILD_EXTERNAL_LIBS Marla::Marla)
 
 #############################################################################
 # All include dirs and definitions must be set before sub-directory is added!

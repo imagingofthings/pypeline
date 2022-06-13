@@ -318,19 +318,21 @@ BLUEBILD_EXPORT BluebildError bluebild_nufft3d3_execute_d(BluebildNufft3d3 plan,
  */
 BLUEBILD_EXPORT BluebildError bluebild_standard_synthesizer_s(
     BluebildContext ctx, const float* d, const void* v, const float* xyz,
-    const void* w, const size_t* c_idx, const int Nl, const float* grid,
-    const float wl, const int Na, const int Nb, const int Nc, const int Ne,
-    const int Nh, const int Nw, float* stats_std, float* stats_lsq, 
+    const void* w, const size_t* c_idx, const size_t Nl, const float* grid,
+    float wl, const size_t Na, const size_t Nb, const size_t Nc,
+    const size_t Ne, const size_t Nh, const size_t Nw,
+    float* stats_std, float* stats_lsq, 
     float* stats_std_cum, float* stats_lsq_cum);
-    
+
 /**
  * Standard Synthesizer in double precision.
  */
 BLUEBILD_EXPORT BluebildError bluebild_standard_synthesizer_d(
     BluebildContext ctx, const double* d,const void* v, const double* xyz,
-    const void* w, const size_t* c_idx, const int Nl, const double* grid,
-    const double wl, const int Na, const int Nb, const int Nc, const int Ne,
-    const int Nh, const int Nw, double* stats_std, double* stats_lsq,
+    const void* w, const size_t* c_idx, const size_t Nl, const double* grid,
+    const double wl, const size_t Na, const size_t Nb, const size_t Nc,
+    const size_t Ne, const size_t Nh, const size_t Nw,
+    double* stats_std, double* stats_lsq,
     double* stats_std_cum, double* stats_lsq_cum);
 
 #ifdef __cplusplus
