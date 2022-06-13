@@ -45,6 +45,19 @@ auto check_2d_array(const py::array_t<T, STYLE> &a,
     throw InvalidParameterError();
 }
 
+template <typename T, int STYLE>
+auto check_3d_array(const py::array_t<T, STYLE> &a,
+                    std::array<long, 3> shape = {0, 0, 0}) -> void {
+  if (a.ndim() != 3)
+    throw InvalidParameterError();
+  if (shape[0] && a.shape(0) != shape[0])
+    throw InvalidParameterError();
+  if (shape[1] && a.shape(1) != shape[1])
+    throw InvalidParameterError();
+  if (shape[2] && a.shape(2) != shape[2])
+    throw InvalidParameterError();
+}
+
 template <typename T>
 auto call_standard_synthesizer(Context &ctx,
                                const py::array_t<T, py::array::f_style> &d,
@@ -62,6 +75,14 @@ auto call_standard_synthesizer(Context &ctx,
                                py::array_t<T, py::array::f_style> &stats_std_cum,
                                py::array_t<T, py::array::f_style> &stats_lsq_cum
                                ) {
+
+    check_1d_array(d,     (long int)Ne);
+    check_1d_array(c_idx, (long int)Ne);
+    check_2d_array(v,     {(long int)Nb, (long int)Ne});
+    check_2d_array(w,     {(long int)Na, (long int)Nb});
+    check_2d_array(xyz,   {(long int)Na, 3});
+    check_3d_array(grid,  {3, (long int)Nh, (long int)Nw});
+
     standard_synthesizer(ctx,
                          d.data(0), v.data(0), xyz.data(0), w.data(0), c_idx.data(0),
                          Nl, grid.data(0), wl,
