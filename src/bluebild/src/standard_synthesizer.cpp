@@ -34,7 +34,7 @@ BLUEBILD_EXPORT auto standard_synthesizer(Context &ctx,
     auto &ctxInternal = *InternalContextAccessor::get(ctx);
     if(ctx.processing_unit() == BLUEBILD_PU_GPU) {
 #if defined(BLUEBILD_CUDA) || defined(BLUEBILD_ROCM)
-        //FILL_ME
+        throw NotImplementedError();
 #else
         throw GPUSupportError();
 #endif
