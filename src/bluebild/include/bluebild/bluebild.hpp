@@ -7,6 +7,7 @@
 #include "bluebild/exceptions.hpp"
 #include "bluebild/context.hpp"
 #include "bluebild/nufft_3d3.hpp"
+#include "bluebild/standard_synthesizer.hpp"
 
 namespace bluebild {
 
@@ -32,16 +33,5 @@ intensity_field_data(Context &ctx, T wl, int m, int n, int nEig,
                      const std::complex<T> *w, int ldw, const T *xyz, int ldxyz,
                      T *d, std::complex<T> *v, int ldv, int nCluster,
                      const T *cluster, int *clusterIndices) -> void;
-
-template <typename T, typename = std::enable_if_t<std::is_same_v<T, double> ||
-                                                  std::is_same_v<T, float>>>
-BLUEBILD_EXPORT auto
-standard_synthesizer(Context &ctx,
-                     const T* d, const std::complex<T>* v, const T*  xyz,
-                     const std::complex<T>* w, const std::size_t* c_idx, const size_t Nl,
-                     const T* grid, const T wl,
-                     const size_t Na, const size_t Nb, const size_t Nc,
-                     const size_t Ne, const size_t Nh, const size_t Nw,
-                     T* stats_std, T* stats_lsq, T* stats_std_cum, T* stats_lsq_cum) -> void;
 
 } // namespace bluebild

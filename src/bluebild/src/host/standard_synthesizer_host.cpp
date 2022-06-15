@@ -18,31 +18,21 @@ namespace bluebild {
 
 template <typename T, typename U>
 static
-void cluster_layers(const T*  __restrict__ unlayered_stats,
+void cluster_layers(const T*  __restrict__ unlayered_stats, const T* __restrict__ d,
                     const size_t Nw, const size_t Nh, const size_t Ne, const size_t Nl,
                     const U* __restrict__ c_idx,
-                    T* __restrict__ stats) {
+                    T* __restrict__ stats_std_cum, T* __restrict__ stats_lsq_cum) {
 
 #pragma omp parallel for
     for (size_t i=0; i<Nw; i++) {
         for (size_t j=0; j<Nh; j++) {
             size_t idx_unlay = i * Nh * Ne + j * Ne;
             size_t idx_stats = i * Nh * Nl + j * Nl;
-            for (size_t k=0; k<Nl; k++)
-                stats[idx_stats + k] = 0.0;
             for (size_t k=0; k<Ne; k++) {
-                stats[idx_stats + c_idx[k]] += unlayered_stats[idx_unlay + k];
+                stats_std_cum[idx_stats + c_idx[k]] += unlayered_stats[idx_unlay + k];
+                stats_lsq_cum[idx_stats + c_idx[k]] += unlayered_stats[idx_unlay + k] * d[k];
             }
         }
-    }
-}
-
-template <typename T>
-static
-void accumulate_statistics(const T* __restrict__ stats_epoch, T* __restrict__ stats_cum, const size_t N) {
-#pragma omp parallel for simd
-    for (size_t i=0; i<N; i++) {
-        stats_cum[i] += stats_epoch[i];
     }
 }
 
@@ -84,8 +74,8 @@ auto standard_synthesizer_host(ContextInternal& ctx,
                                const std::size_t Ne,
                                const std::size_t Nh,
                                const std::size_t Nw,
-                               T* __restrict__ stats_std,
-                               T* __restrict__ stats_lsq,
+                               //T* __restrict__ stats_std,
+                               //T* __restrict__ stats_lsq,
                                T* __restrict__ stats_std_cum,
                                T* __restrict__ stats_lsq_cum) -> void {
 
@@ -129,30 +119,12 @@ auto standard_synthesizer_host(ContextInternal& ctx,
                     &e[idx_e], Ne);
     }
 
-
 #pragma omp parallel for
     for (size_t i=0; i<Ne*Nh*Nw; i++) {
         unlayered_stats[i] = std::norm(e[i]);
     }
 
-    cluster_layers(unlayered_stats, Nw, Nh, Ne, Nl, c_idx, stats_std);
-
-    accumulate_statistics(stats_std, stats_std_cum, Nl * Nh * Nw);
-
-    // stat_lsq = stat_std * D.reshape(-1, 1, 1)
-#pragma omp parallel for
-    for (size_t i=0; i<Nw; i++) {
-        for (size_t j=0; j<Nh; j++) {
-            size_t idx_unlayered_stats = i * Nh * Ne + j * Ne;
-            for (size_t k=0; k<Ne; k++) {
-                unlayered_stats[idx_unlayered_stats + k] *= d[k];
-            }
-        }
-    }
-
-    cluster_layers(unlayered_stats, Nw, Nh, Ne, Nl, c_idx, stats_lsq);
-
-    accumulate_statistics(stats_lsq, stats_lsq_cum, Nl * Nh * Nw);
+    cluster_layers(unlayered_stats, d, Nw, Nh, Ne, Nl, c_idx, stats_std_cum, stats_lsq_cum);
 }
 
 template auto standard_synthesizer_host<float>(ContextInternal& ctx,
@@ -170,8 +142,8 @@ template auto standard_synthesizer_host<float>(ContextInternal& ctx,
                                                const std::size_t Ne,
                                                const std::size_t Nh,
                                                const std::size_t Nw,
-                                               float* __restrict__ stats_std,
-                                               float* __restrict__ stats_lsq,
+                                               //float* __restrict__ stats_std,
+                                               //float* __restrict__ stats_lsq,
                                                float* __restrict__ stats_std_cum,
                                                float* __restrict__ stats_lsq_cum) -> void;
 
@@ -190,8 +162,8 @@ template auto standard_synthesizer_host<double>(ContextInternal& ctx,
                                                 const std::size_t Ne,
                                                 const std::size_t Nh,
                                                 const std::size_t Nw,
-                                                double* __restrict__ stats_std,
-                                                double* __restrict__ stats_lsq,
+                                                //double* __restrict__ stats_std,
+                                                //double* __restrict__ stats_lsq,
                                                 double* __restrict__ stats_std_cum,
                                                 double* __restrict__ stats_lsq_cum) -> void;
 }  // namespace bluebild

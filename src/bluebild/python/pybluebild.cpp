@@ -59,42 +59,6 @@ auto check_3d_array(const py::array_t<T, STYLE> &a,
 }
 
 template <typename T>
-auto call_standard_synthesizer(Context &ctx,
-                               const py::array_t<T, py::array::f_style> &d,
-                               const py::array_t<std::complex<T>, py::array::f_style> &v,
-                               const py::array_t<T, py::array::f_style> &xyz,
-                               const py::array_t<std::complex<T>, py::array::f_style> &w,
-                               const py::array_t<std::size_t, py::array::f_style> &c_idx,
-                               const std::size_t Nl,
-                               const py::array_t<T, py::array::f_style> &grid,
-                               const T wl,
-                               const std::size_t Na, const std::size_t Nb, const std::size_t Nc,
-                               const std::size_t Ne, const std::size_t Nh, const std::size_t Nw,
-                               py::array_t<T, py::array::f_style> &stats_std,
-                               py::array_t<T, py::array::f_style> &stats_lsq,
-                               py::array_t<T, py::array::f_style> &stats_std_cum,
-                               py::array_t<T, py::array::f_style> &stats_lsq_cum
-                               ) {
-
-    check_1d_array(d,     (long int)Ne);
-    check_1d_array(c_idx, (long int)Ne);
-    check_2d_array(v,     {(long int)Nb, (long int)Ne});
-    check_2d_array(w,     {(long int)Na, (long int)Nb});
-    check_2d_array(xyz,   {(long int)Na, 3});
-    check_3d_array(grid,  {3, (long int)Nh, (long int)Nw});
-
-    standard_synthesizer(ctx,
-                         d.data(0), v.data(0), xyz.data(0), w.data(0), c_idx.data(0),
-                         Nl, grid.data(0), wl,
-                         Na, Nb, Nc, Ne, Nh, Nw,
-                         stats_std.mutable_data(0), stats_lsq.mutable_data(0),
-                         stats_std_cum.mutable_data(0), stats_lsq_cum.mutable_data(0));
-
-    return std::make_tuple(stats_std, stats_lsq);
-}
-
-
-template <typename T>
 auto call_gram_matrix(Context &ctx,
                       const py::array_t<T, py::array::f_style> &xyz,
                       const py::array_t<std::complex<T>, py::array::f_style> &w,
@@ -161,6 +125,86 @@ auto call_intensity_field_data(
 
   return std::make_tuple(std::move(d), std::move(v), std::move(clusterIndices));
 }
+
+struct SSDispatcher {
+    SSDispatcher(const Context &ctx, const float wl,
+                 const std::size_t Nl, const std::size_t Nh, const std::size_t Nw,
+                 const py::array_t<float, pybind11::array::f_style> &pix_grid,
+                 py::array_t<float, pybind11::array::f_style> &stats_std_cum,
+                 py::array_t<float, pybind11::array::f_style> &stats_lsq_cum) {
+        ss_ = SSf(ctx, wl, Nl, Nh, Nw, pix_grid.data(0),
+                  stats_std_cum.mutable_data(0), stats_lsq_cum.mutable_data(0));
+    }
+    SSDispatcher(const Context &ctx, const double wl,
+                 const std::size_t Nl, const std::size_t Nh, const std::size_t Nw,
+                 const py::array_t<double, pybind11::array::f_style> &pix_grid,
+                 py::array_t<double, pybind11::array::f_style> &stats_std_cum,
+                 py::array_t<double, pybind11::array::f_style> &stats_lsq_cum) {
+        ss_ = SS(ctx, wl, Nl, Nh, Nw, pix_grid.data(0),
+                 stats_std_cum.mutable_data(0), stats_lsq_cum.mutable_data(0));
+    }
+
+    SSDispatcher(SSDispatcher &&) = default;
+    SSDispatcher(const SSDispatcher &) = delete;
+    SSDispatcher &operator=(SSDispatcher &&) = default;
+    SSDispatcher &operator=(const SSDispatcher &) = delete;
+
+
+    auto execute(pybind11::array d, pybind11::array v, pybind11::array xyz,
+                 pybind11::array w, pybind11::array c_idx) -> void {
+
+        if (d.ndim() != 1)     throw InvalidParameterError();
+        if (c_idx.ndim() != 1) throw InvalidParameterError();
+        if (v.ndim() != 2)     throw InvalidParameterError();
+        if (xyz.ndim() != 2)   throw InvalidParameterError();
+        if (w.ndim() != 2)     throw InvalidParameterError();
+
+        const size_t Na = xyz.shape(0);
+        const size_t Ne = d.shape(0);
+        const size_t Nb = v.shape(0);
+
+        assert(c_idx.shape(0) == Ne);
+        
+        std::visit([&](auto &&arg) {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, SSf>) {
+                  py::array_t<float, py::array::f_style> dArray(d);                
+                  py::array_t<std::complex<float>, py::array::f_style> vArray(v);
+                  py::array_t<float, py::array::f_style> xyzArray(xyz);
+                  py::array_t<std::complex<float>, py::array::f_style> wArray(w);
+                  py::array_t<std::size_t, py::array::f_style> cidxArray(c_idx);
+                  std::get<SSf>(ss_).execute(dArray.data(0), vArray.data(0), xyzArray.data(0),
+                                             wArray.data(0), cidxArray.data(0), Na, Ne, Nb);
+              } else if constexpr (std::is_same_v<T, SS>) {
+                  py::array_t<double, py::array::f_style> dArray(d);
+                  py::array_t<std::complex<double>, py::array::f_style> vArray(v);
+                  py::array_t<double, py::array::f_style> xyzArray(xyz);
+                  py::array_t<std::complex<double>, py::array::f_style> wArray(w);
+                  py::array_t<std::size_t, py::array::f_style> cidxArray(c_idx);
+                  std::get<SS>(ss_).execute(dArray.data(0), vArray.data(0), xyzArray.data(0),
+                                            wArray.data(0), cidxArray.data(0), Na, Ne, Nb);
+              } else {
+              throw InternalError();
+          }
+       }, ss_);
+    }
+
+     auto copy_stats_d2h() -> void {
+
+        std::visit([&](auto &&arg) {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, SSf>) {
+                  std::get<SSf>(ss_).copy_stats_d2h();
+              } else if constexpr (std::is_same_v<T, SS>) {
+                  std::get<SS>(ss_).copy_stats_d2h();
+              } else {
+              throw InternalError();
+          }
+       }, ss_);
+    }
+
+    std::variant<std::monostate, SSf, SS> ss_;    
+};
 
 
 struct Nufft3d3Dispatcher {
@@ -285,58 +329,6 @@ PYBIND11_MODULE(pybluebild, m) {
            pybind11::arg("pu").noconvert())
       .def("processing_unit", &Context::processing_unit)
       .def(
-          "standard_synthesizer",
-          [](Context &ctx,
-             const py::array_t<float, py::array::f_style> &d,
-             const py::array_t<std::complex<float>, py::array::f_style> &v,
-             const py::array_t<float, py::array::f_style> &xyz,
-             const py::array_t<std::complex<float>, py::array::f_style> &w,
-             const py::array_t<std::size_t, py::array::f_style> &c_idx,
-             const std::size_t Nl,
-             const py::array_t<float, py::array::f_style> &grid,
-             const float wl,
-             const std::size_t Na, const std::size_t Nb, const std::size_t Nc,
-             const std::size_t Ne, const std::size_t Nh, const std::size_t Nw,
-             py::array_t<float, py::array::f_style> &stats_std,
-             py::array_t<float, py::array::f_style> &stats_lsq,
-             py::array_t<float, py::array::f_style> &stats_std_cum,
-             py::array_t<float, py::array::f_style> &stats_lsq_cum) {
-              return call_standard_synthesizer(ctx, d, v, xyz, w, c_idx, Nl, grid, wl,
-                                               Na, Nb, Nc, Ne, Nh, Nw,
-                                               stats_std, stats_lsq, stats_std_cum, stats_lsq_cum);},
-          pybind11::arg("D"), pybind11::arg("V"), pybind11::arg("XYZ"), pybind11::arg("W"),
-          pybind11::arg("c_idx"), pybind11::arg("Nl"), pybind11::arg("grid"), pybind11::arg("wl"),
-          pybind11::arg("Na"), pybind11::arg("Nb"), pybind11::arg("Nc"),
-          pybind11::arg("Ne"), pybind11::arg("Nh"), pybind11::arg("Nw"),
-          pybind11::arg("stats_std"), pybind11::arg("stats_lsq"),
-          pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
-      .def(
-           "standard_synthesizer",
-          [](Context &ctx,
-             const py::array_t<double, py::array::f_style> &d,
-             const py::array_t<std::complex<double>, py::array::f_style> &v,
-             const py::array_t<double, py::array::f_style> &xyz,
-             const py::array_t<std::complex<double>, py::array::f_style> &w,
-             const py::array_t<std::size_t, py::array::f_style> &c_idx,
-             const std::size_t Nl,
-             const py::array_t<double, py::array::f_style> &grid,
-             const double wl,
-             const std::size_t Na, const std::size_t Nb, const std::size_t Nc,
-             const std::size_t Ne, const std::size_t Nh, const std::size_t Nw,
-             py::array_t<double, py::array::f_style> &stats_std,
-             py::array_t<double, py::array::f_style> &stats_lsq,
-             py::array_t<double, py::array::f_style> &stats_std_cum,
-             py::array_t<double, py::array::f_style> &stats_lsq_cum) {
-               return call_standard_synthesizer(ctx, d, v, xyz, w, c_idx, Nl, grid, wl,
-                                                Na, Nb, Nc, Ne, Nh, Nw,
-                                                stats_std, stats_lsq, stats_std_cum, stats_lsq_cum);},
-           pybind11::arg("D"), pybind11::arg("V"), pybind11::arg("XYZ"), pybind11::arg("W"),
-           pybind11::arg("c_idx"), pybind11::arg("Nl"), pybind11::arg("grid"), pybind11::arg("wl"),
-           pybind11::arg("Na"), pybind11::arg("Nb"), pybind11::arg("Nc"),
-           pybind11::arg("Ne"), pybind11::arg("Nh"), pybind11::arg("Nw"),
-           pybind11::arg("stats_std"), pybind11::arg("stats_lsq"),
-           pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
-      .def(
           "gram_matrix",
           [](Context &ctx,
              const py::array_t<float, pybind11::array::f_style> &xyz,
@@ -432,4 +424,31 @@ PYBIND11_MODULE(pybluebild, m) {
            pybind11::arg("z"), pybind11::arg("s"), pybind11::arg("t"),
            pybind11::arg("u"))
       .def("execute", &Nufft3d3Dispatcher::execute, pybind11::arg("cj"));
+
+  pybind11::class_<SSDispatcher>(m, "SS")
+      .def(pybind11::init<
+           const Context &, const float,
+           const std::size_t, const std::size_t, const std::size_t,
+           const py::array_t<float, pybind11::array::f_style> &,
+           py::array_t<float, pybind11::array::f_style> &,
+           py::array_t<float, pybind11::array::f_style> &>(),
+           pybind11::arg("ctx"), pybind11::arg("wl"),
+           pybind11::arg("Nl"), pybind11::arg("Nh"), pybind11::arg("Nw"),
+           pybind11::arg("pix_grid"),
+           pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
+      .def(pybind11::init<
+           const Context &, const double,
+           const std::size_t, const std::size_t, const std::size_t,
+           const py::array_t<double, pybind11::array::f_style> &,
+           py::array_t<double, pybind11::array::f_style> &,
+           py::array_t<double, pybind11::array::f_style> &>(),
+           pybind11::arg("ctx"), pybind11::arg("wl"),
+           pybind11::arg("Nl"), pybind11::arg("Nh"), pybind11::arg("Nw"),
+           pybind11::arg("pix_grid"),
+           pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
+      .def("execute", &SSDispatcher::execute,
+           pybind11::arg("d"), pybind11::arg("v"),
+           pybind11::arg("xyz"), pybind11::arg("w"), pybind11::arg("c_idx"))
+      .def("copy_stats_d2h", &SSDispatcher::copy_stats_d2h);
+      
 }

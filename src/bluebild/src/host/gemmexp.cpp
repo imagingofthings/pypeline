@@ -47,13 +47,13 @@ auto gemmexp(const std::size_t M,
                     T b2 = B[idx_b + 2];
                     T im_part = alpha * (a0*b0 + a1*b1 + a2*b2);
 
-#ifndef __INTEL_COMPILER
-                    marla_sincos(im_part, &sin_, &cos_);
-                    C[idx_c + i] = std::complex<T>(cos_, sin_);
-#else
+                    //#ifndef __INTEL_COMPILER
+                    //marla_sincos(im_part, &sin_, &cos_);
+                    //C[idx_c + i] = std::complex<T>(cos_, sin_);
+                    //#else
                     std::complex<T> cim_part(zero, im_part);
                     C[idx_c + i] = std::exp(cim_part);
-#endif                    
+                    //#endif                    
                 }
             }
         }

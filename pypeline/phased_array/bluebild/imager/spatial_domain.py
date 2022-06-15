@@ -12,12 +12,12 @@ import numpy as np
 import scipy.sparse as sparse
 import time as stime
 import sys
-
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as ssd
 import pypeline.phased_array.bluebild.imager as bim
 import imot_tools.io.s2image as image
 import imot_tools.util.argcheck as chk
 import pypeline.util.array as array
+import bluebild
 
 class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
     """
@@ -153,20 +153,21 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         if N_level <= 0:
             raise ValueError("Parameter[N_level] must be positive.")
         self._N_level = N_level
-
-        self._synthesizer = ssd.SpatialFieldSynthesizerBlock(wl, pix_grid, precision)
         
         self.timer = None
 
         self._ctx = ctx
 
-        # If using C++ implementation, init arrays for epoch-wise and cumulated stats
         if self._ctx is not None:
             _, Nh, Nw = pix_grid.shape
-            self._stats_std     = np.zeros((self._N_level, Nh, Nw), order="F", dtype=self._fp)
-            self._stats_lsq     = np.zeros((self._N_level, Nh, Nw), order="F", dtype=self._fp)
+            self._grid = np.array(pix_grid, order='F', dtype=self._fp)
             self._stats_std_cum = np.zeros((self._N_level, Nh, Nw), order="F", dtype=self._fp)
             self._stats_lsq_cum = np.zeros((self._N_level, Nh, Nw), order="F", dtype=self._fp)
+            print("self._ctx.processing_unit() =", self._ctx.processing_unit())
+            self._synthesizer = bluebild.SS(self._ctx, wl, N_level, Nh, Nw, self._grid,
+                                            self._stats_std_cum, self._stats_lsq_cum)
+        else:
+            self._synthesizer = ssd.SpatialFieldSynthesizerBlock(wl, pix_grid, precision)
 
     def set_timer(self, t):
         self.timer = t
@@ -216,28 +217,19 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         V   = V.astype(self._cp, copy=False)
         W   = W.astype(self._cp, copy=False)
 
-        assert self._synthesizer._grid.dtype == self._fp, f'_grid {self._grid.dtype} not of expected type {self._fp}'
-
         self.mark("Image synthesis")
 
         Na, Nc = XYZ.shape
         assert Nc == 3, f'Nc expected to be 3'
         _,  Nb = W.shape
         _,  Ne = V.shape
-        _,  Nh, Nw = self._synthesizer._grid.shape
 
         if self._ctx is not None:
-            return self._ctx.standard_synthesizer(
-                np.array(D.data, order='F'), np.array(V.data, order='F'),
-                np.array(XYZ.data, order='F'), np.array(W.data, order='F'),
-                np.array(cluster_idx.data, order='F', dtype=np.uint), # cast to long uint
-                self._N_level, np.array(self._synthesizer._grid, order='F'),
-                self._synthesizer._wl, Na, Nb, Nc, Ne, Nh, Nw,
-                self._stats_std, self._stats_lsq,
-                self._stats_std_cum, self._stats_lsq_cum)
+            return self._synthesizer.execute(D, V, XYZ, W, np.array(cluster_idx.data, order='F', dtype=np.uint))
         else:
+            assert self._synthesizer._grid.dtype == self._fp, f'_grid {self._grid.dtype} not of expected type {self._fp}'
             stat_std = self._synthesizer(V, XYZ, W)
-            
+                        
             assert stat_std.dtype == self._fp, f'stat_std {stat_std.dtype} not of expected type {self._fp}'
 
             # get result from GPU
@@ -264,6 +256,10 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             self.unmark("Imager call")
 
             return stat
+
+    def copy_stats_d2h(self):
+        if self._ctx is not None and self._ctx.processing_unit() == bluebild.pybluebild.ProcessingUnit.GPU:
+            self._synthesizer.copy_stats_d2h()
 
     def as_image(self):
         """
