@@ -18,7 +18,7 @@ auto standard_synthesizer_gpu(ContextInternal& ctx, const T wl, const T* grid,
                               const size_t* c_idx, const size_t* c_thick,
                               const size_t Na, const size_t Nb, const size_t Ne,
                               const size_t Nh, const size_t Nl,
-                              const size_t Nws, const size_t Nwe,
+                              const size_t Nws, const size_t Nwe, const size_t largest_chunck,
                               T* stats_std_cum, T* stats_lsq_cum) -> void {
 
   using ComplexType = gpu::ComplexType<T>;
@@ -30,17 +30,17 @@ auto standard_synthesizer_gpu(ContextInternal& ctx, const T wl, const T* grid,
   const size_t Nw = Nwe - Nws;
 
   // Allocate for intermediate matrices
-  auto pD  = create_buffer<ComplexType>(ctx.allocators().gpu(), Na * Nh * Nw);
-  auto pwD = create_buffer<ComplexType>(ctx.allocators().gpu(), Nb * Nh * Nw);
-  auto eD  = create_buffer<ComplexType>(ctx.allocators().gpu(), Ne * Nh * Nw);
-  
+  auto pD  = create_buffer<ComplexType>(ctx.allocators().gpu(), Na * Nh * largest_chunck);
+  auto pwD = create_buffer<ComplexType>(ctx.allocators().gpu(), Nb * Nh * largest_chunck);
+  auto eD  = create_buffer<ComplexType>(ctx.allocators().gpu(), Ne * Nh * largest_chunck);
+
   standard_synthesizer_p_gpu(ctx.gpu_stream(), wl, grid, xyz, Na, Nh, Nw, pD.get());
 
-  auto hd_ws  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), Nw);
-  auto hd_ps  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), Nw);
-  auto hd_pws = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), Nw);
-  auto hd_vs  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), Nw);
-  auto hd_es  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), Nw);
+  auto hd_ws  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), largest_chunck);
+  auto hd_ps  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), largest_chunck);
+  auto hd_pws = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), largest_chunck);
+  auto hd_vs  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), largest_chunck);
+  auto hd_es  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().host(), largest_chunck);
 
   size_t idx_ip, idx_ipw, idx_ie;
   for (uint k=0; k<Nw; k++) {
@@ -54,11 +54,11 @@ auto standard_synthesizer_gpu(ContextInternal& ctx, const T wl, const T* grid,
       hd_es[k]  = &eD[idx_ie];
   }
 
-  auto d_ws  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), Nw);
-  auto d_ps  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), Nw);
-  auto d_pws = create_buffer<gpu::ComplexType<T>*>(ctx.allocators().gpu(), Nw);
-  auto d_vs  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), Nw);
-  auto d_es  = create_buffer<gpu::ComplexType<T>*>(ctx.allocators().gpu(), Nw);
+  auto d_ws  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
+  auto d_ps  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
+  auto d_pws = create_buffer<gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
+  auto d_vs  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
+  auto d_es  = create_buffer<gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
 
   gpu::check_status(gpu::memcpy(d_ws.get(), hd_ws.get(), Nw * sizeof(gpu::ComplexType<T>*),
                                 gpu::flag::MemcpyHostToDevice));
@@ -109,7 +109,7 @@ template auto standard_synthesizer_gpu<float>(ContextInternal& ctx, const float 
                                               const size_t* c_idx, const size_t* c_thick,
                                               const size_t Na, const size_t Nb, const size_t Ne,
                                               const size_t Nh, const size_t Nl,
-                                              const size_t Nws, const size_t Nwe,
+                                              const size_t Nws, const size_t Nwe, const size_t largest_chunck,
                                               float* stats_std_cum, float* stats_lsq_cum) -> void;
 
 template auto standard_synthesizer_gpu<double>(ContextInternal& ctx, const double wl, const double* grid,
@@ -118,6 +118,6 @@ template auto standard_synthesizer_gpu<double>(ContextInternal& ctx, const doubl
                                                const size_t* c_idx, const size_t* c_thick,
                                                const size_t Na, const size_t Nb, const size_t Ne,
                                                const size_t Nh, const size_t Nl,
-                                               const size_t Nws, const size_t Nwe,
+                                               const size_t Nws, const size_t Nwe, const size_t largest_chunk,
                                                double* stats_std_cum, double* stats_lsq_cum) -> void;
 }  // namespace bluebild

@@ -76,36 +76,42 @@ template <typename T> struct SSInternal {
                                      Na, Nb, 3, Ne, Nh_, Nw_, stats_std_cum_, stats_lsq_cum_);
     } else {
 #if defined(BLUEBILD_CUDA) || defined(BLUEBILD_ROCM)
+        
+      //EO: to check what internal mem maps are containing at start of new iteration
+      //ctx_->allocators().gpu()->print();
 
       assert(is_device_ptr(xyz) == false);
       assert(is_device_ptr(w)   == false);
         
-      size_t d_size = Ne;
-      d_buff_ = create_buffer<T>(ctx_->allocators().gpu(), d_size);
-      gpu::check_status(gpu::memcpy_async(d_buff_.get(), d, d_size * sizeof(T),
+      size_t d_size    = Ne;
+      size_t v_size    = Nb * Ne;
+      size_t xyz_size  = Na * 3;
+      size_t w_size    = Na * Nb;
+      size_t cidx_size = Ne;
+
+      BufferType<T> d_buff   = create_buffer<T>(ctx_->allocators().gpu(), d_size);
+      BufferType<T> xyz_buff = create_buffer<T>(ctx_->allocators().gpu(), xyz_size);
+      BufferType<std::size_t> cidx_buff  = create_buffer<std::size_t>(ctx_->allocators().gpu(), cidx_size);
+      BufferType<std::size_t> cinfo_buff = create_buffer<std::size_t>(ctx_->allocators().gpu(), 2 * cidx_size);
+      BufferType<gpu::ComplexType<T>> v_buff = create_buffer<gpu::ComplexType<T>>(ctx_->allocators().gpu(), v_size);
+      BufferType<gpu::ComplexType<T>> w_buff = create_buffer<gpu::ComplexType<T>>(ctx_->allocators().gpu(), w_size);
+      
+      gpu::check_status(gpu::memcpy_async(d_buff.get(), d, d_size * sizeof(T),
                                           gpu::flag::MemcpyHostToDevice,
                                           ctx_->gpu_stream()));
-      size_t v_size = Nb * Ne;
-      v_buff_ = create_buffer<gpu::ComplexType<T>>(ctx_->allocators().gpu(), v_size);
-      gpu::check_status(gpu::memcpy_async(v_buff_.get(), v, v_size * sizeof(gpu::ComplexType<T>),
+      gpu::check_status(gpu::memcpy_async(v_buff.get(), v, v_size * sizeof(gpu::ComplexType<T>),
                                           gpu::flag::MemcpyHostToDevice,
                                           ctx_->gpu_stream()));
-      size_t xyz_size = Na * 3;
       auto bufferXYZ = create_buffer<T>(ctx_->allocators().host(), xyz_size);
       mean_center(xyz, bufferXYZ.get(), Na);
-      xyz_buff_ = create_buffer<T>(ctx_->allocators().gpu(), xyz_size);
-      gpu::check_status(gpu::memcpy_async(xyz_buff_.get(), bufferXYZ.get(), xyz_size * sizeof(T),
+      gpu::check_status(gpu::memcpy_async(xyz_buff.get(), bufferXYZ.get(), xyz_size * sizeof(T),
                                           gpu::flag::MemcpyHostToDevice,
                                           ctx_->gpu_stream()));
-      size_t w_size = Na * Nb;
-      w_buff_ = create_buffer<gpu::ComplexType<T>>(ctx_->allocators().gpu(), w_size);
-      gpu::check_status(gpu::memcpy_async(w_buff_.get(), w, w_size * sizeof(gpu::ComplexType<T>),
+      gpu::check_status(gpu::memcpy_async(w_buff.get(), w, w_size * sizeof(gpu::ComplexType<T>),
                                           gpu::flag::MemcpyHostToDevice,
                                           ctx_->gpu_stream()));
 
-      size_t cidx_size = Ne;
-      cidx_buff_ = create_buffer<std::size_t>(ctx_->allocators().gpu(), cidx_size);
-      gpu::check_status(gpu::memcpy_async(cidx_buff_.get(), c_idx, cidx_size * sizeof(std::size_t),
+      gpu::check_status(gpu::memcpy_async(cidx_buff.get(), c_idx, cidx_size * sizeof(std::size_t),
                                           gpu::flag::MemcpyHostToDevice,
                                           ctx_->gpu_stream()));
 
@@ -118,8 +124,7 @@ template <typename T> struct SSInternal {
           offset   += c_info[Nl_ + i];
       }
 
-      cinfo_buff_ = create_buffer<std::size_t>(ctx_->allocators().gpu(), 2 * cidx_size);
-      gpu::check_status(gpu::memcpy_async(cinfo_buff_.get(), c_info, 2 * cidx_size * sizeof(std::size_t),
+      gpu::check_status(gpu::memcpy_async(cinfo_buff.get(), c_info, 2 * cidx_size * sizeof(std::size_t),
                                           gpu::flag::MemcpyHostToDevice,
                                           ctx_->gpu_stream()));
 
@@ -129,6 +134,7 @@ template <typename T> struct SSInternal {
       // First epoch: if not enough memory on device, we split the processing along Nw
       //              (can't be done at initialization due to lack of information)
       if (first_epoch_) {
+
           size_t free_mem, total_mem;
           gpu::mem_get_info(&free_mem, &total_mem);
 
@@ -140,12 +146,14 @@ template <typename T> struct SSInternal {
           req_mem += 5 *             Nw_ * sizeof(gpu::ComplexType<T>); // d_ws, d_ps, d_pws, d_vs, d_es
           req_mem += 2 * Nl_ * Nh_ * Nw_ * sizeof(T);                   // stats_std_cum, stats_lsq_cum
           
-          nsplit_ = (size_t) std::ceil(req_mem / (free_mem * 0.95));
-          //nsplit_ = 5;
-
-          printf("@@@ GPU currently has %.2f GB free out of %.2f GB, required %.2f => nsplit_ = %lu\n",
-            free_mem * 1.E-9, total_mem * 1.E-9, req_mem * 1.E-9, nsplit_);
-          
+          nsplit_ = (size_t) std::ceil(req_mem / (free_mem * 0.90));
+          if (nsplit_ > 1) {
+              nw_chunck_ = Nw_ / nsplit_;
+              largest_chunck_ = Nw_ - (nsplit_ - 1) * nw_chunck_;
+              req_mem /= Nw_;
+              req_mem *= largest_chunck_;
+              assert(req_mem < free_mem);
+          }
           
           if (nsplit_ == 1) { // If nsplit_ == 1, only d2h after last iteration (triggered by client)
               stats_size_ =  Nl_ * Nh_ * Nw_;
@@ -157,8 +165,6 @@ template <typename T> struct SSInternal {
               gpu::memset_async(stats_lsq_cum_buff_.get(), 0, stats_size_ * sizeof(T), ctx_->gpu_stream());              
               gpu::stream_synchronize(ctx_->gpu_stream());
           } else { // allocate a buffer of pinned memory based on largest chunck
-              nw_chunck_ = Nw_ / nsplit_;
-              largest_chunck_ = Nw_ - (nsplit_ - 1) * nw_chunck_;
               stats_size_ =  Nl_ * Nh_ * largest_chunck_;
               stats_std_buff = create_buffer<T>(ctx_->allocators().gpu(), stats_size_);
               stats_lsq_buff = create_buffer<T>(ctx_->allocators().gpu(), stats_size_);
@@ -172,6 +178,7 @@ template <typename T> struct SSInternal {
       if (nsplit_ > 1) {
 
         for (int i=0; i<nsplit_; i++) {
+
           size_t Nws = i * nw_chunck_;
           size_t Nwe = i == nsplit_ - 1 ? Nw_ : Nws + nw_chunck_;
 
@@ -181,10 +188,11 @@ template <typename T> struct SSInternal {
           gpu::check_status(gpu::stream_synchronize(ctx_->gpu_stream()));
 
           standard_synthesizer_gpu<T>(*ctx_.get(), wl_, pix_grid_buff_.get() + 3 * Nh_ * Nws,
-            xyz_buff_.get(), d_buff_.get(), v_buff_.get(), w_buff_.get(),
-            cidx_buff_.get(), cinfo_buff_.get(), Na, Nb, Ne, Nh_, Nl_,
-            Nws, Nwe, stats_std_buff.get(), stats_lsq_buff.get());
-
+                                      xyz_buff.get(), d_buff.get(), v_buff.get(), w_buff.get(),
+                                      cidx_buff.get(), cinfo_buff.get(), Na, Nb, Ne, Nh_, Nl_,
+                                      Nws, Nwe, largest_chunck_,
+                                      stats_std_buff.get(), stats_lsq_buff.get());
+          
           gpu::check_status(gpu::stream_synchronize(ctx_->gpu_stream()));
 
           // Copy partial epoch-wise stats from device to buffer on host
@@ -221,9 +229,9 @@ template <typename T> struct SSInternal {
 
     } else {
         standard_synthesizer_gpu<T>(*ctx_.get(), wl_, pix_grid_buff_.get(),
-            xyz_buff_.get(), d_buff_.get(), v_buff_.get(), w_buff_.get(),
-            cidx_buff_.get(), cinfo_buff_.get(), Na, Nb, Ne, Nh_, Nl_,
-            0, Nw_, stats_std_cum_buff_.get(), stats_lsq_cum_buff_.get());
+                                    xyz_buff.get(), d_buff.get(), v_buff.get(), w_buff.get(),
+                                    cidx_buff.get(), cinfo_buff.get(), Na, Nb, Ne, Nh_, Nl_,
+                                    0, Nw_, Nw_, stats_std_cum_buff_.get(), stats_lsq_cum_buff_.get());
       }
 
     gpu::check_status(gpu::stream_synchronize(ctx_->gpu_stream()));
@@ -256,16 +264,14 @@ template <typename T> struct SSInternal {
   T wl_;
   size_t Nl_, Nh_, Nw_, pix_grid_size_;
   const T* pix_grid_;
-  T *stats_std_cum_, *stats_lsq_cum_;             // Cumulated statistics over epochs
+  T *stats_std_cum_, *stats_lsq_cum_;
   std::shared_ptr<ContextInternal> ctx_;
 #if defined(BLUEBILD_CUDA) || defined(BLUEBILD_ROCM)
   size_t nsplit_ = 1, nw_chunck_, largest_chunck_, stats_size_;
   bool first_epoch_ = true;
-  BufferType<T> pix_grid_buff_, xyz_buff_, d_buff_;
+  BufferType<T> pix_grid_buff_;
   BufferType<T> stats_std_buff, stats_lsq_buff;
   BufferType<T> stats_std_pinned_buff, stats_lsq_pinned_buff;
-  BufferType<gpu::ComplexType<T>> v_buff_, w_buff_;
-  BufferType<std::size_t> cidx_buff_, cinfo_buff_;
   BufferType<T> stats_std_cum_buff_, stats_lsq_cum_buff_; // if nsplit_ == 1
 #endif
 };
