@@ -151,7 +151,7 @@ struct SSDispatcher {
 
 
     auto execute(pybind11::array d, pybind11::array v, pybind11::array xyz,
-                 pybind11::array w, pybind11::array c_idx) -> void {
+                 pybind11::array w, pybind11::array c_idx, const bool d2h) -> void {
 
         if (d.ndim() != 1)     throw InvalidParameterError();
         if (c_idx.ndim() != 1) throw InvalidParameterError();
@@ -174,7 +174,7 @@ struct SSDispatcher {
                   py::array_t<std::complex<float>, py::array::f_style> wArray(w);
                   py::array_t<std::size_t, py::array::f_style> cidxArray(c_idx);
                   std::get<SSf>(ss_).execute(dArray.data(0), vArray.data(0), xyzArray.data(0),
-                                             wArray.data(0), cidxArray.data(0), Na, Ne, Nb);
+                                             wArray.data(0), cidxArray.data(0), Na, Ne, Nb, d2h);
               } else if constexpr (std::is_same_v<T, SS>) {
                   py::array_t<double, py::array::f_style> dArray(d);
                   py::array_t<std::complex<double>, py::array::f_style> vArray(v);
@@ -182,21 +182,7 @@ struct SSDispatcher {
                   py::array_t<std::complex<double>, py::array::f_style> wArray(w);
                   py::array_t<std::size_t, py::array::f_style> cidxArray(c_idx);
                   std::get<SS>(ss_).execute(dArray.data(0), vArray.data(0), xyzArray.data(0),
-                                            wArray.data(0), cidxArray.data(0), Na, Ne, Nb);
-              } else {
-              throw InternalError();
-          }
-       }, ss_);
-    }
-
-     auto copy_stats_d2h() -> void {
-
-        std::visit([&](auto &&arg) {
-          using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, SSf>) {
-                  std::get<SSf>(ss_).copy_stats_d2h();
-              } else if constexpr (std::is_same_v<T, SS>) {
-                  std::get<SS>(ss_).copy_stats_d2h();
+                                            wArray.data(0), cidxArray.data(0), Na, Ne, Nb, d2h);
               } else {
               throw InternalError();
           }
@@ -448,7 +434,6 @@ PYBIND11_MODULE(pybluebild, m) {
            pybind11::arg("stats_std_cum"), pybind11::arg("stats_lsq_cum"))
       .def("execute", &SSDispatcher::execute,
            pybind11::arg("d"), pybind11::arg("v"),
-           pybind11::arg("xyz"), pybind11::arg("w"), pybind11::arg("c_idx"))
-      .def("copy_stats_d2h", &SSDispatcher::copy_stats_d2h);
-      
+           pybind11::arg("xyz"), pybind11::arg("w"), pybind11::arg("c_idx"),
+           pybind11::arg("d2h"));
 }

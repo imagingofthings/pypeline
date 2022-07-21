@@ -1,12 +1,18 @@
 #!/bin/bash
 
-#SBATCH --mem 0
-#SBATCH --exclusive
-#SBATCH --time 06:00:00
-#SBATCH --partition build
+#SBATCH --mem 80 #0
+# SBATCH --exclusive
+#SBATCH --time 00:30:00 #12
+#SBATCH --partition debug #test
+#SBATCH --qos gpu
+#SBATCH --gres gpu:1 #gpu:2
+#SBATCH -c 1 #40
 
 set -e
 set +x
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
 
 export BLUEBILD_GPU=CUDA
 
@@ -20,6 +26,23 @@ RUN_NSIGHT=0
 FILTER="" #32
 GCC_VERS=9
 UPDATE_JSON=0
+
+echo "Running on" `hostname`
+
+PYPELINE_ROOT=~/SKA/epfl-radio-astro/pypeline
+[ -d $PYPELINE_ROOT ] || (echo "PYPELINE_ROOT >>$PYPELINE_ROOT<< not found"; exit 1)
+echo PYPELINE_ROOT = $PYPELINE_ROOT
+
+FINUFFT_ROOT=~/SKA/epfl-radio-astro/finufft
+[ -d $FINUFFT_ROOT ] || (echo "FINUFFT_ROOT >>$FINUFFT_ROOT<< not found"; exit 1)
+echo FINUFFT_ROOT = $FINUFFT_ROOT
+
+CUFINUFFT_ROOT=~/SKA/epfl-radio-astro/cufinufft
+[ -d $CUFINUFFT_ROOT ] || (echo "CUFINUFFT_ROOT >>$CUFINUFFT_ROOT<< not found"; exit 1)
+echo CUFINUFFT_ROOT = $CUFINUFFT_ROOT
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FINUFFT_ROOT/lib:$CUFINUFFT_ROOT/lib
+
 
 #for COMPILER in GCC ICC; do
 for COMPILER in GCC; do
@@ -78,14 +101,7 @@ for COMPILER in GCC; do
 
     pip show bluebild || echo "bluebild package not found (expected :-))"
 
-
-    export PROJECT_DIR=~/SKA/epfl-radio-astro/
-    export FINUFFT_ROOT=$PROJECT_DIR/finufft
-    [ -d $FINUFFT_ROOT ] || (echo "FINUFFT_ROOT >>$FINUFFT_ROOT<< not found" && exit 1)
-    export CUFINUFFT_ROOT=$PROJECT_DIR/cufinufft
-    [ -d $CUFINUFFT_ROOT ] || (echo "CUFINUFFT_ROOT >>$CUFINUFFT_ROOT<< not found" && exit 1)
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FINUFFT_ROOT/lib:$CUFINUFFT_ROOT/lib
-
+    
     #CMAKE_BUILD_DIR=.
     CMAKE_BUILD_DIR=build_$COMPILER
     
@@ -100,31 +116,11 @@ for COMPILER in GCC; do
         export LD_PRELOAD=${LD_PRELOAD}:$INTEL_MKL_ROOT/lib/intel64/libiomp5.so
     fi
 
-    if [ 1 == 1 ]; then
-        cmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DBLUEBILD_SPLIT_GPU_SS="3"
-        # With nvcc debug + line info
-        #qcmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DCMAKE_CUDA_FLAGS="-g -lineinfo"
-        cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1 -j 8
-    else
-        if [ 1 == 1 ]; then
-            declare -a files_to_del=(
-                "./Makefile" "./cmake_install.cmake" "./BLUEBILD*.cmake" "./CMakeCache.txt"
-                "./python/Makefile" "./python/cmake_install.cmake"
-                "./src/Makefile" "./src/cmake_install.cmake"
-                "./tests/Makefile" "./tests/cmake_install.cmake")
-            for todel in "${files_to_del[@]}"; do
-                [ -f $todel ] && rm $todel 
-            done
-            declare -a dirs_to_del=(
-                "./CMakeFiles" "./tests/CMakeFiles/" "./python/CMakeFiles" "./_deps")
-            for todel in "${dirs_to_del[@]}"; do
-                [ -d $todel ] && rm -rf $todel 
-            done
-            exit 0
-        fi
-        cmake .
-        make
-    fi
+    cmake -S../../src/bluebild -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DBLUEBILD_SPLIT_GPU_SS="3"
+    # With nvcc debug + line info
+    #qcmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DCMAKE_CUDA_FLAGS="-g -lineinfo"
+    cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1 -j 8
+
 
     if [ 1 == 0 ]; then
         echo; echo;
@@ -161,11 +157,11 @@ for COMPILER in GCC; do
 
     echo
     PYTHON=`which python`
-    echo PYTHON=$PYTHON
+    echo PYTHON = $PYTHON
     $PYTHON -V
     echo
 
-    export PYTHONPATH=/home/orliac/SKA/epfl-radio-astro/pypeline/src/bluebild/$CMAKE_BUILD_DIR/python/
+    export PYTHONPATH=./$CMAKE_BUILD_DIR/python/
 
     #echo "@@@ Running python import bluebild"
     #cd ../..
@@ -174,6 +170,7 @@ for COMPILER in GCC; do
     #cd -
 
     PY_SCRIPT=../../examples/simulation/lofar_bootes_ss_cpp.py
+    ls -l $PY_SCRIPT
 
     export MKL_VERBOSE=0
     export OMP_DISPLAY_AFFINITY=0
@@ -183,8 +180,8 @@ for COMPILER in GCC; do
 
     if [ $RUN_PYTHON == 1 ]; then
         FIRST=1
-        for NTHREADS in 1 #2 4 8 16 32 36
-        #for NTHREADS in 36
+        #for NTHREADS in 1 #2 4 8 16 32 36
+        for NTHREADS in 1
         do
             export OMP_NUM_THREADS=$NTHREADS
             #time $PYTHON $PY_SCRIPT
@@ -223,7 +220,8 @@ for COMPILER in GCC; do
     echo
 
     if [ $RUN_NSIGHT == "1" ]; then
-        
+        which nsys
+        which ncu
         ### Nsight Systems
         nsys profile --output cuda-ss --force-overwrite true --stats=true -t nvtx,cuda $PYTHON $PY_SCRIPT
         

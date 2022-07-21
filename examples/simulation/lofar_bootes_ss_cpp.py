@@ -36,11 +36,6 @@ import bluebild
 #print("bluebild from:", bluebild.__file__)
 #print("sys.path", sys.path)
 
-ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)
-#ctx = bluebild.Context(bluebild.ProcessingUnit.GPU)
-#ctx = bluebild.Context(bluebild.ProcessingUnit.CPU)
-#ctx = None
-
 # Observation
 obs_start = atime.Time(56879.54171302732, scale="utc", format="mjd")
 field_center = coord.SkyCoord(218 * u.deg, 34.5 * u.deg)
@@ -80,17 +75,22 @@ for N_bits in 64,:
     # Imaging
     N_levels = 12 #24
 
-    #for resol in 1, 2, 4, 8, 16:
-    for resol in 2, :
+    #for resol in 1, 2, 4, 8, 16, 32:
+    for resol in 3,:
+
+        #ctx = bluebild.Context(bluebild.ProcessingUnit.AUTO)
+        ctx = bluebild.Context(bluebild.ProcessingUnit.GPU)
+        #ctx = bluebild.Context(bluebild.ProcessingUnit.CPU)
+        #ctx = None
     
         _, _, px_colat, px_lon = grid.equal_angle(N=dev.nyquist_rate(wl) * resol,
         #_, _, px_colat, px_lon = grid.equal_angle(N=int(dev.nyquist_rate(wl) / 16) + 1,
                                                   direction=field_center.cartesian.xyz.value,
                                                   FoV=FoV)
         px_grid = transform.pol2cart(1, px_colat, px_lon).astype(dtype=dtype_f)
-        if first_time:
-            print("px_grid:", type(px_grid), px_grid.ndim, len(px_grid), px_grid.size, px_grid.shape, px_grid.dtype)
-            first_time = False
+        #if first_time:
+        #    print("px_grid:", type(px_grid), px_grid.ndim, len(px_grid), px_grid.size, px_grid.shape, px_grid.dtype)
+        #    first_time = False
 
         ### Intensity Field ===========================================================
         # Parameter Estimation
@@ -119,6 +119,7 @@ for N_bits in 64,:
             c_idx_all  = []
 
             time_pyt = 0.0
+
             for t in time[::time_slice]:
                 XYZ = dev(t)
                 W = mb(XYZ, wl)
@@ -169,20 +170,22 @@ for N_bits in 64,:
         ### C++
         I_mfs_cpp = bb_sd.Spatial_IMFS_Block(wl, px_grid, N_levels, N_bits, ctx)
         time_cpp = 0.0
-        for t in time[::time_slice]:
+        times = time[::time_slice]
+        for t in times:
+            d2h = True if t == times[-1] else False
             XYZ = dev(t)
             W = mb(XYZ, wl)
             S = vis2(XYZ, W, wl)
             D, V, c_idx = I_dp(S, XYZ, W, wl)
             tic = perf_counter()
-            I_mfs_cpp(D, V, XYZ.data, W.data, c_idx)
+            I_mfs_cpp(D, V, XYZ.data, W.data, c_idx, d2h)
             time_cpp += (perf_counter() - tic)
             if ctx is not None:
                 assert I_mfs_cpp._stats_std_cum.dtype == dtype_f, f"stats_std_cum {stats_std.dtype} not of expected type {dtype_f}"
-
-        # After last it, copy results from device to host
-        if ctx is not None and ctx.processing_unit() == bluebild.pybluebild.ProcessingUnit.GPU:
-            I_mfs_cpp.copy_stats_d2h()
+        
+        Nb, Ne = V.shape
+        Na, Nb = W.shape
+        Nc, Nh, Nw = px_grid.shape
 
         if RUN_PYTHON:
             #print(f"@@@ C++ {N_bits} {N_threads:2d} {time_cpp:.3f} sec")
@@ -199,9 +202,10 @@ for N_bits in 64,:
             rmse_lsq = np.sqrt(np.sum(diff**2)/np.size(diff))
         
             # Cumulated statistics
-            print(f"@@@ Na {Na} Nb {Nb} Nc {Nc} Ne {Ne} Nh {Nh} Nw {Nw}, sqrt(Npix) {int(np.sqrt(Nh*Nw))} N_ep {N_ep} N_bits {N_bits} N_threads {N_threads:2d} {time_pyt:8.3f} {time_cpp:7.3f} {time_pyt / time_cpp:7.3f}; std error: RMSE ={rmse_std : .2E}, max abs ={mad_std : .2E}; lsq error: RMSE ={rmse_lsq : .2E}, max abs ={mad_lsq : .2E}", flush=True)
+            print(f"@@@ Na {Na} Nb {Nb} Nc {Nc} Ne {Ne} Nh {Nh} Nw {Nw}, sqrt(Npix) {int(np.sqrt(Nh*Nw))} N_ep {N_ep} N_bits {N_bits} N_threads {N_threads:2d} {time_pyt:8.3f} {time_cpp:7.3f} {time_pyt / time_cpp:7.3f}; std_error: RMSE {rmse_std:.2E} max_abs {mad_std:.2E}; lsq_error: RMSE {rmse_lsq:.2E}, max_abs {mad_lsq:.2E}", flush=True)
         else:
-            print(f"time_cpp = {time_cpp:7.3f} sec")
+            print(f"Internal time ref {I_mfs_cpp._cum_proc_time:7.3f}")
+            print(f"@@@ Na {Na} Nb {Nb} Nc {Nc} Ne {Ne} Nh {Nh} Nw {Nw}, sqrt(Npix) {int(np.sqrt(Nh*Nw))} N_ep {N_ep} N_bits {N_bits} N_threads {N_threads:2d} {0.0:8.3f} {time_cpp:7.3f} {0.0 / time_cpp:7.3f}; std_error: RMSE {0.0:.2E}, max_abs ={0.0:.2E}; lsq_error: RMSE {0.0:.2E}, max_abs {0.0:.2E}", flush=True)
         
         """
 

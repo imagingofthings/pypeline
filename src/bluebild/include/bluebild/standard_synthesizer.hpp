@@ -19,10 +19,8 @@ public:
 
     void execute(const double* d, const std::complex<double>* v, const double* xyz,
                  const std::complex<double>* w, const std::size_t* c_idx,
-                 const size_t Na, const size_t Ne, const size_t Nb);
+                 const size_t Na, const size_t Ne, const size_t Nb, const bool d2h);
     
-    void copy_stats_d2h();
-
 private:
   std::unique_ptr<void, std::function<void(void *)>> ss_;
 };
@@ -37,9 +35,7 @@ public:
 
     void execute(const float* d, const std::complex<float>* v, const float* xyz,
                  const std::complex<float>* w, const std::size_t* c_idx,
-                 const size_t Na, const size_t Ne, const size_t Nb);
-    
-    void copy_stats_d2h();
+                 const size_t Na, const size_t Ne, const size_t Nb, const bool d2h);
 
 private:
   std::unique_ptr<void, std::function<void(void *)>> ss_;

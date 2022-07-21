@@ -37,8 +37,7 @@ void cluster_layers(const T*  __restrict__ unlayered_stats, const T* __restrict_
 }
 
 template <typename T>
-static
-void mean_center(T* __restrict__ xyz, const T* __restrict__ xyz_, const size_t N) {
+auto mean_center(T* __restrict__ xyz, const T* __restrict__ xyz_, const size_t N) -> void {
     auto sum_x = 0.0;
     auto sum_y = 0.0;
     auto sum_z = 0.0;
@@ -74,8 +73,6 @@ auto standard_synthesizer_host(ContextInternal& ctx,
                                const std::size_t Ne,
                                const std::size_t Nh,
                                const std::size_t Nw,
-                               //T* __restrict__ stats_std,
-                               //T* __restrict__ stats_lsq,
                                T* __restrict__ stats_std_cum,
                                T* __restrict__ stats_lsq_cum) -> void {
 
@@ -142,8 +139,6 @@ template auto standard_synthesizer_host<float>(ContextInternal& ctx,
                                                const std::size_t Ne,
                                                const std::size_t Nh,
                                                const std::size_t Nw,
-                                               //float* __restrict__ stats_std,
-                                               //float* __restrict__ stats_lsq,
                                                float* __restrict__ stats_std_cum,
                                                float* __restrict__ stats_lsq_cum) -> void;
 
@@ -162,8 +157,6 @@ template auto standard_synthesizer_host<double>(ContextInternal& ctx,
                                                 const std::size_t Ne,
                                                 const std::size_t Nh,
                                                 const std::size_t Nw,
-                                                //double* __restrict__ stats_std,
-                                                //double* __restrict__ stats_lsq,
                                                 double* __restrict__ stats_std_cum,
                                                 double* __restrict__ stats_lsq_cum) -> void;
 }  // namespace bluebild

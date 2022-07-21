@@ -23,9 +23,6 @@ auto standard_synthesizer_gpu(ContextInternal& ctx, const T wl, const T* grid,
 
   using ComplexType = gpu::ComplexType<T>;
 
-  // Syncronize with default stream. TODO: replace with event
-  gpu::stream_synchronize(nullptr);
-
   // Nw is now the split thickness
   const size_t Nw = Nwe - Nws;
 
@@ -60,17 +57,17 @@ auto standard_synthesizer_gpu(ContextInternal& ctx, const T wl, const T* grid,
   auto d_vs  = create_buffer<const gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
   auto d_es  = create_buffer<gpu::ComplexType<T>*>(ctx.allocators().gpu(), largest_chunck);
 
-  gpu::check_status(gpu::memcpy(d_ws.get(), hd_ws.get(), Nw * sizeof(gpu::ComplexType<T>*),
-                                gpu::flag::MemcpyHostToDevice));
-  gpu::check_status(gpu::memcpy(d_ps.get(), hd_ps.get(), Nw * sizeof(gpu::ComplexType<T>*),
-                                gpu::flag::MemcpyHostToDevice));
-  gpu::check_status(gpu::memcpy(d_pws.get(), hd_pws.get(), Nw * sizeof(gpu::ComplexType<T>*),
-                                gpu::flag::MemcpyHostToDevice));
-  gpu::check_status(gpu::memcpy(d_vs.get(), hd_vs.get(), Nw * sizeof(gpu::ComplexType<T>*),
-                                gpu::flag::MemcpyHostToDevice));
-  gpu::check_status(gpu::memcpy(d_es.get(), hd_es.get(), Nw * sizeof(gpu::ComplexType<T>*),
-                                gpu::flag::MemcpyHostToDevice));
-
+  gpu::check_status(gpu::memcpy_async(d_ws.get(), hd_ws.get(), Nw * sizeof(gpu::ComplexType<T>*),
+                                      gpu::flag::MemcpyHostToDevice, ctx.gpu_stream()));
+  gpu::check_status(gpu::memcpy_async(d_ps.get(), hd_ps.get(), Nw * sizeof(gpu::ComplexType<T>*),
+                                      gpu::flag::MemcpyHostToDevice, ctx.gpu_stream()));
+  gpu::check_status(gpu::memcpy_async(d_pws.get(), hd_pws.get(), Nw * sizeof(gpu::ComplexType<T>*),
+                                      gpu::flag::MemcpyHostToDevice, ctx.gpu_stream()));
+  gpu::check_status(gpu::memcpy_async(d_vs.get(), hd_vs.get(), Nw * sizeof(gpu::ComplexType<T>*),
+                                      gpu::flag::MemcpyHostToDevice, ctx.gpu_stream()));
+  gpu::check_status(gpu::memcpy_async(d_es.get(), hd_es.get(), Nw * sizeof(gpu::ComplexType<T>*),
+                                      gpu::flag::MemcpyHostToDevice, ctx.gpu_stream()));
+  
   const ComplexType alpha{1.0, 0.0};
   const ComplexType beta{0.0, 0.0};
 
@@ -99,8 +96,6 @@ auto standard_synthesizer_gpu(ContextInternal& ctx, const T wl, const T* grid,
   // Compute stats (stacking Ne levels down to Nl according to c_idx)
   standard_synthesizer_stats_gpu(ctx.gpu_stream(), d, eD.get(), Ne, Nh, Nl, Nw, c_idx, c_thick,
                                  stats_std_cum, stats_lsq_cum);
-
-  gpu::check_status(gpu::stream_synchronize(ctx.gpu_stream()));
 }
 
 template auto standard_synthesizer_gpu<float>(ContextInternal& ctx, const float wl, const float* grid,

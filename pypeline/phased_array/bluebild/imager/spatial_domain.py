@@ -11,6 +11,7 @@ High-level Bluebild interfaces that work in the spatial domain.
 import numpy as np
 import scipy.sparse as sparse
 import time as stime
+from time import perf_counter
 import sys
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as ssd
 import pypeline.phased_array.bluebild.imager as bim
@@ -169,6 +170,8 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         else:
             self._synthesizer = ssd.SpatialFieldSynthesizerBlock(wl, pix_grid, precision)
 
+        self._cum_proc_time = 0
+
     def set_timer(self, t):
         self.timer = t
         self._synthesizer.set_timer(self.timer)
@@ -186,7 +189,7 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             cluster_idx=chk.has_integers,
         )
     )'''
-    def __call__(self, D, V, XYZ, W, cluster_idx):
+    def __call__(self, D, V, XYZ, W, cluster_idx, d2h=True):
         """
         Compute (clustered) integrated field statistics for least-squares and standardized estimates.
 
@@ -225,8 +228,12 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         _,  Ne = V.shape
 
         if self._ctx is not None:
-            return self._synthesizer.execute(D, V, XYZ, W, np.array(cluster_idx.data, order='F', dtype=np.uint))
+            tic = perf_counter()
+            self._synthesizer.execute(D, V, XYZ, W, np.array(cluster_idx.data, order='F', dtype=np.uint), d2h)
+            self._cum_proc_time += (perf_counter() - tic)
+            return
         else:
+            tic = perf_counter()
             assert self._synthesizer._grid.dtype == self._fp, f'_grid {self._grid.dtype} not of expected type {self._fp}'
             stat_std = self._synthesizer(V, XYZ, W)
                         
@@ -254,12 +261,11 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             self.unmark("Image update iteration")
 
             self.unmark("Imager call")
+    
+            self._cum_proc_time += (perf_counter() - tic)
 
             return stat
 
-    def copy_stats_d2h(self):
-        if self._ctx is not None and self._ctx.processing_unit() == bluebild.pybluebild.ProcessingUnit.GPU:
-            self._synthesizer.copy_stats_d2h()
 
     def as_image(self):
         """

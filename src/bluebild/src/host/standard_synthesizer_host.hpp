@@ -10,6 +10,10 @@
 namespace bluebild {
 
 template <typename T>
+auto mean_center(T* __restrict__ xyz, const T* __restrict__ xyz_, const size_t N) -> void;
+
+
+template <typename T>
 auto standard_synthesizer_host(ContextInternal& ctx,
                                const T* __restrict__ d,
                                const std::complex<T>* __restrict__ v,
@@ -25,8 +29,6 @@ auto standard_synthesizer_host(ContextInternal& ctx,
                                const std::size_t Ne,
                                const std::size_t Nh,
                                const std::size_t Nw,
-                               //T* __restrict__ stats_std,
-                               //T* __restrict__ stats_lsq,
                                T* __restrict__ stats_std_cum,
                                T* __restrict__ stats_lsq_cum) -> void;
 
