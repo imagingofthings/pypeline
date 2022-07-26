@@ -4,13 +4,15 @@
 # Author : Sepand KASHANI [kashani.sepand@gmail.com] (modified by Michele)
 # Simulated LOFAR imaging with Bluebild (Standard).
 # #############################################################################
+import bluebild_tools.cupy_util as bbt_cupy
+use_cupy = bbt_cupy.is_cupy_usable()
 
 from tqdm import tqdm as ProgressBar
 import astropy.units as u
 import astropy.time as atime
 
 from imot_tools.io import fits as ifits, s2image
-import numpy as np, cupy as cp, os
+import numpy as np, os#, cupy as xp
 import scipy.constants as constants
 
 from pypeline.phased_array.bluebild import gram as bb_gr, data_processor as bb_dp, parameter_estimator as bb_pe
@@ -25,9 +27,9 @@ warnings.filterwarnings('ignore', category=UserWarning, append=True)
 warnings.simplefilter('ignore', category=AstropyWarning)
 
 t = Timer()
+xp = bbt_cupy.cupy if use_cupy else np
 
-gpu = True
-time_slice = 4
+time_slice = 100
 N_station = 60
 N_level = 4
 
@@ -36,14 +38,16 @@ int_time = 8
 freq_band = 'LB'
 
 #path_out = '/users/mibianco/data/lofar/%s/' %fname_prefix
-path_out = '/users/mibianco/data/lofar/%s_%dhr_%s/' %(fname_prefix, int_time, freq_band)
-try:
-    os.makedir(path_out)
-except:
-    print()
+#path_out = '/users/mibianco/data/lofar/%s_%dhr_%s/' %(fname_prefix, int_time, freq_band)
+path_out = '/users/mibianco/data/test_lofar/'
 path_in = '/project/c31/%s/LB_%dhr/' %(fname_prefix, int_time)
 fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
 data_column="MODEL_DATA"
+
+try:
+    os.makedir(path_out)
+except:
+    print(path_out+' exist - skip mkdir')
 
 t.start_time("Set up data")
 # Measurement Set
@@ -55,7 +59,7 @@ wl = constants.speed_of_light / frequency.to_value(u.Hz)
 # Observation
 FoV = np.deg2rad((2000*2.*u.arcsec).to(u.deg).value)
 field_center = ms.field_center
-time = ms.time['TIME'][slice(None,None,time_slice)]  #[:time_slice] #
+time = ms.time['TIME'][:time_slice]  #[slice(None,None,time_slice)]
 
 # Instrument
 dev = ms.instrument
@@ -67,12 +71,10 @@ eps = 1e-3
 precision = 'single'
 N_bits = 32
 
-
-
 ### Imaging parameters ===========================================================
 cl_WCS = ifits.wcs('%s-image.fits' %(path_in+fname_prefix))
 cl_WCS = cl_WCS.sub(['celestial']) 
-#cl_WCS = cl_WCS.slice((slice(None, None, 10), slice(None, None, 10)))  # downsample, too high res!
+#cl_WCS = cl_WCS.slice((slice(None, None, 20), slice(None, None, 20)))  # downsample, too high res!
 px_grid = ifits.pix_grid(cl_WCS)  # (3, N_cl_lon, N_cl_lat) ICRS reference frame
 N_cl_lon, N_cl_lat = px_grid.shape[-2:]
 assert N_cl_lon == N_cl_lat
@@ -128,21 +130,17 @@ for i_t, ti in enumerate(ProgressBar(time)):
     t.end_time("Synthesis: prep input matrices & fPCA")
     
     t.start_time("Standard Synthesis")
-    if(gpu):
-        XYZ_gpu = cp.asarray(XYZ.data)
-        W_gpu  = cp.asarray(W.data.toarray())
-        V_gpu  = cp.asarray(V)
+    if(use_cupy):
+        XYZ_gpu = xp.asarray(XYZ.data)
+        W_gpu  = xp.asarray(W.data.toarray())
+        V_gpu  = xp.asarray(V)
         _ = I_mfs_ss(D, V_gpu, XYZ_gpu, W_gpu, c_idx)
     else:
         _ = I_mfs_ss(D, V, XYZ.data, W.data, c_idx)
 
-    # compute UVcoverage
-    #UVW_baselines_t = dev.baselines(ti, uvw=True, field_center=field_center)
-    #UVW_baselines.append(UVW_baselines_t)
     t.end_time("Standard Synthesis")
 
-#UVW_baselines = np.stack(UVW_baselines, axis=0).reshape(-1, 3)
-
+D_ss = D.reshape(-1, 1, 1)
 I_std_ss, I_lsq_ss = I_mfs_ss.as_image()
 
 #============================================================================================
@@ -175,25 +173,27 @@ for i_t, ti in enumerate(ProgressBar(time)):
     G = gram(XYZ, W, wl)
     D, V = S_dp(G)
 
-    if(gpu):
-        XYZ_gpu = cp.asarray(XYZ.data)
-        W_gpu  = cp.asarray(W.data.toarray())
-        V_gpu  = cp.asarray(V)
+    if(use_cupy):
+        XYZ_gpu = xp.asarray(XYZ.data)
+        W_gpu  = xp.asarray(W.data.toarray())
+        V_gpu  = xp.asarray(V)
         _ = S_mfs_ss(D, V_gpu, XYZ_gpu, W_gpu, cluster_idx=np.zeros(N_eig, dtype=int))
     else:
         _ = S_mfs_ss(D, V, XYZ, W, cluster_idx=np.zeros(N_eig, dtype=int))
 
-
 # Save eigen-values
-np.save('%sD_%s' %(path_out, fname_prefix), D.reshape(-1, 1, 1))
+D = D.reshape(-1, 1, 1)
+np.save('%sD_S_ss_%s' %(path_out, fname_prefix), D)
 
 _, S_ss = S_mfs_ss.as_image()
+np.save('%sS_ss_%s' %(path_out, fname_prefix), S_ss.data)
 
 # Image Gridding
 I_lsq_eq_ss = s2image.Image(I_lsq_ss.data / S_ss.data, I_lsq_ss.grid)
 
-# Save eigen-vectors for Standard Synthesis
+# Save eigen-vectors and eigen-values for Standard Synthesis
 np.save('%sI_ss_%s' %(path_out, fname_prefix), I_lsq_eq_ss.data)
+np.save('%sD_%s' %(path_out, fname_prefix), D_ss / D)
 
 # Interpolate image to MS grid-frame for Standard Synthesis
 f_interp = (I_lsq_eq_ss.data.reshape(N_level, N_cl_lon, N_cl_lat).transpose(0, 2, 1))

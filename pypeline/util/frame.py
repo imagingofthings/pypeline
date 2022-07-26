@@ -25,8 +25,12 @@ def uvw_basis(field_center: aspy.SkyCoord) -> np.ndarray:
     # UVW reference frame
     w_dir = field_center_xyz
     u_dir = np.array([-np.sin(field_center_lon), np.cos(field_center_lon), 0])
-    v_dir = np.array(
-        [-np.cos(field_center_lon) * np.sin(field_center_lat), -np.sin(field_center_lon) * np.sin(field_center_lat),
-         np.cos(field_center_lat)])
+    v_dir = np.array([-np.cos(field_center_lon) * np.sin(field_center_lat), -np.sin(field_center_lon) * np.sin(field_center_lat), np.cos(field_center_lat)])
+    
+    #u_dir = np.array([np.sin(field_center_lon), np.cos(field_center_lon), 0])
+    #v_dir = np.array([-np.sin(field_center_lat)*np.cos(field_center_lon), np.sin(field_center_lon)*np.sin(field_center_lat), np.cos(field_center_lat)])
+    #w_dir = np.array([np.cos(field_center_lat)*np.cos(field_center_lon), -np.cos(field_center_lat)*np.sin(field_center_lon), np.sin(field_center_lat)])
+
+
     uvw_frame = np.stack((u_dir, v_dir, w_dir), axis=-1)
     return uvw_frame
