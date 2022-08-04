@@ -35,6 +35,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/modules)
 option(BLUEBILD_BUILD_TESTS "Build tests" OFF)
 option(BLUEBILD_PYTHON "Build python module" ON)
 option(BLUEBILD_PYBIND11_DOWNLOAD "Download pybind11 instead of looking for installation" OFF)
+option(BLUEBILD_UMPIRE "Use Umpire memory pool library" OFF)
 
 set(BLUEBILD_GPU "OFF" CACHE STRING "GPU backend")
 set_property(CACHE BLUEBILD_GPU PROPERTY STRINGS
@@ -100,6 +101,12 @@ if(BLUEBILD_ROCM)
 	find_package(hip CONFIG REQUIRED)
 	find_package(rocblas CONFIG REQUIRED)
   list(APPEND BLUEBILD_EXTERNAL_LIBS hip::host roc::rocblas)
+endif()
+
+# Umpire
+if(BLUEBILD_UMPIRE)
+	find_package(umpire CONFIG REQUIRED)
+	list(APPEND BLUEBILD_EXTERNAL_LIBS umpire)
 endif()
 
 set(BLA_SIZEOF_INTEGER 4) # 32 bit interface to blas / lapack
