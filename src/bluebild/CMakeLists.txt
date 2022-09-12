@@ -16,10 +16,10 @@ endif()
 
 # set default build type to RELEASE
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
 		"Debug" "Release" "MinSizeRel" "RelWithDebInfo"
-		)
+	)
 endif()
 
 # set language and standard
@@ -103,6 +103,7 @@ if(BLUEBILD_ROCM)
 endif()
 
 set(BLA_SIZEOF_INTEGER 4) # 32 bit interface to blas / lapack
+
 # BLAS
 find_package(BLAS REQUIRED)
 if(NOT TARGET BLAS::BLAS)
@@ -128,11 +129,14 @@ find_package(FFTW REQUIRED)
 find_package(FFTWF REQUIRED)
 list(APPEND BLUEBILD_EXTERNAL_LIBS FFTW::FFTW FFTWF::FFTWF)
 
-
 if(BLUEBILD_CUDA OR BLUEBILD_ROCM)
 	find_package(CUFINUFFT REQUIRED)
 	list(APPEND BLUEBILD_EXTERNAL_LIBS CUFINUFFT::cufinufft)
 endif()
+
+# OpenMP
+find_package(OpenMP REQUIRED)
+list(APPEND BLUEBILD_EXTERNAL_LIBS OpenMP::OpenMP_CXX)
 
 # check if C api is available for blas and lapack
 # include(CheckCXXSymbolExists)
@@ -152,12 +156,16 @@ list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 list(APPEND BLUEBILD_INCLUDE_DIRS ${PROJECT_BINARY_DIR})
 
+find_package(Marla REQUIRED)
+list(APPEND BLUEBILD_EXTERNAL_LIBS Marla::Marla)
+
 #############################################################################
 # All include dirs and definitions must be set before sub-directory is added!
 #############################################################################
 add_subdirectory(src)
 
 if(BLUEBILD_PYTHON)
+    message(STATUS "BLUEBILD_PYTHON")
 	add_subdirectory(python)
 endif()
 
