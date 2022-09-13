@@ -279,18 +279,14 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         lsq : :py:class:`~imot_tools.io.s2image.Image`
             (N_level, N_px) least-squares energy-levels.
         """
-        grid = self._synthesizer._grid
 
         if self._ctx is not None:
-            std = image.Image(self._stats_std_cum, grid)
-            lsq = image.Image(self._stats_lsq_cum, grid)
+            std = image.Image(self._stats_std_cum, self._grid)
+            lsq = image.Image(self._stats_lsq_cum, self._grid)
         else:
             stat_std = self._statistics[0]
-            std = image.Image(stat_std, grid)
-
+            std = image.Image(stat_std, self._synthesizer._grid)
             stat_lsq = self._statistics[1]
-            lsq = image.Image(stat_lsq, grid)
+            lsq = image.Image(stat_lsq, self._synthesizer._grid)
 
         return std, lsq
-
-
