@@ -22,6 +22,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	)
 endif()
 
+set(BLUEBILD_BUILD_TYPE "OFF" CACHE STRING "If set, overrides the CMAKE_BUILD_TYPE variable.")
+set_property(CACHE BLUEBILD_BUILD_TYPE PROPERTY STRINGS
+	"Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+if(BLUEBILD_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE ${BLUEBILD_BUILD_TYPE} CACHE STRING "Build type" FORCE)
+endif()
+
+
 # set language and standard
 set(CMAKE_CXX_STANDARD 17)
 

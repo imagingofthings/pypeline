@@ -15,10 +15,11 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
 
 export BLUEBILD_GPU=CUDA
+#export BLUEBILD_GPU=OFF # to compile without gpu support
 
-WIPE_BUILD_DIR=0
+WIPE_BUILD_DIR=1
 
-RUN_PYTHON=1
+RUN_PYTHON=0
 RUN_TESTS=0
 RUN_ADVISOR=0
 RUN_VTUNE=0
@@ -87,7 +88,8 @@ for COMPILER in GCC; do
                 exit 1
             fi
         elif [ $COMPILER == "ICC" ]; then
-            module load intel cuda/11.0 intel-mkl cmake fftw
+            #module load intel cuda/11.0 intel-mkl cmake fftw
+            module load intel/19.1.1 cuda/11.1 intel-mkl cmake fftw
         else
             echo "Fatal: unknown compiler $COMPILER. Only knows GCC and ICC"
             exit 1
@@ -116,7 +118,8 @@ for COMPILER in GCC; do
         export LD_PRELOAD=${LD_PRELOAD}:$INTEL_MKL_ROOT/lib/intel64/libiomp5.so
     fi
 
-    cmake -S../../src/bluebild -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DBLUEBILD_SPLIT_GPU_SS="3"
+    cmake -S../../src/bluebild -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DCUFINUFFT_ROOT="$CUFINUFFT_ROOT" -DFINUFFT_ROOT="$FINUFFT_ROOT" 
+
     # With nvcc debug + line info
     #qcmake -S. -B$CMAKE_BUILD_DIR -DBLUEBILD_GPU=$BLUEBILD_GPU -DCMAKE_BUILD_TYPE="BB_CUSTOM" -DMARLA_ROOT="~/SKA/epfl-radio-astro/marla_gf" -DCMAKE_CUDA_FLAGS="-g -lineinfo"
     cmake --build $CMAKE_BUILD_DIR -- VERBOSE=1 -j 8
