@@ -324,7 +324,7 @@ class NUFFT_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         self._UVW_collection.append(UVW)
 
         if self._nbytes > self._max_colllect_bytes:
-            self._compute()
+            self._compute()     # TODO: here are computing the visibilities based on the max avail memory
 
     def as_image(self) -> list:
         r"""

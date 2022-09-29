@@ -196,8 +196,23 @@ class MeasurementSet:
             t = time.Time(np.unique(table.calc("MJD(TIME)")), format="mjd", scale="utc")
             t_id = range(len(t))
             self._time = tb.QTable(dict(TIME_ID=t_id, TIME=t))
-
         return self._time
+    
+    @property
+    def uvw(self):
+        """
+        UVW coverage acquisition.
+
+        Returns
+        -------
+        :py:class:`~astropy.table.QTable`
+            (N_time, 2) table with columns
+
+            * UVW : float
+        """
+        
+        tab = ct.table(self._msf, ack=False, readonly=True)
+        return tab.getcol('UVW')
 
     @property
     def instrument(self):
@@ -277,30 +292,30 @@ class MeasurementSet:
         table = ct.taql(query)
 
         for sub_table in table.iter("TIME", sort=True):
-            beam_id_0 = sub_table.getcol("ANTENNA1")  # (N_entry,)
-            beam_id_1 = sub_table.getcol("ANTENNA2")  # (N_entry,)
-            data_flag = sub_table.getcol("FLAG")  # (N_entry, N_channel, 4)
-            data = sub_table.getcol(column)  # (N_entry, N_channel, 4)
+            beam_id_0 = sub_table.getcol("ANTENNA1")  # (N_entry,)          # TODO: same at each time step
+            beam_id_1 = sub_table.getcol("ANTENNA2")  # (N_entry,)          # TODO: same
+            data_flag = sub_table.getcol("FLAG")  # (N_entry, N_channel, 4) # TODO: same
+            data = sub_table.getcol(column)  # (N_entry, N_channel, 4)      # TODO: different at each time
 
             # We only want XX and YY correlations
-            data = np.average(data[:, :, [0, 3]], axis=2)[:, channel_id]
-            data_flag = np.any(data_flag[:, :, [0, 3]], axis=2)[:, channel_id]
+            data = np.average(data[:, :, [0, 3]], axis=2)[:, channel_id]        # TODO: different
+            data_flag = np.any(data_flag[:, :, [0, 3]], axis=2)[:, channel_id]  # TODO: same
 
             # Set broken visibilities to 0
             data[data_flag] = 0
 
             # DataFrame description of visibility data.
             # Each column represents a different channel.
-            S_full_idx = pd.MultiIndex.from_arrays((beam_id_0, beam_id_1), names=("B_0", "B_1"))
-            S_full = pd.DataFrame(data=data, columns=channel_id, index=S_full_idx)
+            S_full_idx = pd.MultiIndex.from_arrays((beam_id_0, beam_id_1), names=("B_0", "B_1")) # TODO: same
+            S_full = pd.DataFrame(data=data, columns=channel_id, index=S_full_idx) # TODO: different
 
             # Drop rows of `S_full` corresponding to unwanted beams.
-            beam_id = np.unique(self.instrument._layout.index.get_level_values("STATION_ID"))
-            N_beam = len(beam_id)
-            i, j = np.triu_indices(N_beam, k=0)
-            wanted_index = pd.MultiIndex.from_arrays((beam_id[i], beam_id[j]), names=("B_0", "B_1"))
-            index_to_drop = S_full_idx.difference(wanted_index)
-            S_trunc = S_full.drop(index=index_to_drop)
+            beam_id = np.unique(self.instrument._layout.index.get_level_values("STATION_ID")) # TODO: same
+            N_beam = len(beam_id) # TODO: same
+            i, j = np.triu_indices(N_beam, k=0) # TODO: same
+            wanted_index = pd.MultiIndex.from_arrays((beam_id[i], beam_id[j]), names=("B_0", "B_1"))  # TODO: same
+            index_to_drop = S_full_idx.difference(wanted_index)  # TODO: same
+            S_trunc = S_full.drop(index=index_to_drop)  # TODO: different
 
             # Depending on the dataset, some (ANTENNA1, ANTENNA2) pairs that have correlation=0 are
             # omitted in the table.
@@ -308,14 +323,14 @@ class MeasurementSet:
             # missing entire antenna ranges.
             # To fix this issue, we augment the dataframe to always make sure `S_trunc` matches the
             # desired shape.
-            index_diff = wanted_index.difference(S_trunc.index)
-            N_diff = len(index_diff)
+            index_diff = wanted_index.difference(S_trunc.index) # TODO: same
+            N_diff = len(index_diff) # TODO: same
 
             S_fill_in = pd.DataFrame(
                 data=np.zeros((N_diff, len(channel_id)), dtype=data.dtype),
                 columns=channel_id,
                 index=index_diff,
-            )
+            )           # TODO: same (this is just an empty pd)
             S = pd.concat([S_trunc, S_fill_in], axis=0, ignore_index=False).sort_index(
                 level=["B_0", "B_1"]
             )
