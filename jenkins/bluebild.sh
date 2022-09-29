@@ -138,7 +138,11 @@ function bb_install_bluebild() {
     bb_activate_venv
     cd $PYPELINE_ROOT/src/bluebild
     [ -d _skbuild ] && rm -r _skbuild
-    BLUEBILD_CMAKE_ARGS="-DMARLA_ROOT=$MARLA_ROOT -DBLUEBILD_BUILD_TYPE=BbCustom -DCMAKE_CXX_FLAGS=\"-g -Ofast -march=skylake-avx512 -mprefer-vector-width=512 -ftree-vectorize\" -DCMAKE_CUDA_FLAGS=\"-g -lineinfo\"" pip install -v --no-deps .
+    BLUEBILD_CMAKE_ARGS="-DMARLA_ROOT=$MARLA_ROOT \
+                         -DBLUEBILD_BUILD_TYPE=DEBUG \
+                         -DCMAKE_CXX_FLAGS_DEBUG=\"-g -Ofast -march=skylake-avx512 -mprefer-vector-width=512 -ftree-vectorize\" \
+                         -DCMAKE_CUDA_FLAGS_DEBUG=\"-g -lineinfo\""
+    BLUEBILD_CMAKE_ARGS=${BLUEBILD_CMAKE_ARGS} pip install -v --no-deps .
     deactivate
     module purge
     cd $ENTRY
