@@ -294,7 +294,7 @@ class MeasurementSet:
         for sub_table in table.iter("TIME", sort=True):
             beam_id_0 = sub_table.getcol("ANTENNA1")  # (N_entry,)          # TODO: same at each time step
             beam_id_1 = sub_table.getcol("ANTENNA2")  # (N_entry,)          # TODO: same
-            data_flag = sub_table.getcol("FLAG")  # (N_entry, N_channel, 4) # TODO: same
+            data_flag = sub_table.getcol("FLAG")  # (N_entry, N_channel, 4) # TODO: same (likly changing for other test)
             data = sub_table.getcol(column)  # (N_entry, N_channel, 4)      # TODO: different at each time
 
             # We only want XX and YY correlations
