@@ -200,6 +200,22 @@ class MeasurementSet:
         return self._time
 
     @property
+    def uvw(self):
+        """
+        UVW coverage acquisition.
+
+        Returns
+        -------
+        :py:class:`~astropy.table.QTable`
+            (N_time, 2) table with columns
+
+            * UVW : float
+        """
+        
+        tab = ct.table(self._msf, ack=False, readonly=True)
+        return tab.getcol('UVW')
+
+    @property
     def instrument(self):
         """
         Returns
