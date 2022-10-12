@@ -28,18 +28,18 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 t = Timer()
 
 time_slice = 100
-N_station = 37
+N_station = 24
 N_level = 4
 
-path_out = '/users/mibianco/data/test/'
 fname_prefix = 'lofar30MHz1'
-path_in = '/project/c31/%s/LB_8hr/' %fname_prefix
+path_out = './'
+path_in = '/project/c31/%s/' %fname_prefix
 fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
 data_column="MODEL_DATA"
 
 t.start_time("Set up data")
 # Measurement Set
-ms = measurement_set.LofarMeasurementSet(file_name=fname, N_station=N_station, station_only=True)
+ms = measurement_set.LofarMeasurementSet(fname, N_station)
 channel_id = 1
 frequency = ms.channels["FREQUENCY"][channel_id]
 wl = constants.speed_of_light / frequency.to_value(u.Hz)
@@ -47,7 +47,7 @@ wl = constants.speed_of_light / frequency.to_value(u.Hz)
 # Observation
 FoV = np.deg2rad((2000*2.*u.arcsec).to(u.deg).value)
 field_center = ms.field_center
-time = ms.time['TIME']#[:time_slice]
+time = ms.time['TIME'][:time_slice]
 
 # Instrument
 gram = bb_gr.GramBlock()
@@ -163,16 +163,16 @@ for i_t, ti in enumerate(ProgressBar(time)):
     nufft_imager.collect(UVW_baselines_t, S_sensitivity)
 
 sensitivity_image = nufft_imager.get_statistic()[0]
-np.save('%sD_nufft_natural_%s' %(path_out, fname_prefix), D.reshape(-1, 1, 1))
+np.save('%sD_%s' %(path_out, fname_prefix), D.reshape(-1, 1, 1))
 
 #I_sqrt_eq_nufft = s2image.Image(sqrt_image / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
 I_lsq_eq_nufft = s2image.Image(lsq_image / sensitivity_image, nufft_imager._synthesizer.xyz_grid)
 
 # Save eigen-vectors for NUFFT
 #np.save('%sI_lsq_eq_nufft_Nsrc%d_Nlvl%d' %(path_out, N_src, N_level), I_lsq_eq_nufft.data)
-np.save('%sI_nufft_natural_%s' %(path_out, fname_prefix), I_lsq_eq_nufft.data)
+np.save('%sI_nufft_%s' %(path_out, fname_prefix), I_lsq_eq_nufft.data)
 
 # Interpolate image to MS grid-frame for NUFFT
 f_interp = (I_lsq_eq_nufft.data.reshape(N_level, N_cl_lon, N_cl_lat).transpose(0, 2, 1))
 I_lsq_eq_interp = s2image.WCSImage(f_interp, cl_WCS)
-I_lsq_eq_interp.to_fits('%sI_nufft_natural_%s.fits' %(path_out, fname_prefix))
+I_lsq_eq_interp.to_fits('%sI_nufft_%s.fits' %(path_out, fname_prefix))

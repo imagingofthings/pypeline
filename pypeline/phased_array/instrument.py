@@ -28,7 +28,6 @@ import imot_tools.math.linalg as pylinalg
 import imot_tools.math.special as sp
 import imot_tools.math.sphere.transform as transform
 import imot_tools.util.argcheck as chk
-from importlib_metadata import unique_everseen
 import numpy as np
 import pandas as pd
 import pkg_resources as pkg
@@ -249,11 +248,7 @@ class InstrumentGeometryBlock(core.Block):
         self._layout = XYZ.as_frame()
 
         if N_station is not None:
-            uniq_stations = np.unique(XYZ.index[0].get_level_values("STATION_ID"))
-            if N_station > uniq_stations.size:
-                raise ValueError("Parameter[N_station] exceed available number of stations: %d." %uniq_stations.size)
-            else:
-                stations = uniq_stations[:N_station]
+            stations = np.unique(XYZ.index[0].get_level_values("STATION_ID"))[:N_station]
             self._layout = self._layout.loc[stations]
 
     def __call__(self, *args, **kwargs):
