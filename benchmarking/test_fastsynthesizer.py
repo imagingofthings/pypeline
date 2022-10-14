@@ -1,27 +1,41 @@
+<<<<<<< HEAD
 import matplotlib as mpl
 mpl.use('agg')
 from pathlib import Path
+=======
+
+import os
+if os.getenv('OMP_NUM_THREADS') == None : os.environ['OMP_NUM_THREADS'] = "1"
+
+import bluebild_tools.cupy_util as bbt_cupy
+use_cupy = bbt_cupy.is_cupy_usable()
+>>>>>>> ci-master
 
 import sys,timing
 import numpy as np
-import cupy as cp
 import scipy.sparse as sparse
-
 import imot_tools.io.s2image as image
 import imot_tools.math.sphere.transform as transform
 import astropy.time as atime
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
 import imot_tools.io.s2image as s2image
 
+=======
+>>>>>>> ci-master
 import pypeline.phased_array.bluebild.field_synthesizer.fourier_domain as synth_periodic
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as synth_standard
-
 import dummy_synthesis 
 from dummy_synthesis import synthesize, synthesize_stack
-
 from data_gen_utils import RandomDataGen, SimulatedDataGen, RealDataGen
 from other_utils import rad_average
 path = '/users/mibianco/data/user_catalog/'
+
+
+# For CuPy agnostic code
+# ----------------------
+xp = bbt_cupy.cupy if use_cupy else np
+
 
 def draw_comparison(stats_standard, field_periodic, pix, icrs_grid):
     img_standard = image.Image(stats_standard, pix)
@@ -113,6 +127,7 @@ def draw_levels_substr(stats_standard, field_periodic, stats_standard_norm, fiel
     img_standard_norm = image.Image(stats_standard_norm, pix)
     img_periodic_norm = image.Image(field_periodic_norm, icrs_grid)
 
+<<<<<<< HEAD
     img_standard_substr = img_standard_norm.data[0]
     for i in range(1,img_standard_norm.data.shape[0]):
         img_standard_substr -= img_standard_norm.data[i]
@@ -170,6 +185,8 @@ def draw_levels_substr(stats_standard, field_periodic, stats_standard_norm, fiel
     #plt.show()
 
 
+=======
+>>>>>>> ci-master
 def draw_standard_levels(stats_standard, stats_standard_norm, pix):
     grid_kwargs = {"ticks": False}
     img_standard = image.Image(stats_standard, pix)
@@ -205,11 +222,15 @@ if __name__ == "__main__":
     precision = 32 # 32 or 64
 
     #data = SimulatedDataGen(frequency = 145e6)
+<<<<<<< HEAD
     #data = RealDataGen("/users/mibianco/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level=4, N_station=24) # n level = # eigenimages
     #cat = np.array([[216.9, 32.8, 87.5], [218.2, 34.8, 87.5], [218.8, 32.8, 87.5], [217.8, 32.4, 87.5]]) 
     #cat = np.array([[216.9, 32.8, 190.2]]) 
     cat = np.array([[218.00001, 34.500001, 1e6]]) 
     data = SimulatedDataGen(frequency=145e6, N_level=4 , N_sources=1, mock_catalog=cat)
+=======
+    data = RealDataGen("/work/scitas-share/SKA/data/gauss4/gauss4_t201806301100_SBL180.MS", N_level = 4, N_station = 24) # n level = # eigenimages
+>>>>>>> ci-master
     #data = dummy_synthesis.RandomDataGen()
     ################################### 
 
@@ -234,32 +255,37 @@ if __name__ == "__main__":
     stats_standard_normcombined = None
     stats_periodic_normcombined = None
     icrs_grid = None
+
     for t in range(0,10):
         (V, XYZ, W, D) = data.getVXYZWD(t)
         print("t = {0}".format(t))
-
+        
         if isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix):
-          W = W.toarray()
+            W = W.toarray()
 
-        XYZ_gpu = cp.asarray(XYZ)
-        W_gpu  = cp.asarray(W)
-        V_gpu  = cp.asarray(V)
+        print("use_cupy =", use_cupy)
+
+        if use_cupy:
+            XYZ = xp.asarray(XYZ)
+            W   = xp.asarray(W)
+            V   = xp.asarray(V)
+
+        stats_standard = synthesizer_standard(V, XYZ, W)
+        print("stats_standard = ", type(stats_standard))
+        stats_periodic = synthesizer_periodic(V, XYZ, W)
+        print("stats_periodic = ", type(stats_periodic))
 
         # call the Bluebild Synthesis Kernels
-        stats_periodic = synthesizer_periodic(V,XYZ,W)
         #stats_standard = synthesizer_standard(V,XYZ,W)
-        stats_standard_gpu = synthesizer_standard(V_gpu,XYZ_gpu,W_gpu)
-        stats_standard = stats_standard_gpu.get()
 
         D_r =  D.reshape(-1, 1, 1)
 
         stats_standard_norm = stats_standard * D_r
         stats_periodic_norm = stats_periodic * D_r
 
-        # trasform the periodic field statistics to periodic eigenimages
+        # transform the periodic field statistics to periodic eigenimages
         field_periodic      = synthesizer_periodic.synthesize(stats_periodic)
         field_periodic_norm = synthesizer_periodic.synthesize(stats_periodic_norm)
-
 
         bfsf_grid = transform.pol2cart(1, data.px_colat_periodic, data.px_lon_periodic)
         icrs_grid = np.tensordot(synthesizer_periodic._R.T, bfsf_grid, axes=1)
@@ -287,4 +313,5 @@ if __name__ == "__main__":
     draw_levels_substr(stats_standard_combined, stats_periodic_combined, stats_standard_normcombined, stats_periodic_normcombined, pix, icrs_grid, psf=True)
 
     #draw_standard_levels(stats_standard_combined, stats_standard_normcombined, pix)
+   
     print(timer.summary())

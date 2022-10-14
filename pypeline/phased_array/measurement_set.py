@@ -573,14 +573,22 @@ class MwaMeasurementSet(MeasurementSet):
 
         return self._beamformer
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ci-master
 class SKALowMeasurementSet(MeasurementSet):
     """
     SKA Low Measurement Set reader.
     """
 
+<<<<<<< HEAD
     @chk.check("file_name", chk.is_instance(str))
     def __init__(self, file_name):
+=======
+    @chk.check(dict(file_name=chk.is_instance(str), N_station=chk.allow_None(chk.is_integer), station_only=chk.is_boolean))
+    def __init__(self, file_name, N_station=512, station_only=True):
+>>>>>>> ci-master
         """
         Parameters
         ----------
@@ -588,6 +596,11 @@ class SKALowMeasurementSet(MeasurementSet):
             Name of the MS file.
         """
         super().__init__(file_name)
+<<<<<<< HEAD
+=======
+        self._N_station = N_station
+        self._station_only = station_only
+>>>>>>> ci-master
 
     @property
     def instrument(self):
@@ -617,10 +630,22 @@ class SKALowMeasurementSet(MeasurementSet):
                 [station_id, [0]], names=("STATION_ID", "ANTENNA_ID")
             )
             cfg = pd.DataFrame(data=station_mean, columns=("X", "Y", "Z"), index=cfg_idx)
+<<<<<<< HEAD
 
             XYZ = instrument.InstrumentGeometry(xyz=cfg.values, ant_idx=cfg.index)
 
             self._instrument = instrument.EarthBoundInstrumentGeometryBlock(XYZ)
+=======
+            
+            if self._station_only:
+                cfg = cfg.groupby("STATION_ID").mean()
+                station_id = cfg.index.get_level_values("STATION_ID")
+                cfg.index = pd.MultiIndex.from_product([station_id, [0]], names=["STATION_ID", "ANTENNA_ID"])
+            
+            XYZ = instrument.InstrumentGeometry(xyz=cfg.values, ant_idx=cfg.index)
+
+            self._instrument = instrument.EarthBoundInstrumentGeometryBlock(XYZ, self._N_station)
+>>>>>>> ci-master
 
         return self._instrument
 

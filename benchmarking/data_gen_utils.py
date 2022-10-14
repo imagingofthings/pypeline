@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import numpy as np, pandas as pd
 
+=======
+import numpy as np
+>>>>>>> ci-master
 import scipy.constants as constants
+import nvtx
+
 import imot_tools.math.sphere.grid as grid
 import astropy.units as u
 import astropy.time as atime
@@ -11,12 +17,12 @@ import pypeline.phased_array.instrument as instrument
 import pypeline.phased_array.bluebild.gram as bb_gr
 import pypeline.phased_array.bluebild.parameter_estimator as bb_pe
 import pypeline.phased_array.bluebild.data_processor as bb_dp
-import pypeline.phased_array.bluebild.gram as bb_gr
 import pypeline.phased_array.data_gen.source as source
 import pypeline.phased_array.data_gen.statistics as statistics
 import pypeline.phased_array.measurement_set as measurement_set
 
 import imot_tools.math.sphere.transform as transform
+
 #################################################################################
 # Data Generators
 #################################################################################
@@ -73,6 +79,7 @@ class RandomDataGen():
 
     def getVXYZW(self, i):
         return (self.getV(i),self.getXYZ(i),self.getW(i))
+
 #################################################################################
 class SimulatedDataGen():
     def __init__(self, frequency, N_level=4, N_sources=None, mock_catalog=None):
@@ -133,6 +140,11 @@ class SimulatedDataGen():
         print(' pix_grid', self.pix_grid.shape)
         self.T_kernel = np.deg2rad(10)
         self.N_FS = self.dev.bfsf_kernel_bandwidth(self.wl, self.obs_start, self.time[-1])
+<<<<<<< HEAD
+=======
+
+        self.estimateParams()
+>>>>>>> ci-master
 
         N_eig, c_centroid = self.N_level, list(range(self.N_level))
         self.I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
@@ -169,11 +181,11 @@ class SimulatedDataGen():
         XYZ = self.dev(t)
         W = self.mb(XYZ, self.wl)
         S = self.vis(XYZ, W, self.wl)
-        G = self.gram(XYZ, W, self.wl)
-        D, V, __ = self.I_dp(S, G)
+        D, V, __ = self.I_dp(S, XYZ, W, self.wl)
         return (V,XYZ.data, W.data, D)
 
 #################################################################################
+
 class RealDataGen():
     def __init__(self, ms_file, N_level = 4, N_station = 24):
         self.N_level = N_level
@@ -199,6 +211,8 @@ class RealDataGen():
              direction=self.ms.field_center.cartesian.xyz.value,
              FoV=self.FoV
         )
+        print("pix_grid ", self.px_colat.shape, "x", self.px_lon.shape)
+
         #self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon).reshape(3, -1)
         self.pix_grid = transform.pol2cart(1, self.px_colat, self.px_lon)
 
@@ -233,27 +247,39 @@ class RealDataGen():
 
     def getPixGrid(self):
         return self.pix_grid
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> ci-master
     def getVXYZWD(self, i):
-        t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
 
-        XYZ = self.ms.instrument(t)
-        W = self.ms.beamformer(XYZ, self.wl)
-        G = self.gram(XYZ, W, self.wl)
-        S, _ = measurement_set.filter_data(S, W)
-        D, V, c_idx = self.I_dp(S, G)
+        with nvtx.annotate("getVXYZWD tfs", color="navy"):
+            t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
+        with nvtx.annotate("getVXYZWD XYZ", color="plum"):
+            XYZ = self.ms.instrument(t)
+        with nvtx.annotate("getVXYZWD W", color="silver"):
+            W = self.ms.beamformer(XYZ, self.wl)
+        with nvtx.annotate("getVXYZWD S", color="grey"):
+            S, _ = measurement_set.filter_data(S, W)
+        with nvtx.annotate("getVXYZWD I_dp", color="orange"):
+            D, V, c_idx = self.I_dp(S, XYZ, W, self.wl)
 
+        return (V, XYZ.data, W.data,D)
+
+<<<<<<< HEAD
         return (V,XYZ.data, W.data,D)
         
+=======
+>>>>>>> ci-master
     def getInputs(self, i):
         t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
 
         wl = constants.speed_of_light / f.to_value(u.Hz) #self.wl
         XYZ = self.ms.instrument(t)
         W = self.ms.beamformer(XYZ, wl)
-        G = self.gram(XYZ, W, wl)
         S, _ = measurement_set.filter_data(S, W)
-        D, V, c_idx = self.I_dp(S, G)
-        Ds, Vs = self.S_dp(G)
+        D, V, c_idx = self.I_dp(S, XYZ, W, wl)
+        Ds, Vs = self.S_dp(XYZ, W, wl)
 
         return (V, Vs, XYZ.data, W.data,D, Ds)

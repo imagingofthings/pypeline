@@ -584,14 +584,23 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         if V.ndim > 1:
             V = V.reshape(-1, UVW.shape[-1])
             prephasing = prephasing[None, :]
+<<<<<<< HEAD
             V *= prephasing #np.sqrt(UVW[0]*UVW[0] + UVW[1]*UVW[1])
+=======
+            V *= prephasing
+>>>>>>> ci-master
             if self._n_trans == 1:  # NUFFT are evaluated sequentially
                 out = []
                 for n in range(V.shape[0]):
                     out.append(np.real(plan.execute(V[n])))
                 out = np.stack(out, axis=0)
             else:
+<<<<<<< HEAD
                 out = np.real(plan.execute(V))  # NUFFT are evaluated in parallel (not clear if multi-threaded or multi-processed?)
+=======
+                out = np.real(plan.execute(
+                    V))  # NUFFT are evaluated in parallel (not clear if multi-threaded or multi-processed?)
+>>>>>>> ci-master
         else:
             out = np.real(plan.execute(V * prephasing))
         return out

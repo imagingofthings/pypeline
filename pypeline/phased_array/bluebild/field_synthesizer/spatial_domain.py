@@ -10,9 +10,9 @@ Field synthesizers that work in the spatial domain.
 
 import numexpr as ne
 import numpy as np
-import cupy as cp
 import scipy.linalg as linalg
 import scipy.sparse as sparse
+import sys
 
 import pypeline.phased_array.bluebild.field_synthesizer as synth
 import imot_tools.util.argcheck as chk
@@ -168,8 +168,10 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
     )'''
     
     def __call__(self, V, XYZ, W):
+
         """
         Compute instantaneous field statistics.
+
         Parameters
         ----------
         V : :py:class:`~numpy.ndarray`
@@ -186,12 +188,23 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             (Note: StandardSynthesis statistics correspond to the actual field values.)
         """
 
-        # for CPU/GPU agnostic code
-        xp = cp.get_array_module(V)  # not using 'xp' instead of cp or np
+        # for CuPy agnostic code
+        use_cupy = False
+        if (type(V) == np.ndarray):
+            xp = np
+        else:
+            import cupy as cp
+            if (cp.get_array_module(V) != cp):
+                print("Error. V was not recognized correctly as either Cupy or Numpy.")
+                sys.exit(1)
+            xp = cp
+            use_cupy = True
         #print("Using:", xp.__name__)
+
 
         if not _have_matching_shapes(V, XYZ, W):
             raise ValueError("Parameters[V, XYZ, W] are inconsistent.")
+
         # TODO: move precision control outside of the call
         #V = V.astype(self._cp, copy=False)
         #XYZ = XYZ.astype(self._fp, copy=False)
@@ -203,30 +216,41 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
         N_height, N_width = self._grid.shape[1:]
         N_eig = V.shape[1]
 
+        if use_cupy:
+            XYZ = xp.asarray(XYZ)
+
         XYZ = XYZ - XYZ.mean(axis=0)
         #P = xp.zeros((N_antenna, N_height, N_width), dtype=self._cp)
+
         E = xp.zeros((N_eig, N_height, N_width), dtype=self._cp)
 
         a = 1j * 2 * np.pi / self._wl
 
         self.mark(self.timer_tag + "Synthesizer matmuls")
 
+<<<<<<< HEAD
         grid_gpu = xp.asarray(self._grid)
         #print("grid shape:", self._grid.shape)
+=======
+>>>>>>> ci-master
         for i in range(N_width):
-          b = xp.matmul(XYZ,  grid_gpu[:,:,i])
-          P = xp.exp(a*b)
-          if xp == np and (isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix)):   
-            PW = W.T @ P
-          else:
-            PW = xp.matmul(W.T,P)
-          E[:,:,i]  = xp.matmul(V.T, PW)
+            pix = xp.asarray(self._grid[:,:,i])
+            b  = xp.matmul(XYZ, pix)
+            P  = xp.exp(a*b)
+            if xp == np and (isinstance(W, sparse.csr.csr_matrix) or isinstance(W, sparse.csc.csc_matrix)):
+                PW = W.T @ P
+            else:
+                PW = xp.matmul(W.T, P)
+            E[:,:,i]  = xp.matmul(V.T, PW)
 
         self.unmark(self.timer_tag + "Synthesizer matmuls")
 
         I = E.real ** 2 + E.imag ** 2
 
         self.unmark(self.timer_tag + "Synthesizer call")
+
+        if xp != np:
+            return I.get()
 
         return I
     
