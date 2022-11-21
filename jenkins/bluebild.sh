@@ -86,7 +86,7 @@ function bb_create_python_venv() {
         numpy   astropy healpy \
         numexpr pandas  pybind11 \
         scipy   pbr     pyproj \
-        plotly  sklearn nvtx \
+        plotly  scikit-learn nvtx \
         python-casacore cupy-cuda110 \
         bluebild_tools  tqdm \
         tk sphinx sphinx_rtd_theme
