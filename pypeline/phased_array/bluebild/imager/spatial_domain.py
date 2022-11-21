@@ -10,7 +10,6 @@ High-level Bluebild interfaces that work in the spatial domain.
 
 import numpy as np
 import scipy.sparse as sparse
-import time as stime
 from time import perf_counter
 import sys
 import pypeline.phased_array.bluebild.field_synthesizer.spatial_domain as ssd
@@ -172,14 +171,6 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
 
         self._cum_proc_time = 0
 
-    def set_timer(self, t):
-        self.timer = t
-        self._synthesizer.set_timer(self.timer)
-
-    def mark(self, tag):
-      if self.timer: self.timer.start_time(tag)
-    def unmark(self, tag):
-      if self.timer: self.timer.end_time(tag)
     '''@chk.check(
         dict(
             D=chk.has_reals,
@@ -213,14 +204,11 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         stat : :py:class:`~numpy.ndarray`
             (2, N_level, N_px) field statistics.
         """
-        self.mark("Imager call")
 
         XYZ = XYZ.astype(self._fp, copy=False)
         D   = D.astype(self._fp, copy=False)
         V   = V.astype(self._cp, copy=False)
         W   = W.astype(self._cp, copy=False)
-
-        self.mark("Image synthesis")
 
         Na, Nc = XYZ.shape
         assert Nc == 3, f'Nc expected to be 3'
@@ -247,20 +235,11 @@ class Spatial_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
                     sys.exit(1)
                 stat_std = stat_std.get()
 
-            self.unmark("Image synthesis")
             stat_lsq = stat_std * D.reshape(-1, 1, 1)
 
             stat = np.stack([stat_std, stat_lsq], axis=0)
-
-            self.mark("Image cluster layers")
             stat = bim.cluster_layers(stat, cluster_idx, N=self._N_level, axis=1)
-            self.unmark("Image cluster layers")
-
-            self.mark("Image update iteration")
             self._update(stat)
-            self.unmark("Image update iteration")
-
-            self.unmark("Imager call")
     
             self._cum_proc_time += (perf_counter() - tic)
 
