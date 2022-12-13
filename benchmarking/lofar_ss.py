@@ -43,7 +43,6 @@ N_station = 60
 N_level = 4
 
 fname_prefix = 'lofar30MHz1'
-<<<<<<< HEAD
 int_time = 8
 freq_band = 'LB'
 
@@ -59,13 +58,6 @@ try:
 except:
     print(path_out+' exist - skip mkdir')
 
-=======
-path_out = './'
-path_in = '/project/c31/%s/' %fname_prefix
-fname = '%s_t201806301100_SBL153.MS' %(path_in+fname_prefix)
-data_column="MODEL_DATA"
-
->>>>>>> ci-master
 t.start_time("Set up data")
 # Measurement Set
 ms = measurement_set.LofarMeasurementSet(fname, N_station)

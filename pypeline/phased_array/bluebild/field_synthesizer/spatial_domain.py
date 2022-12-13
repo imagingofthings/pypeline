@@ -228,11 +228,6 @@ class SpatialFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
 
         self.mark(self.timer_tag + "Synthesizer matmuls")
 
-<<<<<<< HEAD
-        grid_gpu = xp.asarray(self._grid)
-        #print("grid shape:", self._grid.shape)
-=======
->>>>>>> ci-master
         for i in range(N_width):
             pix = xp.asarray(self._grid[:,:,i])
             b  = xp.matmul(XYZ, pix)

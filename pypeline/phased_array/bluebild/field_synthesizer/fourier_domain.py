@@ -576,31 +576,20 @@ class NUFFTFieldSynthesizerBlock(synth.FieldSynthesizerBlock):
             plan = bluebild.Nufft3d3(self._ctx, 1, self._eps, self._n_trans, UVW[0], UVW[1], UVW[2],
                     self._lmn_grid[0], self._lmn_grid[1], self._lmn_grid[-1])
         else:
-            plan = finufft.Plan(nufft_type=3, n_modes_or_dim=3, eps=self._eps, isign=1, n_trans=self._n_trans,
-                                dtype=self._precision_mappings[self._precision]['dtype'])
-            plan.setpts(x=UVW[0], y=UVW[1], z=UVW[-1],
-                        s=self._lmn_grid[0], t=self._lmn_grid[1], u=self._lmn_grid[-1])
+            plan = finufft.Plan(nufft_type=3, n_modes_or_dim=3, eps=self._eps, isign=1, n_trans=self._n_trans, dtype=self._precision_mappings[self._precision]['dtype'])
+            plan.setpts(x=UVW[0], y=UVW[1], z=UVW[-1], s=self._lmn_grid[0], t=self._lmn_grid[1], u=self._lmn_grid[-1])
 
         if V.ndim > 1:
             V = V.reshape(-1, UVW.shape[-1])
             prephasing = prephasing[None, :]
-<<<<<<< HEAD
             V *= prephasing #np.sqrt(UVW[0]*UVW[0] + UVW[1]*UVW[1])
-=======
-            V *= prephasing
->>>>>>> ci-master
             if self._n_trans == 1:  # NUFFT are evaluated sequentially
                 out = []
                 for n in range(V.shape[0]):
                     out.append(np.real(plan.execute(V[n])))
                 out = np.stack(out, axis=0)
             else:
-<<<<<<< HEAD
                 out = np.real(plan.execute(V))  # NUFFT are evaluated in parallel (not clear if multi-threaded or multi-processed?)
-=======
-                out = np.real(plan.execute(
-                    V))  # NUFFT are evaluated in parallel (not clear if multi-threaded or multi-processed?)
->>>>>>> ci-master
         else:
             out = np.real(plan.execute(V * prephasing))
         return out

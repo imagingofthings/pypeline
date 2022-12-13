@@ -200,20 +200,25 @@ class MeasurementSet:
         return self._time
 
     @property
-    def uvw(self):
+    def uvw(self, mirror_uvw=True):
         """
         UVW coverage acquisition.
 
         Returns
         -------
         :py:class:`~astropy.table.QTable`
-            (N_time, 2) table with columns
+            (N_time, N_antenna, 3) UVW per timestep per antenna
 
             * UVW : float
         """
         
         tab = ct.table(self._msf, ack=False, readonly=True)
-        return tab.getcol('UVW')
+        UVW = tab.getcol('UVW')
+        UVW_time = UVW.reshape(len(self._time), UVW.shape[0]//len(self._time), 3)
+        if(mirror_uvw):
+            UVW_time = np.hstack((UVW_time, -UVW_time))
+
+        return UVW_time
 
     @property
     def instrument(self):
@@ -245,7 +250,7 @@ class MeasurementSet:
             column=chk.is_instance(str),
         )
     )
-    def visibilities(self, channel_id, time_id, column):
+    def visibilities(self, channel_id, time_id, column, return_UVW=False):
         """
         Extract visibility matrices.
 
@@ -297,7 +302,9 @@ class MeasurementSet:
             beam_id_1 = sub_table.getcol("ANTENNA2")  # (N_entry,)
             data_flag = sub_table.getcol("FLAG")  # (N_entry, N_channel, 4)
             data = sub_table.getcol(column)  # (N_entry, N_channel, 4)
-
+            uvw = sub_table.getcol('UVW') # TODO
+            uvw *= -1
+            
             # We only want XX and YY correlations
             data = np.average(data[:, :, [0, 3]], axis=2)[:, channel_id]
             data_flag = np.any(data_flag[:, :, [0, 3]], axis=2)[:, channel_id]
@@ -343,7 +350,20 @@ class MeasurementSet:
             for ch_id in channel_id:
                 v = _series2array(S[ch_id].rename("S", inplace=True))
                 visibility = vis.VisibilityMatrix(v, beam_idx)
-                yield t, f[ch_id], visibility
+                if return_UVW:
+                    print("debug, nbeam = ",N_beam)
+                    UVW_baselines = np.zeros((N_beam, N_beam, 3))
+                    '''print(UVW_baselines.shape)
+                    UVW_baselines[np.triu_indices(N_beam, 0)] = uvw
+                    UVW_baselines[np.tril_indices(N_beam, -1)] = -1*np.transpose(UVW_baselines,(1,0,2))[np.tril_indices(N_beam, -1)]'''
+                    uvw_indices = S_trunc.index.to_numpy(dtype = np.dtype('int,int'))
+                    UVW_baselines[uvw_indices['f0'],uvw_indices['f1']] = uvw
+                    UVW_baselines[uvw_indices['f1'], uvw_indices['f0']] = -uvw
+                    #UVW_baselines[:, 0] *= -1.0
+                    #UVW_baselines[:, 2] *= -1.0
+                    yield t, f[ch_id], visibility, UVW_baselines
+                else:
+                    yield t, f[ch_id], visibility
 
 
 def _series2array(visibility: pd.Series) -> np.ndarray:
@@ -573,22 +593,13 @@ class MwaMeasurementSet(MeasurementSet):
 
         return self._beamformer
 
-<<<<<<< HEAD
-
-=======
->>>>>>> ci-master
 class SKALowMeasurementSet(MeasurementSet):
     """
     SKA Low Measurement Set reader.
     """
 
-<<<<<<< HEAD
-    @chk.check("file_name", chk.is_instance(str))
-    def __init__(self, file_name):
-=======
     @chk.check(dict(file_name=chk.is_instance(str), N_station=chk.allow_None(chk.is_integer), station_only=chk.is_boolean))
     def __init__(self, file_name, N_station=512, station_only=True):
->>>>>>> ci-master
         """
         Parameters
         ----------
@@ -596,11 +607,8 @@ class SKALowMeasurementSet(MeasurementSet):
             Name of the MS file.
         """
         super().__init__(file_name)
-<<<<<<< HEAD
-=======
         self._N_station = N_station
         self._station_only = station_only
->>>>>>> ci-master
 
     @property
     def instrument(self):
@@ -630,12 +638,6 @@ class SKALowMeasurementSet(MeasurementSet):
                 [station_id, [0]], names=("STATION_ID", "ANTENNA_ID")
             )
             cfg = pd.DataFrame(data=station_mean, columns=("X", "Y", "Z"), index=cfg_idx)
-<<<<<<< HEAD
-
-            XYZ = instrument.InstrumentGeometry(xyz=cfg.values, ant_idx=cfg.index)
-
-            self._instrument = instrument.EarthBoundInstrumentGeometryBlock(XYZ)
-=======
             
             if self._station_only:
                 cfg = cfg.groupby("STATION_ID").mean()
@@ -645,7 +647,6 @@ class SKALowMeasurementSet(MeasurementSet):
             XYZ = instrument.InstrumentGeometry(xyz=cfg.values, ant_idx=cfg.index)
 
             self._instrument = instrument.EarthBoundInstrumentGeometryBlock(XYZ, self._N_station)
->>>>>>> ci-master
 
         return self._instrument
 
