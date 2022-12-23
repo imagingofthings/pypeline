@@ -5,13 +5,10 @@ import numpy as np, pandas as pd
 import numpy as np
 >>>>>>> ci-master
 import scipy.constants as constants
-import nvtx
-
 import imot_tools.math.sphere.grid as grid
 import astropy.units as u
 import astropy.time as atime
 import astropy.coordinates as coord
-
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.instrument as instrument
 import pypeline.phased_array.bluebild.gram as bb_gr
@@ -253,17 +250,11 @@ class RealDataGen():
 
 >>>>>>> ci-master
     def getVXYZWD(self, i):
-
-        with nvtx.annotate("getVXYZWD tfs", color="navy"):
-            t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
-        with nvtx.annotate("getVXYZWD XYZ", color="plum"):
-            XYZ = self.ms.instrument(t)
-        with nvtx.annotate("getVXYZWD W", color="silver"):
-            W = self.ms.beamformer(XYZ, self.wl)
-        with nvtx.annotate("getVXYZWD S", color="grey"):
-            S, _ = measurement_set.filter_data(S, W)
-        with nvtx.annotate("getVXYZWD I_dp", color="orange"):
-            D, V, c_idx = self.I_dp(S, XYZ, W, self.wl)
+        t, f, S = next(self.ms.visibilities(channel_id=[self.channel_id], time_id=slice(i, i+1, None), column="DATA"))
+        XYZ = self.ms.instrument(t)
+        W = self.ms.beamformer(XYZ, self.wl)
+        S, _ = measurement_set.filter_data(S, W)
+        D, V, c_idx = self.I_dp(S, XYZ, W, self.wl)
 
         return (V, XYZ.data, W.data,D)
 
