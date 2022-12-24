@@ -1,0 +1,22 @@
+Timing Summary
+Total: 2070.96 s
+Setup: 11.38 s
+  Observation setup: 0.00
+  Instrument setup: 0.02
+  Data generation: 6.55
+  Imaging setup: 4.83
+Using 18 time iterations to estimate parameters
+Processing 180 time iterations for imaging
+Imaging:2054.07 
+  Intensity field parameter estimation: 2.31
+  Intensity field imaging: 967.87
+    Iterating: 965.78 (5.37 s per iteration)
+      Data prep: 255.07 (1.42 s per iteration)
+      Data processing: 8.22 (0.05 s per iteration)
+      Imaging: 701.99 (3.90 s per iteration)
+  Sensitivity field parameter estimation: 5.70
+  Sensitivity field imaging: 1078.20
+    Iterating: 1076.44 s (5.98 s per iteration)
+      Data prep: 238.90 s (1.33 s per iteration)
+      Data processing:6.09 s (0.03 s per iteration)
+      Imaging: 830.94 s (4.62 s per iteration)

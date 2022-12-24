@@ -200,6 +200,27 @@ class MeasurementSet:
         return self._time
 
     @property
+    def uvw(self, mirror_uvw=True):
+        """
+        UVW coverage acquisition.
+
+        Returns
+        -------
+        :py:class:`~astropy.table.QTable`
+            (N_time, N_antenna, 3) UVW per timestep per antenna
+
+            * UVW : float
+        """
+        
+        tab = ct.table(self._msf, ack=False, readonly=True)
+        UVW = tab.getcol('UVW')
+        UVW_time = UVW.reshape(len(self._time), UVW.shape[0]//len(self._time), 3)
+        if(mirror_uvw):
+            UVW_time = np.hstack((UVW_time, -UVW_time))
+
+        return UVW_time
+
+    @property
     def instrument(self):
         """
         Returns
@@ -229,7 +250,7 @@ class MeasurementSet:
             column=chk.is_instance(str),
         )
     )
-    def visibilities(self, channel_id, time_id, column):
+    def visibilities(self, channel_id, time_id, column, return_UVW=False):
         """
         Extract visibility matrices.
 
@@ -281,7 +302,9 @@ class MeasurementSet:
             beam_id_1 = sub_table.getcol("ANTENNA2")  # (N_entry,)
             data_flag = sub_table.getcol("FLAG")  # (N_entry, N_channel, 4)
             data = sub_table.getcol(column)  # (N_entry, N_channel, 4)
-
+            uvw = sub_table.getcol('UVW') # TODO
+            uvw *= -1
+            
             # We only want XX and YY correlations
             data = np.average(data[:, :, [0, 3]], axis=2)[:, channel_id]
             data_flag = np.any(data_flag[:, :, [0, 3]], axis=2)[:, channel_id]
@@ -327,7 +350,20 @@ class MeasurementSet:
             for ch_id in channel_id:
                 v = _series2array(S[ch_id].rename("S", inplace=True))
                 visibility = vis.VisibilityMatrix(v, beam_idx)
-                yield t, f[ch_id], visibility
+                if return_UVW:
+                    print("debug, nbeam = ",N_beam)
+                    UVW_baselines = np.zeros((N_beam, N_beam, 3))
+                    '''print(UVW_baselines.shape)
+                    UVW_baselines[np.triu_indices(N_beam, 0)] = uvw
+                    UVW_baselines[np.tril_indices(N_beam, -1)] = -1*np.transpose(UVW_baselines,(1,0,2))[np.tril_indices(N_beam, -1)]'''
+                    uvw_indices = S_trunc.index.to_numpy(dtype = np.dtype('int,int'))
+                    UVW_baselines[uvw_indices['f0'],uvw_indices['f1']] = uvw
+                    UVW_baselines[uvw_indices['f1'], uvw_indices['f0']] = -uvw
+                    #UVW_baselines[:, 0] *= -1.0
+                    #UVW_baselines[:, 2] *= -1.0
+                    yield t, f[ch_id], visibility, UVW_baselines
+                else:
+                    yield t, f[ch_id], visibility
 
 
 def _series2array(visibility: pd.Series) -> np.ndarray:
@@ -415,13 +451,21 @@ class LofarMeasurementSet(MeasurementSet):
             # - ELEMENT_FLAG: True/False value for each (station, antenna, polarization) pair.
             #                 If any of the polarization flags is True for a given antenna, then the
             #                 antenna can be discarded from that station.
-            query = f"select ANTENNA_ID, POSITION, ELEMENT_OFFSET, ELEMENT_FLAG from {self._msf}::LOFAR_ANTENNA_FIELD"
+            """
+            query = f"select ANTENNA_ID, FIELD, POSITION, ELEMENT_OFFSET, ELEMENT_FLAG from {self._msf}::LOFAR_ANTENNA_FIELD"
             table = ct.taql(query)
 
             station_id = table.getcol("ANTENNA_ID")
             station_mean = table.getcol("POSITION")
             antenna_offset = table.getcol("ELEMENT_OFFSET")
             antenna_flag = table.getcol("ELEMENT_FLAG")
+            """
+            table = ct.table(self._msf, ack=False, readonly=True)
+
+            station_id = table.LOFAR_ANTENNA_FIELD.getcol('ANTENNA_ID')
+            station_mean = table.LOFAR_ANTENNA_FIELD.getcol('POSITION')
+            antenna_offset = table.LOFAR_ANTENNA_FIELD.getcol('ELEMENT_OFFSET')
+            antenna_flag = table.LOFAR_ANTENNA_FIELD.getcol('ELEMENT_FLAG')
 
             # Form DataFrame that holds all antennas, then filter out flagged antennas.
             N_station, N_antenna, _ = antenna_offset.shape
@@ -524,6 +568,91 @@ class MwaMeasurementSet(MeasurementSet):
             self._instrument = instrument.EarthBoundInstrumentGeometryBlock(XYZ)
 
         return self._instrument
+
+    @property
+    def beamformer(self):
+        """
+        Each dataset has been beamformed in a specific way.
+        This property outputs the correct beamformer to compute the beamforming weights.
+
+        Returns
+        -------
+        :py:class:`~pypeline.phased_array.beamforming.MatchedBeamformerBlock`
+            Beamweight computer.
+        """
+        if self._beamformer is None:
+            # MWA does not do any beamforming.
+            # Given the single-antenna station model in MS files from MWA, this can be seen as
+            # Matched-Beamforming, with a single beam output per station.
+            XYZ = self.instrument._layout
+            beam_id = np.unique(XYZ.index.get_level_values("STATION_ID"))
+
+            direction = self.field_center
+            beam_config = [(_, _, direction) for _ in beam_id]
+            self._beamformer = beamforming.MatchedBeamformerBlock(beam_config)
+
+        return self._beamformer
+
+class SKALowMeasurementSet(MeasurementSet):
+    """
+    SKA Low Measurement Set reader.
+    """
+
+    @chk.check(dict(file_name=chk.is_instance(str), N_station=chk.allow_None(chk.is_integer), station_only=chk.is_boolean))
+    def __init__(self, file_name, N_station=512, station_only=True):
+        """
+        Parameters
+        ----------
+        file_name : str
+            Name of the MS file.
+        """
+        super().__init__(file_name)
+        self._N_station = N_station
+        self._station_only = station_only
+
+    @property
+    def instrument(self):
+        """
+        Returns
+        -------
+        :py:class:`~pypeline.phased_array.instrument.EarthBoundInstrumentGeometryBlock`
+            Instrument position computer.
+        """
+        if self._instrument is None:
+            # Following the MS file specification from https://casa.nrao.edu/casadocs/casa-5.1.0/reference-material/measurement-set,
+            # the ANTENNA sub-table specifies the antenna geometry.
+            # Some remarks on the required fields:
+            # - POSITION: absolute station positions in ITRF coordinates.
+            # - ANTENNA_ID: equivalent to STATION_ID field `InstrumentGeometry.index[0]`
+            #               This field is NOT present in the ANTENNA sub-table, but is given
+            #               implicitly by its row-ordering.
+            #               In other words, the station corresponding to ANTENNA1=k in the MAIN
+            #               table is described by the k-th row of the ANTENNA sub-table.
+            query = f"select POSITION from {self._msf}::ANTENNA"
+            table = ct.taql(query)
+            station_mean = table.getcol("POSITION")
+
+            N_station = len(station_mean)
+            station_id = np.arange(N_station)
+            cfg_idx = pd.MultiIndex.from_product(
+                [station_id, [0]], names=("STATION_ID", "ANTENNA_ID")
+            )
+            cfg = pd.DataFrame(data=station_mean, columns=("X", "Y", "Z"), index=cfg_idx)
+            
+            if self._station_only:
+                cfg = cfg.groupby("STATION_ID").mean()
+                station_id = cfg.index.get_level_values("STATION_ID")
+                cfg.index = pd.MultiIndex.from_product([station_id, [0]], names=["STATION_ID", "ANTENNA_ID"])
+            
+            XYZ = instrument.InstrumentGeometry(xyz=cfg.values, ant_idx=cfg.index)
+
+            self._instrument = instrument.EarthBoundInstrumentGeometryBlock(XYZ, self._N_station)
+
+        return self._instrument
+
+    @property
+    def location(self):
+        return coord.EarthLocation(lon=116.76444824 * u.deg, lat=-26.824722084 * u.deg, height=300.0)
 
     @property
     def beamformer(self):

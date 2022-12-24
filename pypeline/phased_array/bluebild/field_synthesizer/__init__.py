@@ -38,6 +38,8 @@ class FieldSynthesizerBlock(core.Block):
 
         """
         super().__init__()
+        self.timer = None
+        self.timer_tag = ""
 
     def __call__(self, *args, **kwargs):
         """
@@ -56,6 +58,15 @@ class FieldSynthesizerBlock(core.Block):
             Field statistics.
         """
         raise NotImplementedError
+
+    def set_timer(self,t,tname = ""):
+        self.timer = t
+        self.timer_tag = tname
+
+    def mark(self, tag):
+      if self.timer: self.timer.start_time(tag)
+    def unmark(self, tag):
+      if self.timer: self.timer.end_time(tag)
 
     def synthesize(self, *args, **kwargs):
         """

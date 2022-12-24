@@ -10,16 +10,18 @@
 # When modifying dependencies, don't forget to update both `requirements.txt` and
 # `conda_requirements.txt`.
 
-astropy == 3.1.*
+wheel
+astropy == 4.0.*
 black == 19.3b0
-imot_tools == 1.0
+healpy == 1.12.*
+ImoT-tools == 1.1.*
 ipython == 7.5.*
 matplotlib == 3.1.*
 numexpr == 2.6.*
 numpy == 1.16.*
 pandas == 0.24.*
 plotly == 3.5.*
-pyffs == 1.0
+pyFFS == 1.0.*
 pyproj == 1.9.*
 pytest == 4.5.*
 python-casacore == 2.2.*
@@ -28,3 +30,11 @@ scipy == 1.2.*
 sphinx == 1.8.*
 sphinx_rtd_theme == 0.4.*
 tqdm == 4.29.*
+pycsou == 1.0.5
+cupy-cuda102
+<<<<<<< HEAD
+finufft==2.0.3.post1
+=======
+bluebild-tools
+
+>>>>>>> ci-master

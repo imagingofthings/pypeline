@@ -1,8 +1,12 @@
-pypeline.phased\_array.bluebild.data\_processor
+﻿pypeline.phased\_array.bluebild.data\_processor
 ===============================================
 
 .. automodule:: pypeline.phased_array.bluebild.data_processor
-   :special-members: __init__, __call__
+
+   
+   
+   
+
    
    
    
@@ -16,8 +20,13 @@ pypeline.phased\_array.bluebild.data\_processor
       DataProcessorBlock
       IntensityFieldDataProcessorBlock
       SensitivityFieldDataProcessorBlock
+      VirtualVisibilitiesDataProcessingBlock
    
    
 
    
    
+   
+
+
+

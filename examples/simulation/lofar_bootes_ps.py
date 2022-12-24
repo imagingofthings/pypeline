@@ -74,13 +74,12 @@ N_eig, c_centroid = I_est.infer_parameters()
 # Imaging
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
 I_mfs = bb_fd.Fourier_IMFS_Block(wl, pix_colat, pix_lon, N_FS, T_kernel, R, N_level, N_bits)
-for t in ProgressBar(time[::1]):
+for t in ProgressBar(time[::1000]):
     XYZ = dev(t)
     W = mb(XYZ, wl)
     S = vis(XYZ, W, wl)
-    G = gram(XYZ, W, wl)
 
-    D, V, c_idx = I_dp(S, G)
+    D, V, c_idx = I_dp(S, XYZ, W, wl)
     _ = I_mfs(D, V, XYZ.data, W.data, c_idx)
 I_std, I_lsq = I_mfs.as_image()
 
@@ -98,22 +97,22 @@ N_eig = S_est.infer_parameters()
 # Imaging
 S_dp = bb_dp.SensitivityFieldDataProcessorBlock(N_eig)
 S_mfs = bb_fd.Fourier_IMFS_Block(wl, pix_colat, pix_lon, N_FS, T_kernel, R, 1, N_bits)
-for t in ProgressBar(time[::50]):
+for t in ProgressBar(time[::1000]):
     XYZ = dev(t)
     W = mb(XYZ, wl)
-    G = gram(XYZ, W, wl)
 
-    D, V = S_dp(G)
+    D, V = S_dp(XYZ, W, wl)
     _ = S_mfs(D, V, XYZ.data, W.data, cluster_idx=np.zeros(N_eig, dtype=int))
 _, S = S_mfs.as_image()
 
 # Plot Results ================================================================
 fig, ax = plt.subplots(ncols=2)
-I_std_eq = s2image.Image(I_std.data / S.data, I_std.grid)
+I_std_eq = s2image.Image(I_std.data , I_std.grid)
 I_std_eq.draw(catalog=sky_model.xyz.T, ax=ax[0])
 ax[0].set_title("Bluebild Standardized Image")
 
-I_lsq_eq = s2image.Image(I_lsq.data / S.data, I_lsq.grid)
+I_lsq_eq = s2image.Image(I_lsq.data , I_lsq.grid)
 I_lsq_eq.draw(catalog=sky_model.xyz.T, ax=ax[1])
 ax[1].set_title("Bluebild Least-Squares Image")
 fig.show()
+plt.show()

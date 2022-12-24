@@ -17,6 +17,7 @@ import pypeline.phased_array.bluebild.imager as bim
 import imot_tools.io.s2image as image
 import pypeline.util.array as array
 import imot_tools.math.sphere.transform as transform
+import astropy.coordinates as aspy
 
 
 class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
@@ -189,6 +190,10 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
             wl, grid_colat, grid_lon, N_FS, T, R, precision
         )
 
+    def set_timer(self, t):
+        self.timer = t
+        self._synthesizer.set_timer(self.timer)
+
     @chk.check(
         dict(
             D=chk.has_reals,
@@ -259,3 +264,96 @@ class Fourier_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
         lsq = image.Image(field_lsq, icrs_grid)
 
         return std, lsq
+
+
+class NUFFT_IMFS_Block(bim.IntegratingMultiFieldSynthesizerBlock):
+    r"""
+    Multi-field synthesizer based on the NUFFT synthesizer.
+    """
+
+    def __init__(self, wl: float, grid_size: int, FoV: float, field_center: aspy.SkyCoord,
+                 eps: float = 1e-3, n_trans: int = 1, precision: str = 'double', max_collect_bytes = 2 * 10**9,
+                 ctx = None):
+        r"""
+
+        Parameters
+        ----------
+        wl: float
+            Observation wavelength.
+        grid_size: int
+            Size of the output imaging grid across each dimension.
+        FoV: float
+            Size of the FoV in radians.
+        field_center: astropy.coordinates.SkyCoord
+            Center of the field of view for defining the local UVW frame.
+        eps: float
+            Relative tolerance of the NUFFT.
+        n_trans: int
+            Number of simultaneous NUFFT transforms.
+        precision: str
+            Whether to use ``'single'`` or ``'double'`` precision.
+        ctx: :py:class:`~bluebild.Context`
+            Bluebuild context. If provided, the bluebild library will be used for computation.
+        """
+        self._synthesizer = psd.NUFFTFieldSynthesizerBlock(wl=wl, grid_size=grid_size, FoV=FoV,
+                                                           field_center=field_center, eps=eps,
+                                                           n_trans=n_trans, precision=precision,
+                                                           ctx=ctx)
+        self._V_collection = []
+        self._UVW_collection = []
+        self._nbytes = 0
+        self._max_colllect_bytes = max_collect_bytes
+        super(NUFFT_IMFS_Block, self).__init__()
+
+    def collect(self, UVW: np.ndarray, V: np.ndarray) -> np.ndarray:
+        r"""
+        Image a set of (virtual) visibilities.
+
+        Parameters
+        ----------
+        UVW: np.ndarray
+            (3, N_uvw) UVW coordinates expressed in the local UVW frame.
+        V: np.ndarray
+            (M, N_uvw) stack of virtual visibilities to synthesize. If the ``n_trans`` parameter of the NUFFT plan is
+            different from zero, then one must have ``M==n_trans``. In which case, the ``M`` NUFFTs are computed in parallel
+            using OpenMP multi-threading. Otherwise, the ``M`` NUFFTs are computed sequentially.
+        """
+
+        self._nbytes += UVW.nbytes + V.nbytes
+        self._V_collection.append(V)
+        self._UVW_collection.append(UVW)
+
+        if self._nbytes > self._max_colllect_bytes:
+            self._compute()
+
+    def as_image(self) -> list:
+        r"""
+        Transform integrated statistics to viewable ICRS image.
+
+        Returns
+        -------
+        out : list[:py:class:`~imot_tools.io.s2image.Image`]
+            List of energy-level image cubes with size (N_level, N_height, N_width).
+        """
+
+        self._compute()
+
+        out = []
+        for stat in self._statistics:
+            out.append(image.Image(stat, self._synthesizer.xyz_grid))
+        return out
+
+    def get_statistic(self):
+        self._compute()
+        return self._statistics
+
+    def _compute(self):
+        if len(self._V_collection):
+            UVW = np.stack(self._UVW_collection, axis=0).reshape(-1, 3).T
+            V = np.stack(self._V_collection, axis=-3).reshape(*self._V_collection[-1].shape[:2], -1)
+            V_shape = V.shape[:-1]
+            stat = self._synthesizer(UVW, V).reshape(V_shape + self._synthesizer.xyz_grid.shape[1:])
+            self._update(stat)
+            self._V_collection = []
+            self._UVW_collection = []
+            self._nbytes = 0

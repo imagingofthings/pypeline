@@ -18,6 +18,7 @@ import imot_tools.math.sphere.transform as transform
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.constants as constants
+import sys
 
 import pypeline.phased_array.beamforming as beamforming
 import pypeline.phased_array.bluebild.data_processor as bb_dp
@@ -36,7 +37,7 @@ FoV, frequency = np.deg2rad(5), 145e6
 wl = constants.speed_of_light / frequency
 
 # Instrument
-N_station = 24
+N_station = 24  #24
 dev = instrument.LofarBlock(N_station)
 mb_cfg = [(_, _, field_center) for _ in range(N_station)]
 mb = beamforming.MatchedBeamformerBlock(mb_cfg)
@@ -49,12 +50,14 @@ vis = statistics.VisibilityGeneratorBlock(sky_model, T_integration, fs=196000, S
 time = obs_start + (T_integration * u.s) * np.arange(3595)
 
 # Imaging
-N_level = 4
-N_bits = 32
+N_level = 2 #4
+N_bits = 32 # 32
 _, _, px_colat, px_lon = grid.equal_angle(
     N=dev.nyquist_rate(wl), direction=field_center.cartesian.xyz.value, FoV=FoV
 )
+
 px_grid = transform.pol2cart(1, px_colat, px_lon)
+
 
 ### Intensity Field ===========================================================
 # Parameter Estimation
@@ -71,13 +74,12 @@ N_eig, c_centroid = I_est.infer_parameters()
 # Imaging
 I_dp = bb_dp.IntensityFieldDataProcessorBlock(N_eig, c_centroid)
 I_mfs = bb_sd.Spatial_IMFS_Block(wl, px_grid, N_level, N_bits)
-for t in ProgressBar(time[::1]):
+for t in ProgressBar(time[::50]):
     XYZ = dev(t)
     W = mb(XYZ, wl)
     S = vis(XYZ, W, wl)
-    G = gram(XYZ, W, wl)
 
-    D, V, c_idx = I_dp(S, G)
+    D, V, c_idx = I_dp(S, XYZ, W, wl)
     _ = I_mfs(D, V, XYZ.data, W.data, c_idx)
 I_std, I_lsq = I_mfs.as_image()
 
@@ -98,9 +100,8 @@ S_mfs = bb_sd.Spatial_IMFS_Block(wl, px_grid, 1, N_bits)
 for t in ProgressBar(time[::50]):
     XYZ = dev(t)
     W = mb(XYZ, wl)
-    G = gram(XYZ, W, wl)
 
-    D, V = S_dp(G)
+    D, V = S_dp(XYZ, W, wl)
     _ = S_mfs(D, V, XYZ.data, W.data, cluster_idx=np.zeros(N_eig, dtype=int))
 _, S = S_mfs.as_image()
 
@@ -113,4 +114,6 @@ ax[0].set_title("Bluebild Standardized Image")
 I_lsq_eq = s2image.Image(I_lsq.data / S.data, I_lsq.grid)
 I_lsq_eq.draw(catalog=sky_model.xyz.T, ax=ax[1])
 ax[1].set_title("Bluebild Least-Squares Image")
+fig.savefig("test.png")
 fig.show()
+plt.show()

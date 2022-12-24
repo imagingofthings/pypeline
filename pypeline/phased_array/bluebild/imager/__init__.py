@@ -23,7 +23,6 @@ import numpy as np
 
 import pypeline.core as core
 
-
 class IntegratingMultiFieldSynthesizerBlock(core.Block):
     """
     Top-level public interface of Bluebild multi-field synthesizers.
@@ -67,12 +66,13 @@ class IntegratingMultiFieldSynthesizerBlock(core.Block):
         Returns
         -------
         std : :py:class:`~imot_tools.io.s2image.Image`
-            (N_level, N_height, N_width) standardized energy-levels.
+            (N_level, ...) standardized energy-levels.
 
         lsq : :py:class:`~imot_tools.io.s2image.Image`
-            (N_level, N_height, N_width) least-squares energy-levels.
+            (N_level, ...) least-squares energy-levels.
         """
         raise NotImplementedError
+
 
 
 @chk.check(dict(x=chk.is_array_like, idx=chk.has_integers, N=chk.is_integer, axis=chk.is_integer))

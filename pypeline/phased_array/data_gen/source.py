@@ -125,6 +125,7 @@ class SkyEmission:
         return self.__intensity
 
 
+
 @chk.check(dict(direction=chk.is_instance(coord.SkyCoord), FoV=chk.is_real, N_src=chk.is_integer))
 def from_tgss_catalog(direction, FoV, N_src):
     """
@@ -191,5 +192,67 @@ def from_tgss_catalog(direction, FoV, N_src):
         (coord.SkyCoord(az * u.rad, el * u.rad, frame="icrs"), intensity)
         for el, az, intensity in zip(lat_region, lon_region, I_region)
     ]
+    sky_model = SkyEmission(source_config)
+    return sky_model
+
+
+@chk.check(dict(direction=chk.is_instance(coord.SkyCoord), FoV=chk.is_real, catalog_user=chk.is_array_like))
+def user_defined_catalog(direction, FoV, catalog_user, save_catalog=False):
+    """
+    Generate :py:class:`~pypeline.phased_array.data_gen.source.SkyEmission` from a
+    user defined catalog.
+
+    This function will create point sources on a user defined catalog.
+
+    Parameters
+    ----------
+    direction : :py:class:`~astropy.coordinates.SkyCoord`
+        Direction in the sky.
+    FoV : float
+        Spherical angle [rad] of the sky centered at `direction` from which sources are extracted.
+    catalog_user : list or array
+        array of the position and total flux of the sources to create. The number of sources is derived by the size of the array.
+
+    Returns
+    -------
+    :py:class:`~pypeline.phased_array.data_gen.source.SkyEmission`
+        Sky model.
+    """
+    if FoV <= 0:
+        raise ValueError("Parameter[FoV] must be positive.")
+
+    N_src = catalog_user.ndim
+    if(N_src == 1):
+        catalog_user = pd.DataFrame(catalog_user[np.newaxis, ...], index=range(catalog_user.ndim), columns=['RA', 'DEC', 'Total_flux'])
+    else:
+        catalog_user = pd.DataFrame(catalog_user, index=range(catalog_user.shape[0]), columns=['RA', 'DEC', 'Total_flux'])
+        N_src = catalog_user.shape[0]
+    
+    if save_catalog: catalog_user.to_csv('user_catalog_Nsrc%d.csv' %N_src)
+    
+    if N_src <= 0:
+        raise ValueError("Parameter[N_src] must be positive.")
+
+    I = catalog_user.loc[:, "Total_flux"].values * 1e-3
+
+    lat = np.deg2rad(catalog_user.loc[:, "DEC"].values)
+    lon = np.deg2rad(catalog_user.loc[:, "RA"].values)
+    xyz = transform.eq2cart(1, lat, lon)
+
+    # Reduce catalog to area of interest
+    f_dir = direction.transform_to("icrs").cartesian.xyz.value
+    mask = (f_dir @ xyz) >= np.cos(FoV / 2)
+
+    if mask.sum() < N_src:
+        raise ValueError("There are less than Parameter[N_src] sources in the field.")
+    else:
+        print('Number of sources in FoV:', mask.sum())
+
+    I_region, xyz_region = I[mask], xyz[:, mask]
+    idx = np.argsort(I_region)[-N_src:]
+    I_region, xyz_region = I_region[idx], xyz_region[:, idx]
+    _, lat_region, lon_region = transform.cart2eq(*xyz_region)
+
+    source_config = [(coord.SkyCoord(az * u.rad, el * u.rad, frame="icrs"), intensity) for el, az, intensity in zip(lat_region, lon_region, I_region)]
     sky_model = SkyEmission(source_config)
     return sky_model
